@@ -88,18 +88,35 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  let dbUserRole: string | null = null;
+  let dbUser: { role: UserRole; passwordSetAt: Date | null } | null = null;
   try {
-    const user = await prisma.user.findUnique({
+    dbUser = await prisma.user.findUnique({
       where: { supabaseAuthId: supabaseUserId },
-      select: { role: true },
+      select: { role: true, passwordSetAt: true },
     });
-    dbUserRole = user?.role ?? null;
   } catch {
     return NextResponse.next();
   }
 
-  if (!dbUserRole || dbUserRole !== requiredRole) {
+  if (!dbUser) {
+    if (isApiRoute) {
+      return jsonError(401, "Unauthorized", "UNAUTHORIZED");
+    }
+    return redirectToLogin(request);
+  }
+
+  // Force first-time password setup if passwordSetAt is null
+  if (dbUser.passwordSetAt === null && pathname !== "/set-password") {
+    if (isApiRoute) {
+      if (pathname !== "/api/auth/set-password" && pathname !== "/api/auth/logout") {
+        return jsonError(403, "Password setup required", "PASSWORD_SETUP_REQUIRED");
+      }
+    } else {
+      return NextResponse.redirect(new URL("/set-password", request.url));
+    }
+  }
+
+  if (dbUser.role !== requiredRole) {
     if (isApiRoute) {
       return jsonError(403, "Forbidden", "FORBIDDEN");
     }

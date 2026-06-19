@@ -24,9 +24,15 @@ vi.mock("../lib/auth/server", () => ({
   createAdminClient: vi.fn(),
 }));
 
+vi.mock("@supabase/ssr", () => ({
+  createServerClient: vi.fn(),
+}));
+
 import { authorizePasswordReset, resetPasswordViaAdmin } from "../services/auth/password.service";
 import { authenticateUser, fetchUserBySupabaseId, setUserPasswordSetAt } from "../services/auth/auth.service";
 import { createAdminClient } from "../lib/auth/server";
+import { proxy } from "../proxy";
+import { createServerClient } from "@supabase/ssr";
 
 describe("authorizePasswordReset", () => {
   beforeEach(() => {
@@ -269,5 +275,91 @@ describe("setUserPasswordSetAt", () => {
       where: { id: "user-1" },
       data: { passwordSetAt: expect.any(Date) },
     });
+  });
+});
+
+describe("proxy middleware", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("should allow public routes like /login without checking session", async () => {
+    const mockRequest = {
+      nextUrl: { pathname: "/login" },
+      url: "http://localhost:3000/login",
+    } as any;
+
+    const res = await proxy(mockRequest);
+    expect(res).toBeDefined();
+  });
+
+  it("should redirect to /login if there is no Supabase session for a protected route", async () => {
+    const mockRequest = {
+      nextUrl: { pathname: "/warden/dashboard" },
+      url: "http://localhost:3000/warden/dashboard",
+    } as any;
+
+    const mockSupabase = {
+      auth: {
+        getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+      },
+    };
+    (createServerClient as any).mockReturnValue(mockSupabase);
+
+    const res = await proxy(mockRequest);
+    expect(res.status).toBe(307);
+    expect(res.headers.get("Location")).toContain("/login");
+  });
+
+  it("should redirect to /set-password if the user has null passwordSetAt and attempts to access their dashboard", async () => {
+    const mockRequest = {
+      nextUrl: { pathname: "/warden/dashboard" },
+      url: "http://localhost:3000/warden/dashboard",
+    } as any;
+
+    const mockSupabase = {
+      auth: {
+        getSession: vi.fn().mockResolvedValue({
+          data: { session: { user: { id: "sb-uid-1" } } },
+          error: null,
+        }),
+      },
+    };
+    (createServerClient as any).mockReturnValue(mockSupabase);
+
+    mockPrisma.user.findUnique.mockResolvedValue({
+      role: UserRole.WARDEN,
+      passwordSetAt: null,
+    });
+
+    const res = await proxy(mockRequest);
+    expect(res.status).toBe(307);
+    expect(res.headers.get("Location")).toContain("/set-password");
+  });
+
+  it("should allow access if user role matches and password is set", async () => {
+    const mockRequest = {
+      nextUrl: { pathname: "/warden/dashboard" },
+      url: "http://localhost:3000/warden/dashboard",
+    } as any;
+
+    const mockSupabase = {
+      auth: {
+        getSession: vi.fn().mockResolvedValue({
+          data: { session: { user: { id: "sb-uid-1" } } },
+          error: null,
+        }),
+      },
+    };
+    (createServerClient as any).mockReturnValue(mockSupabase);
+
+    mockPrisma.user.findUnique.mockResolvedValue({
+      role: UserRole.WARDEN,
+      passwordSetAt: new Date(),
+    });
+
+    const res = await proxy(mockRequest);
+    expect(res).toBeDefined();
+    expect(res.status).not.toBe(307);
   });
 });
