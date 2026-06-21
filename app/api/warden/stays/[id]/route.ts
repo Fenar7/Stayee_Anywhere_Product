@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ForbiddenError } from "@/lib/errors";
+import { paiseToRupees } from "@/lib/money";
 import { UserRole } from "@prisma/client";
 
 export async function GET(
@@ -54,13 +55,13 @@ export async function GET(
         durationType: stay.durationType,
         joiningDate: stay.joiningDate,
         endDate: stay.endDate,
-        admissionFee: stay.admissionFeePaise / 100,
-        monthlyRent: stay.monthlyRentPaise / 100,
-        securityDeposit: stay.securityDepositPaise / 100,
-        foodCharges: stay.foodChargesPaise / 100,
+        admissionFee: paiseToRupees(stay.admissionFeePaise),
+        monthlyRent: paiseToRupees(stay.monthlyRentPaise),
+        securityDeposit: paiseToRupees(stay.securityDepositPaise),
+        foodCharges: paiseToRupees(stay.foodChargesPaise),
         foodPlan: stay.foodPlan,
-        totalPayable: stay.totalPayablePaise / 100,
-        discount: stay.discountPaise / 100,
+        totalPayable: paiseToRupees(stay.totalPayablePaise),
+        discount: paiseToRupees(stay.discountPaise),
         tenant: stay.tenant,
         bed: {
           id: stay.bed.id,
@@ -70,7 +71,7 @@ export async function GET(
         },
         payments: stay.payments.map((p) => ({
           id: p.id,
-          amountPaid: p.amountPaidPaise / 100,
+          amountPaid: paiseToRupees(p.amountPaidPaise),
           paymentMode: p.paymentMode,
           transactionRefNo: p.transactionRefNo,
           paymentStatus: p.paymentStatus,

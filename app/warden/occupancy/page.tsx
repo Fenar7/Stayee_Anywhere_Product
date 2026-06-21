@@ -653,7 +653,9 @@ export default function WardenOccupancyPage() {
 
   function loadData() {
     setLoading(true);
-    fetch("/api/hostel-structure/mine")
+    fetch("/api/warden/stays/natural-checkout", { method: "POST" })
+      .catch(() => {})
+      .then(() => fetch("/api/hostel-structure/mine"))
       .then((res) => {
         if (!res.ok) return res.json().then((err) => Promise.reject(new Error(err.error || "Failed to fetch")));
         return res.json();
