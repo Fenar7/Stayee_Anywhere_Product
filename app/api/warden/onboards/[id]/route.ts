@@ -1,0 +1,150 @@
+import { NextRequest, NextResponse } from "next/server";
+import { requireRole } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { handleApiError, NotFoundError, ForbiddenError } from "@/lib/errors";
+import { getSignedUrl } from "@/lib/storage";
+import { UserRole } from "@prisma/client";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await requireRole([UserRole.WARDEN]);
+    const warden = session.user.warden!;
+    const hostelId = warden.hostelId;
+
+    const { id } = await params;
+
+    // Fetch the Stay with full relations
+    const stay = await prisma.stay.findUnique({
+      where: { id },
+      include: {
+        tenant: {
+          include: {
+            user: true,
+            documents: true,
+          },
+        },
+        bed: {
+          include: {
+            room: true,
+          },
+        },
+        payments: {
+          include: {
+            screenshotDocument: true,
+          },
+        },
+      },
+    });
+
+    if (!stay) {
+      throw new NotFoundError("Stay record not found");
+    }
+
+    // Verify warden scope: stay must belong to the warden's hostel
+    if (stay.hostelId !== hostelId) {
+      throw new ForbiddenError("You are not authorized to view this stay record");
+    }
+
+    // Generate signed URLs for all documents
+    const documentsWithUrls = await Promise.all(
+      stay.tenant.documents.map(async (doc) => {
+        try {
+          const signedUrl = await getSignedUrl(doc.storagePath);
+          return {
+            id: doc.id,
+            documentType: doc.documentType,
+            fileSizeBytes: doc.fileSizeBytes,
+            createdAt: doc.createdAt,
+            signedUrl,
+          };
+        } catch (err) {
+          console.error(`Failed to generate signed URL for document ${doc.id}:`, err);
+          return {
+            id: doc.id,
+            documentType: doc.documentType,
+            fileSizeBytes: doc.fileSizeBytes,
+            createdAt: doc.createdAt,
+            signedUrl: null,
+          };
+        }
+      })
+    );
+
+    // Generate signed URLs for payment screenshot documents
+    const paymentsWithUrls = await Promise.all(
+      stay.payments.map(async (pmt) => {
+        let screenshotUrl = null;
+        if (pmt.screenshotDocument) {
+          try {
+            screenshotUrl = await getSignedUrl(pmt.screenshotDocument.storagePath);
+          } catch (err) {
+            console.error(`Failed to generate signed URL for payment screenshot ${pmt.id}:`, err);
+          }
+        }
+        return {
+          id: pmt.id,
+          amountPaid: pmt.amountPaidPaise / 100,
+          paymentMode: pmt.paymentMode,
+          transactionRefNo: pmt.transactionRefNo,
+          receivedBy: pmt.receivedBy,
+          paymentStatus: pmt.paymentStatus,
+          verifiedAt: pmt.verifiedAt,
+          createdAt: pmt.createdAt,
+          screenshotUrl,
+        };
+      })
+    );
+
+    return NextResponse.json({
+      stay: {
+        id: stay.id,
+        status: stay.status,
+        durationType: stay.durationType,
+        joiningDate: stay.joiningDate,
+        endDate: stay.endDate,
+        isNewAdmission: stay.isNewAdmission,
+        admissionFee: stay.admissionFeePaise / 100,
+        monthlyRent: stay.monthlyRentPaise / 100,
+        securityDeposit: stay.securityDepositPaise / 100,
+        foodCharges: stay.foodChargesPaise / 100,
+        foodPlan: stay.foodPlan,
+        totalPayable: stay.totalPayablePaise / 100,
+        discount: stay.discountPaise / 100,
+      },
+      tenant: {
+        id: stay.tenant.id,
+        fullName: stay.tenant.fullName,
+        dateOfBirth: stay.tenant.dateOfBirth,
+        gender: stay.tenant.gender,
+        placeOfBirth: stay.tenant.placeOfBirth,
+        permanentAddress: stay.tenant.permanentAddress,
+        emergencyContactName: stay.tenant.emergencyContactName,
+        relationship: stay.tenant.relationship,
+        emergencyContactNumber: stay.tenant.emergencyContactNumber,
+        parentGuardianName: stay.tenant.parentGuardianName,
+        parentGuardianContact: stay.tenant.parentGuardianContact,
+        occupationType: stay.tenant.occupationType,
+        collegeName: stay.tenant.collegeName,
+        courseOrBranch: stay.tenant.courseOrBranch,
+        companyName: stay.tenant.companyName,
+        designation: stay.tenant.designation,
+        purposeOfStay: stay.tenant.purposeOfStay,
+        phone: stay.tenant.user?.phone || "",
+        email: stay.tenant.user?.email || "",
+        documents: documentsWithUrls,
+      },
+      bed: {
+        id: stay.bed.id,
+        label: stay.bed.label,
+        roomNumber: stay.bed.room.roomNumber,
+        sharingType: stay.bed.room.sharingType,
+      },
+      payments: paymentsWithUrls,
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}

@@ -85,12 +85,14 @@ export default async function WardenPage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
+            <Link href="/warden/onboards" className="block hover:opacity-90 transition">
+              <div className="rounded-lg border bg-card p-4">
+                <p className="text-sm font-medium text-muted-foreground">Pending Onboarding</p>
+                <p className="text-2xl font-bold text-primary">{stats.pendingOnboarding} →</p>
+              </div>
+            </Link>
             <div className="rounded-lg border bg-card p-4">
-              <p className="text-sm font-medium">Pending Onboarding</p>
-              <p className="text-2xl font-bold">{stats.pendingOnboarding}</p>
-            </div>
-            <div className="rounded-lg border bg-card p-4">
-              <p className="text-sm font-medium">Occupancy Rate</p>
+              <p className="text-sm font-medium text-muted-foreground">Occupancy Rate</p>
               <p className="text-2xl font-bold">{stats.occupancyRate}%</p>
             </div>
           </div>
