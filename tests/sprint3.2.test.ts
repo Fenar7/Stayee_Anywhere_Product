@@ -113,6 +113,7 @@ describe("Sprint 3.2: Warden Stay Lifecycle Controls", () => {
             createdAt: new Date(),
           },
         ],
+        refundInvoices: [],
       });
 
       const res = await stayDetailsGET(

@@ -7,6 +7,7 @@ import {
 import { rupeesToPaise } from "@/lib/money";
 import { diffInDays, isFutureDateIST } from "@/lib/dates";
 import { StayStatus, BedStatus, DocumentOwnerType, DocumentType } from "@prisma/client";
+import { generateRefundInvoice } from "@/services/pdf/refund-invoice.service";
 
 export interface EarlyCheckoutParams {
   stayId: string;
@@ -114,5 +115,13 @@ export async function processEarlyCheckout(params: EarlyCheckoutParams): Promise
     return refundInvoice;
   });
 
-  return { refundInvoiceId: result.id };
+  const refundInvoiceId = result.id;
+
+  // Auto-trigger refund invoice PDF generation asynchronously.
+  // Failures are logged but do NOT affect the checkout result.
+  generateRefundInvoice(refundInvoiceId).catch((err) => {
+    console.error(`[RefundInvoice] Failed to generate PDF for refund ${refundInvoiceId}:`, err);
+  });
+
+  return { refundInvoiceId };
 }

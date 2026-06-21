@@ -37,6 +37,9 @@ export async function GET(
         payments: {
           orderBy: { createdAt: "desc" },
         },
+        refundInvoices: {
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 
@@ -76,6 +79,15 @@ export async function GET(
           transactionRefNo: p.transactionRefNo,
           paymentStatus: p.paymentStatus,
           createdAt: p.createdAt,
+        })),
+        refundInvoices: stay.refundInvoices.map((r) => ({
+          id: r.id,
+          refundAmountPaise: r.refundAmountPaise,
+          daysUsed: r.daysUsed,
+          daysRemaining: r.daysRemaining,
+          notes: r.notes,
+          pdfDocumentId: r.pdfDocumentId,
+          createdAt: r.createdAt,
         })),
       },
     });
