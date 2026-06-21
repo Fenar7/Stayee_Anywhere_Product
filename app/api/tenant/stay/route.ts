@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError } from "@/lib/errors";
@@ -52,7 +52,7 @@ function calculateNextDueDate(
   return nextDue.toISOString();
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await requireRole([UserRole.TENANT]);
 
