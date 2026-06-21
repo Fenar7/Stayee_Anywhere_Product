@@ -17,8 +17,8 @@ const AccommodationType = {
 const createHostelSchema = z.object({
   name: z.string().min(1, "Hostel name is required"),
   address: z.string().min(1, "Address is required"),
-  accommodationType: z.enum([AccommodationType.MENS, AccommodationType.WOMENS], {
-    errorMap: () => ({ message: "Select a valid accommodation type" }),
+  accommodationType: z.enum(["MENS", "WOMENS"], {
+    message: "Select a valid accommodation type",
   }),
   wardenEmail: z.string().email("Invalid email for warden"),
   wardenPhone: z

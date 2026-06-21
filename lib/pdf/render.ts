@@ -9,7 +9,7 @@ import { RefundInvoiceDocument, RefundInvoiceData } from "./templates/refund-inv
  */
 export async function renderPaymentReceipt(data: ReceiptData): Promise<Buffer> {
   const element = React.createElement(PaymentReceiptDocument, { data });
-  const buffer = await renderToBuffer(element);
+  const buffer = await renderToBuffer(element as any);
   return buffer as unknown as Buffer;
 }
 
@@ -18,7 +18,7 @@ export async function renderPaymentReceipt(data: ReceiptData): Promise<Buffer> {
  */
 export async function renderRegistrationForm(data: RegistrationFormData): Promise<Buffer> {
   const element = React.createElement(RegistrationFormDocument, { data });
-  const buffer = await renderToBuffer(element);
+  const buffer = await renderToBuffer(element as any);
   return buffer as unknown as Buffer;
 }
 
@@ -27,6 +27,6 @@ export async function renderRegistrationForm(data: RegistrationFormData): Promis
  */
 export async function renderRefundInvoice(data: RefundInvoiceData): Promise<Buffer> {
   const element = React.createElement(RefundInvoiceDocument, { data });
-  const buffer = await renderToBuffer(element);
+  const buffer = await renderToBuffer(element as any);
   return buffer as unknown as Buffer;
 }

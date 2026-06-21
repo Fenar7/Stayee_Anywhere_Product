@@ -9,7 +9,10 @@ const s = StyleSheet.create({
     fontSize: fontSizes.md,
     color: colors.text,
     backgroundColor: colors.background,
-    padding: { top: 40, bottom: 40, left: 50, right: 50 },
+    paddingTop: 40,
+    paddingBottom: 40,
+    paddingLeft: 50,
+    paddingRight: 50,
   },
   header: {
     flexDirection: "row",
@@ -179,7 +182,7 @@ export function RefundInvoiceDocument({ data }: { data: RefundInvoiceData }) {
           <Text style={s.totalValue}>{data.refundAmountFormatted}</Text>
         </View>
 
-        <View style={s.row} style={{ marginTop: 12 }}>
+        <View style={[s.row, { marginTop: 12 }]}>
           <Text style={s.label}>Processed By</Text>
           <Text style={s.value}>{data.processedByName}</Text>
         </View>

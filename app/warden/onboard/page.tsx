@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { DurationType, FoodPlan } from "@prisma/client";
 import { onboardingLink } from "@/lib/whatsapp/templates";
 import { buildWaMeLink } from "@/lib/whatsapp/utils";
@@ -20,9 +20,10 @@ const PHONE_REGEX = /^\+91[0-9]{10}$/;
 
 export default function WardenOnboardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [step, setStep] = useState(1);
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(() => searchParams.get("phone") || "");
   const [phoneError, setPhoneError] = useState("");
   const [joiningDate, setJoiningDate] = useState("");
   const [endDate, setEndDate] = useState("");

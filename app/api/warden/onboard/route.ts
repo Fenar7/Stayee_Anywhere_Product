@@ -9,6 +9,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "@/lib/errors";
+import { normalizePhoneNumber } from "@/lib/whatsapp/utils";
 import {
   UserRole,
   OccupationType,
@@ -16,6 +17,7 @@ import {
   FoodPlan,
   StayStatus,
   OnboardingRequestStatus,
+  LeadStatus,
 } from "@prisma/client";
 
 const onboardSchema = z.object({
@@ -211,6 +213,18 @@ export async function POST(request: NextRequest) {
       });
 
       return onboardingRequest;
+    });
+
+    // Autoconversion sync hook: mark matching Lead as CONVERTED
+    const normalizedOnboardPhone = normalizePhoneNumber(phone);
+    await prisma.lead.updateMany({
+      where: {
+        phone: normalizedOnboardPhone,
+        status: { not: LeadStatus.CONVERTED },
+      },
+      data: {
+        status: LeadStatus.CONVERTED,
+      },
     });
 
     return NextResponse.json({

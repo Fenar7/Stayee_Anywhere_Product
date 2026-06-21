@@ -36,7 +36,10 @@ const receiptStyles = StyleSheet.create({
     fontSize: fontSizes.md,
     color: colors.text,
     backgroundColor: colors.background,
-    padding: { top: 40, bottom: 40, left: 50, right: 50 },
+    paddingTop: 40,
+    paddingBottom: 40,
+    paddingLeft: 50,
+    paddingRight: 50,
   },
   amountSection: {
     backgroundColor: colors.surface,
