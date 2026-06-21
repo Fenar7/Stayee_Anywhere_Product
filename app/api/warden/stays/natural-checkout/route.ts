@@ -1,14 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
+import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { handleApiError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
 import { processNaturalCheckouts } from "@/services/stays/natural-checkout";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
     const session = await requireRole([UserRole.WARDEN]);
-    const warden = session.user.warden!;
-    const hostelId = warden.hostelId;
+    const hostelId = await resolveHostelId(session, request);
 
     const result = await processNaturalCheckouts({ hostelId });
 

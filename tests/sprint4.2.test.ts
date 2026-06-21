@@ -23,6 +23,7 @@ const mockPrisma = vi.hoisted(() => ({
     update: vi.fn(),
   },
   bed: { update: vi.fn() },
+  hostel: { findUnique: vi.fn() },
   document: {
     create: vi.fn(),
     findFirst: vi.fn(),
@@ -495,6 +496,179 @@ describe("Sprint 4.2: Registration Form & Refund Invoice", () => {
       expect(res.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.documentId).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // Task 0: Admin-as-Warden Authorization
+  // ============================================================
+  describe("Admin-as-Warden Authorization", () => {
+    describe("resolveHostelId", () => {
+      it("returns warden's assigned hostelId for WARDEN role", async () => {
+        const { resolveHostelId } = await import("@/lib/auth/resolve-hostel");
+        const hostelId = await resolveHostelId(fakeWardenSession as any);
+        expect(hostelId).toBe("hostel-1");
+      });
+
+      it("returns hostelId from query param for MAIN_ADMIN", async () => {
+        const { resolveHostelId } = await import("@/lib/auth/resolve-hostel");
+        mockPrisma.hostel.findUnique.mockResolvedValue({ id: "hostel-2" });
+
+        const request = new Request("http://localhost/api/warden/onboards?hostelId=hostel-2") as any;
+        const hostelId = await resolveHostelId(fakeAdminSession as any, request);
+        expect(hostelId).toBe("hostel-2");
+      });
+
+      it("returns hostelId from body for MAIN_ADMIN", async () => {
+        const { resolveHostelId } = await import("@/lib/auth/resolve-hostel");
+        mockPrisma.hostel.findUnique.mockResolvedValue({ id: "hostel-3" });
+
+        const request = new Request("http://localhost/api/warden/onboard", {
+          method: "POST",
+          body: JSON.stringify({ hostelId: "hostel-3", phone: "+919876543210" }),
+        }) as any;
+        const hostelId = await resolveHostelId(fakeAdminSession as any, request);
+        expect(hostelId).toBe("hostel-3");
+      });
+
+      it("returns fallbackHostelId for MAIN_ADMIN when no request params", async () => {
+        const { resolveHostelId } = await import("@/lib/auth/resolve-hostel");
+        mockPrisma.hostel.findUnique.mockResolvedValue({ id: "hostel-fallback" });
+
+        const hostelId = await resolveHostelId(fakeAdminSession as any, undefined, "hostel-fallback");
+        expect(hostelId).toBe("hostel-fallback");
+      });
+
+      it("throws ValidationError when MAIN_ADMIN has no hostelId anywhere", async () => {
+        const { resolveHostelId } = await import("@/lib/auth/resolve-hostel");
+
+        const request = new Request("http://localhost/api/warden/onboards") as any;
+        await expect(
+          resolveHostelId(fakeAdminSession as any, request)
+        ).rejects.toThrow("Hostel parameter is required for Admin");
+      });
+
+      it("throws ValidationError when hostel does not exist", async () => {
+        const { resolveHostelId } = await import("@/lib/auth/resolve-hostel");
+        mockPrisma.hostel.findUnique.mockResolvedValue(null);
+
+        const request = new Request("http://localhost/api/warden/onboards?hostelId=nonexistent") as any;
+        await expect(
+          resolveHostelId(fakeAdminSession as any, request)
+        ).rejects.toThrow("Hostel not found");
+      });
+
+      it("throws ForbiddenError for TENANT role", async () => {
+        const { resolveHostelId } = await import("@/lib/auth/resolve-hostel");
+        const tenantSession = {
+          user: { id: "user-tenant", role: "TENANT" as const, warden: null, tenant: null },
+        };
+        await expect(
+          resolveHostelId(tenantSession as any)
+        ).rejects.toThrow("Only Wardens and Main Admins can perform this action");
+      });
+    });
+
+    describe("Warden API routes with Admin access", () => {
+      it("Admin can list onboards by passing hostelId query param", async () => {
+        vi.mocked(authModule.requireRole).mockResolvedValue(fakeAdminSession as any);
+        mockPrisma.hostel.findUnique.mockResolvedValue({ id: "hostel-1" });
+        mockPrisma.stay.findMany.mockResolvedValue([]);
+        mockPrisma.onboardingRequest = { findMany: vi.fn().mockResolvedValue([]) } as any;
+
+        const { GET } = await import("@/app/api/warden/onboards/route");
+        const res = await GET(
+          new Request("http://localhost/api/warden/onboards?hostelId=hostel-1") as any
+        );
+        const data = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(data.onboards).toEqual([]);
+      });
+
+      it("Admin without hostelId gets 400 from onboards list", async () => {
+        vi.mocked(authModule.requireRole).mockResolvedValue(fakeAdminSession as any);
+
+        const { GET } = await import("@/app/api/warden/onboards/route");
+        const res = await GET(
+          new Request("http://localhost/api/warden/onboards") as any
+        );
+        const data = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(data.error).toContain("Hostel parameter is required");
+      });
+
+      it("Admin can fetch stay details by passing hostelId", async () => {
+        vi.mocked(authModule.requireRole).mockResolvedValue(fakeAdminSession as any);
+        mockPrisma.hostel.findUnique.mockResolvedValue({ id: "hostel-1" });
+        mockPrisma.stay.findUnique.mockResolvedValue({
+          ...createStayMock(),
+          tenant: { ...createStayMock().tenant, documents: [], user: { phone: "+919876543210" } },
+          payments: [],
+          refundInvoices: [],
+        });
+
+        const { GET } = await import("@/app/api/warden/stays/[id]/route");
+        const res = await GET(
+          new Request("http://localhost/api/warden/stays/stay-1?hostelId=hostel-1") as any,
+          { params: Promise.resolve({ id: STAY_ID }) }
+        );
+        const data = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(data.stay.id).toBe(STAY_ID);
+      });
+
+      it("Admin can extend stay by passing hostelId in body", async () => {
+        vi.mocked(authModule.requireRole).mockResolvedValue(fakeAdminSession as any);
+        mockPrisma.hostel.findUnique.mockResolvedValue({ id: "hostel-1" });
+
+        const mockExtendStay = vi.fn().mockResolvedValue(undefined);
+        vi.doMock("@/services/stays/extend", () => ({
+          extendStay: mockExtendStay,
+        }));
+
+        const { POST } = await import("@/app/api/warden/stays/[id]/extend/route");
+        const res = await POST(
+          new Request("http://localhost/api/warden/stays/stay-1/extend", {
+            method: "POST",
+            body: JSON.stringify({
+              hostelId: "hostel-1",
+              newEndDate: "2025-08-01T00:00:00.000Z",
+              additionalRent: 5000,
+              additionalFoodCharges: 1000,
+            }),
+          }) as any,
+          { params: Promise.resolve({ id: STAY_ID }) }
+        );
+        const data = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(data.success).toBe(true);
+      });
+
+      it("Admin can process natural checkout by passing hostelId", async () => {
+        vi.mocked(authModule.requireRole).mockResolvedValue(fakeAdminSession as any);
+        mockPrisma.hostel.findUnique.mockResolvedValue({ id: "hostel-1" });
+
+        const mockProcessNaturalCheckouts = vi.fn().mockResolvedValue({ checkedOutCount: 0, stayIds: [] });
+        vi.doMock("@/services/stays/natural-checkout", () => ({
+          processNaturalCheckouts: mockProcessNaturalCheckouts,
+        }));
+
+        const { POST } = await import("@/app/api/warden/stays/natural-checkout/route");
+        const res = await POST(
+          new Request("http://localhost/api/warden/stays/natural-checkout", {
+            method: "POST",
+            body: JSON.stringify({ hostelId: "hostel-1" }),
+          }) as any
+        );
+        const data = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(data.success).toBe(true);
+      });
     });
   });
 });

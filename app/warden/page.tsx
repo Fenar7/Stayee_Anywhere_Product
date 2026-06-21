@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { requireRole } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { getWardenHostelStats } from "@/services/hostel/dashboard.service";
 import { UserRole } from "@prisma/client";
 
@@ -10,17 +11,29 @@ export const dynamic = "force-dynamic";
 export default async function WardenPage() {
 
   const { user } = await requireRole([UserRole.WARDEN]);
-  if (!user.warden) {
+
+  // For MAIN_ADMIN, resolve the first hostel they have access to (or show error)
+  let hostelId: string | null = null;
+  if (user.role === UserRole.MAIN_ADMIN) {
+    const firstHostel = await prisma.hostel.findFirst({ select: { id: true } });
+    hostelId = firstHostel?.id ?? null;
+  } else {
+    hostelId = user.warden?.hostelId ?? null;
+  }
+
+  if (!hostelId) {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-bold">Warden Dashboard</h1>
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
-          Warden account is not provisioned properly.
+          {user.role === UserRole.MAIN_ADMIN
+            ? "No hostels found in the system."
+            : "Warden account is not provisioned properly."}
         </div>
       </div>
     );
   }
-  const stats = await getWardenHostelStats(user.warden.hostelId);
+  const stats = await getWardenHostelStats(hostelId);
 
 
   const occupancyColor = (rate: number) => {
