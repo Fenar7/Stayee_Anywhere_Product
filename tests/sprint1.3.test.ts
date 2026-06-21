@@ -10,20 +10,13 @@ vi.mock("../lib/db", () => ({
       findMany: vi.fn(),
       findUnique: vi.fn(),
     },
-    bed: {
-      count: vi.fn(),
-    },
     stay: {
+      groupBy: vi.fn(),
       count: vi.fn(),
     },
     onboardingRequest: {
+      groupBy: vi.fn(),
       count: vi.fn(),
-    },
-    room: {
-      findMany: vi.fn(),
-    },
-    floor: {
-      findMany: vi.fn(),
     },
   },
 }));
@@ -35,17 +28,41 @@ describe("Admin Dashboard Stats Aggregation", () => {
 
   it("should correctly aggregate stats for multiple hostels", async () => {
     vi.mocked(prisma.hostel.findMany).mockResolvedValue([
-      { id: "hostel-1", name: "Hostel Alpha", address: "123 Main Road, Mumbai", accommodationType: AccommodationType.MENS },
-      { id: "hostel-2", name: "Hostel Beta", address: "456 Second Road, Delhi", accommodationType: AccommodationType.WOMENS },
-    ]);
+      {
+        id: "hostel-1",
+        name: "Hostel Alpha",
+        address: "123 Main Road, Mumbai",
+        accommodationType: AccommodationType.MENS,
+        floors: [
+          {
+            rooms: [{ _count: { beds: 2 } }],
+            flats: [],
+          }
+        ]
+      },
+      {
+        id: "hostel-2",
+        name: "Hostel Beta",
+        address: "456 Second Road, Delhi",
+        accommodationType: AccommodationType.WOMENS,
+        floors: [
+          {
+            rooms: [{ _count: { beds: 2 } }],
+            flats: [],
+          }
+        ]
+      },
+    ] as any);
 
-    vi.mocked(prisma.room.findMany).mockResolvedValue([{ id: "room-1" }, { id: "room-2" }]);
+    vi.mocked(prisma.stay.groupBy).mockResolvedValue([
+      { hostelId: "hostel-1", _count: { _all: 1 } },
+      { hostelId: "hostel-2", _count: { _all: 1 } },
+    ] as any);
 
-    vi.mocked(prisma.bed.count).mockResolvedValue(2);
-
-    vi.mocked(prisma.stay.count).mockResolvedValue(1);
-
-    vi.mocked(prisma.onboardingRequest.count).mockResolvedValue(0);
+    vi.mocked(prisma.onboardingRequest.groupBy).mockResolvedValue([
+      { hostelId: "hostel-1", _count: { _all: 0 } },
+      { hostelId: "hostel-2", _count: { _all: 0 } },
+    ] as any);
 
     const result = await getAdminPortfolioStats();
 
@@ -57,11 +74,8 @@ describe("Admin Dashboard Stats Aggregation", () => {
 
   it("should handle empty portfolio", async () => {
     vi.mocked(prisma.hostel.findMany).mockResolvedValue([]);
-
-    vi.mocked(prisma.room.findMany).mockResolvedValue([]);
-    vi.mocked(prisma.bed.count).mockResolvedValue(0);
-    vi.mocked(prisma.stay.count).mockResolvedValue(0);
-    vi.mocked(prisma.onboardingRequest.count).mockResolvedValue(0);
+    vi.mocked(prisma.stay.groupBy).mockResolvedValue([]);
+    vi.mocked(prisma.onboardingRequest.groupBy).mockResolvedValue([]);
 
     const result = await getAdminPortfolioStats();
 
@@ -73,13 +87,16 @@ describe("Admin Dashboard Stats Aggregation", () => {
 
   it("should handle division by zero gracefully", async () => {
     vi.mocked(prisma.hostel.findMany).mockResolvedValue([
-      { id: "hostel-empty", name: "Empty Hostel", address: "789 Empty Road, Bangalore", accommodationType: AccommodationType.MENS },
-    ]);
-
-    vi.mocked(prisma.room.findMany).mockResolvedValue([]);
-    vi.mocked(prisma.bed.count).mockResolvedValue(0);
-    vi.mocked(prisma.stay.count).mockResolvedValue(0);
-    vi.mocked(prisma.onboardingRequest.count).mockResolvedValue(0);
+      {
+        id: "hostel-empty",
+        name: "Empty Hostel",
+        address: "789 Empty Road, Bangalore",
+        accommodationType: AccommodationType.MENS,
+        floors: []
+      },
+    ] as any);
+    vi.mocked(prisma.stay.groupBy).mockResolvedValue([]);
+    vi.mocked(prisma.onboardingRequest.groupBy).mockResolvedValue([]);
 
     const result = await getAdminPortfolioStats();
 
@@ -101,10 +118,14 @@ describe("Warden Hostel Stats", () => {
       name: "Hostel Alpha",
       address: "123 Main Road, Mumbai",
       accommodationType: AccommodationType.MENS,
-    });
+      floors: [
+        {
+          rooms: [{ _count: { beds: 1 } }],
+          flats: [],
+        }
+      ]
+    } as any);
 
-    vi.mocked(prisma.room.findMany).mockResolvedValue([{ id: "room-1" }]);
-    vi.mocked(prisma.bed.count).mockResolvedValue(1);
     vi.mocked(prisma.stay.count).mockResolvedValue(0);
     vi.mocked(prisma.onboardingRequest.count).mockResolvedValue(0);
 

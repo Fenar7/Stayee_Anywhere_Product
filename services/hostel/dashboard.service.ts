@@ -38,47 +38,70 @@ export async function getAdminPortfolioStats(): Promise<AdminPortfolioStats> {
       name: true,
       address: true,
       accommodationType: true,
+      floors: {
+        select: {
+          rooms: { select: { _count: { select: { beds: true } } } },
+          flats: {
+            select: {
+              rooms: { select: { _count: { select: { beds: true } } } }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const activeStays = await prisma.stay.groupBy({
+    by: ["hostelId"],
+    _count: { _all: true },
+    where: {
+      status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
     },
   });
 
-  const hostelsStats = await Promise.all(
-    hostels.map(async (hostel) => {
-      const totalBeds = await prisma.bed.count({
-        where: { roomId: { in: await getRoomIdsForHostel(hostel.id) } },
-      });
+  const pendingOnboardings = await prisma.onboardingRequest.groupBy({
+    by: ["hostelId"],
+    _count: { _all: true },
+    where: {
+      status: "PENDING",
+    },
+  });
 
-      const activeStays = await prisma.stay.count({
-        where: {
-          hostelId: hostel.id,
-          status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
-        },
-      });
+  const activeStaysMap = new Map(activeStays.map((s) => [s.hostelId, s._count._all]));
+  const pendingOnboardingsMap = new Map(pendingOnboardings.map((s) => [s.hostelId, s._count._all]));
 
-      const pendingOnboarding = await prisma.onboardingRequest.count({
-        where: {
-          hostelId: hostel.id,
-          status: "PENDING",
-        },
-      });
+  const hostelsStats: HostelStats[] = hostels.map((hostel) => {
+    let totalBeds = 0;
+    for (const floor of hostel.floors) {
+      for (const room of floor.rooms) {
+        totalBeds += room._count.beds;
+      }
+      for (const flat of floor.flats) {
+        for (const room of flat.rooms) {
+          totalBeds += room._count.beds;
+        }
+      }
+    }
 
-      const occupiedBeds = activeStays;
-      const availableBeds = Math.max(0, totalBeds - occupiedBeds);
-      const occupancyRate = totalBeds > 0 ? (occupiedBeds / totalBeds) * 100 : 0;
+    const occupiedBeds = activeStaysMap.get(hostel.id) || 0;
+    const availableBeds = Math.max(0, totalBeds - occupiedBeds);
+    const activeTenants = occupiedBeds;
+    const pendingOnboarding = pendingOnboardingsMap.get(hostel.id) || 0;
+    const occupancyRate = totalBeds > 0 ? (occupiedBeds / totalBeds) * 100 : 0;
 
-      return {
-        id: hostel.id,
-        name: hostel.name,
-        address: hostel.address,
-        accommodationType: hostel.accommodationType,
-        totalBeds,
-        occupiedBeds,
-        availableBeds,
-        activeTenants: activeStays,
-        pendingOnboarding,
-        occupancyRate: Math.round(occupancyRate * 100) / 100,
-      };
-    })
-  );
+    return {
+      id: hostel.id,
+      name: hostel.name,
+      address: hostel.address,
+      accommodationType: hostel.accommodationType,
+      totalBeds,
+      occupiedBeds,
+      availableBeds,
+      activeTenants,
+      pendingOnboarding,
+      occupancyRate: Math.round(occupancyRate * 100) / 100,
+    };
+  });
 
   const totalHostels = hostelsStats.length;
   const totalBeds = hostelsStats.reduce((sum, h) => sum + h.totalBeds, 0);
@@ -99,9 +122,16 @@ export async function getWardenHostelStats(hostelId: string): Promise<WardenHost
     where: { id: hostelId },
     select: {
       id: true,
-      name: true,
-      address: true,
-      accommodationType: true,
+      floors: {
+        select: {
+          rooms: { select: { _count: { select: { beds: true } } } },
+          flats: {
+            select: {
+              rooms: { select: { _count: { select: { beds: true } } } }
+            }
+          }
+        }
+      }
     },
   });
 
@@ -109,44 +139,45 @@ export async function getWardenHostelStats(hostelId: string): Promise<WardenHost
     throw new Error("Hostel not found");
   }
 
-  const totalBeds = await prisma.bed.count({
-    where: { roomId: { in: await getRoomIdsForHostel(hostel.id) } },
-  });
+  const [activeStaysCount, pendingOnboardingCount] = await Promise.all([
+    prisma.stay.count({
+      where: {
+        hostelId,
+        status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
+      },
+    }),
+    prisma.onboardingRequest.count({
+      where: {
+        hostelId,
+        status: "PENDING",
+      },
+    }),
+  ]);
 
-  const activeStays = await prisma.stay.count({
-    where: {
-      hostelId: hostel.id,
-      status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
-    },
-  });
+  let totalBeds = 0;
+  for (const floor of hostel.floors) {
+    for (const room of floor.rooms) {
+      totalBeds += room._count.beds;
+    }
+    for (const flat of floor.flats) {
+      for (const room of flat.rooms) {
+        totalBeds += room._count.beds;
+      }
+    }
+  }
 
-  const pendingOnboarding = await prisma.onboardingRequest.count({
-    where: {
-      hostelId: hostel.id,
-      status: "PENDING",
-    },
-  });
-
-  const occupiedBeds = activeStays;
+  const occupiedBeds = activeStaysCount;
   const availableBeds = Math.max(0, totalBeds - occupiedBeds);
+  const activeTenants = activeStaysCount;
+  const pendingOnboarding = pendingOnboardingCount;
   const occupancyRate = totalBeds > 0 ? (occupiedBeds / totalBeds) * 100 : 0;
 
   return {
     totalBeds,
     occupiedBeds,
     availableBeds,
-    activeTenants: activeStays,
+    activeTenants,
     pendingOnboarding,
     occupancyRate: Math.round(occupancyRate * 100) / 100,
   };
-}
-
-async function getRoomIdsForHostel(hostelId: string): Promise<string[]> {
-  const rooms = await prisma.room.findMany({
-    where: {
-      OR: [{ flat: { floor: { hostelId } } }, { floor: { hostelId } }],
-    },
-    select: { id: true },
-  });
-  return rooms.map((room) => room.id);
 }
