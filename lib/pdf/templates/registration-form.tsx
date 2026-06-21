@@ -8,7 +8,10 @@ const s = StyleSheet.create({
     fontSize: fontSizes.sm,
     color: colors.text,
     backgroundColor: colors.background,
-    padding: { top: 36, bottom: 36, left: 44, right: 44 },
+    paddingTop: 36,
+    paddingBottom: 36,
+    paddingLeft: 44,
+    paddingRight: 44,
   },
   header: {
     flexDirection: "row",

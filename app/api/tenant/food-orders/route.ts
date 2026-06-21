@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
         tenantId: tenant.id,
         status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
       },
-      select: { id: true, foodPlan: true },
+      select: { id: true, foodPlan: true, joiningDate: true },
     });
 
     if (!stay) {

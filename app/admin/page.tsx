@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import { getAdminPortfolioStats } from "@/services/hostel/dashboard.service";
 import { requireRole } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
@@ -31,12 +31,20 @@ export default async function AdminPage() {
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
           <p className="text-muted-foreground">Portfolio overview and management</p>
         </div>
-        <Link href="/admin/hostels/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Hostel
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/admin/leads">
+            <Button variant="outline">
+              <Users className="mr-2 h-4 w-4" />
+              All Leads
+            </Button>
+          </Link>
+          <Link href="/admin/hostels/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Hostel
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

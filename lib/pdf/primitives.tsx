@@ -89,7 +89,7 @@ export function KeyValueRow({ label, value, valueBold = true }: KeyValueRowProps
       <Text
         style={[
           primitiveStyles.value,
-          !valueBold && { fontFamily: "Helvetica" },
+          !valueBold ? { fontFamily: "Helvetica" } : {},
         ]}
       >
         {value}

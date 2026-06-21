@@ -10,7 +10,7 @@ export interface GenerateRegistrationFormResult {
   storagePath: string;
 }
 
-const BLOCKED_STATUSES = [StayStatus.ONBOARDING_PENDING];
+const BLOCKED_STATUSES: StayStatus[] = [StayStatus.ONBOARDING_PENDING];
 
 /**
  * Generate a 2-Page Resident Registration Form PDF.
