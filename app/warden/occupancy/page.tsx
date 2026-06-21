@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   X,
@@ -15,7 +16,10 @@ import {
   FileText,
   User,
   Utensils,
-  Home
+  Home,
+  Printer,
+  Download,
+  ExternalLink
 } from "lucide-react";
 
 type Bed = {
@@ -212,6 +216,10 @@ function StayLifecycleModal({
     suggestedRefund: number;
   } | null>(null);
 
+  // Print actions state
+  const [printing, setPrinting] = useState(false);
+  const [printError, setPrintError] = useState("");
+
   useEffect(() => {
     fetchStayDetails();
   }, [stayId]);
@@ -227,6 +235,10 @@ function StayLifecycleModal({
       }
       const data = await res.json();
       setStay(data.stay);
+      // Ensure refundInvoices array exists
+      if (!data.stay.refundInvoices) {
+        data.stay.refundInvoices = [];
+      }
 
       // Pre-fill extension date (default to 1 month after current end date)
       const currentEnd = new Date(data.stay.endDate);
@@ -343,6 +355,52 @@ function StayLifecycleModal({
     }
   };
 
+  const handlePrintRegistrationForm = async () => {
+    setPrinting(true);
+    setPrintError("");
+    try {
+      const res = await fetch(`/api/pdf/registration-form/${stayId}`, { method: "POST" });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to generate registration form");
+      }
+      const { documentId } = await res.json();
+      const dlRes = await fetch(`/api/pdf/download/${documentId}`);
+      if (!dlRes.ok) throw new Error("Failed to get download link");
+      const { signedUrl } = await dlRes.json();
+      window.open(signedUrl, "_blank");
+    } catch (err: any) {
+      setPrintError(err.message || "Failed to print registration form");
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  const handleDownloadRefundInvoice = async () => {
+    setPrinting(true);
+    setPrintError("");
+    try {
+      // Find the refund invoice for this stay
+      const refundInvoice = stay.refundInvoices?.[0];
+      if (!refundInvoice) throw new Error("No refund invoice found for this stay");
+
+      const res = await fetch(`/api/pdf/refund-invoice/${refundInvoice.id}`, { method: "POST" });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to generate refund invoice");
+      }
+      const { documentId } = await res.json();
+      const dlRes = await fetch(`/api/pdf/download/${documentId}`);
+      if (!dlRes.ok) throw new Error("Failed to get download link");
+      const { signedUrl } = await dlRes.json();
+      window.open(signedUrl, "_blank");
+    } catch (err: any) {
+      setPrintError(err.message || "Failed to download refund invoice");
+    } finally {
+      setPrinting(false);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-IN", {
       day: "2-digit",
@@ -431,6 +489,37 @@ function StayLifecycleModal({
               {/* Tab 1: Details */}
               {activeTab === "details" && (
                 <div className="space-y-6">
+                  {/* Print Actions */}
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handlePrintRegistrationForm}
+                      disabled={printing}
+                      className="flex items-center gap-1.5"
+                    >
+                      {printing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
+                      Print Registration Form
+                    </Button>
+                    {stay.status === "EARLY_EXIT" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleDownloadRefundInvoice}
+                        disabled={printing}
+                        className="flex items-center gap-1.5"
+                      >
+                        {printing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                        Download Refund Invoice
+                      </Button>
+                    )}
+                  </div>
+                  {printError && (
+                    <div className="flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
+                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                      <div>{printError}</div>
+                    </div>
+                  )}
                   {/* Grid fields */}
                   <div className="grid gap-4 grid-cols-2 text-sm">
                     <div className="rounded-lg border p-3 space-y-1">
@@ -650,12 +739,19 @@ export default function WardenOccupancyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStayId, setSelectedStayId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const hostelIdParam = searchParams.get("hostelId");
 
   function loadData() {
     setLoading(true);
     fetch("/api/warden/stays/natural-checkout", { method: "POST" })
       .catch(() => {})
-      .then(() => fetch("/api/hostel-structure/mine"))
+      .then(() => {
+        const url = hostelIdParam
+          ? `/api/hostel-structure/mine?hostelId=${hostelIdParam}`
+          : "/api/hostel-structure/mine";
+        return fetch(url);
+      })
       .then((res) => {
         if (!res.ok) return res.json().then((err) => Promise.reject(new Error(err.error || "Failed to fetch")));
         return res.json();
@@ -674,7 +770,7 @@ export default function WardenOccupancyPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [hostelIdParam]);
 
   if (loading) {
     return (

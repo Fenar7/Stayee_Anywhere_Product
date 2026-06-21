@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRole, requireHostelAccess } from "@/lib/auth";
+import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { prisma } from "@/lib/db";
 import {
   handleApiError,
@@ -69,8 +70,17 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("End date must be after joining date");
     }
 
-    const warden = session.user.warden!;
-    const hostelId = warden.hostelId;
+    const hostelId = await resolveHostelId(session, request);
+
+    // Resolve the warden record for this hostel (needed for OnboardingRequest.wardenId)
+    const hostelWarden = await prisma.warden.findUnique({
+      where: { hostelId },
+      select: { id: true },
+    });
+
+    if (!hostelWarden) {
+      throw new NotFoundError("No warden assigned to this hostel");
+    }
 
     // Convert Rupees to Paise (integer storage — never floats)
     const admissionFeePaise = Math.round(admissionFee * 100);
@@ -195,7 +205,7 @@ export async function POST(request: NextRequest) {
           phone,
           hostelId,
           bedId,
-          wardenId: warden.id,
+          wardenId: hostelWarden.id,
           status: OnboardingRequestStatus.PENDING,
         },
       });

@@ -39,6 +39,13 @@ const mockPrisma = vi.hoisted(() => ({
 
 vi.mock("../lib/db", () => ({ prisma: mockPrisma }));
 
+vi.mock("@/services/pdf/receipt.service", () => ({
+  generatePaymentReceipt: vi.fn().mockResolvedValue({
+    documentId: "doc-receipt-mock",
+    storagePath: "receipt.pdf",
+  }),
+}));
+
 // Mock file processing and storage
 vi.mock("../lib/image", () => ({
   verifyAndGetFileType: vi.fn(() => "jpg"),

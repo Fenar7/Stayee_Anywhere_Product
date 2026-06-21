@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth";
+import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { handleApiError } from "@/lib/errors";
 import { UserRole, PaymentMode } from "@prisma/client";
 import { extendStay } from "@/services/stays/extend";
@@ -18,8 +19,7 @@ export async function POST(
 ) {
   try {
     const session = await requireRole([UserRole.WARDEN]);
-    const warden = session.user.warden!;
-    const hostelId = warden.hostelId;
+    const hostelId = await resolveHostelId(session, request);
 
     const { id: stayId } = await params;
 

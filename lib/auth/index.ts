@@ -36,7 +36,11 @@ export async function requireRole(allowedRoles: UserRole[]): Promise<Authenticat
   }
 
   if (!allowedRoles.includes(dbUser.role)) {
-    throw new ForbiddenError(`Access denied: requires one of the roles [${allowedRoles.join(", ")}]`);
+    if (dbUser.role === UserRole.MAIN_ADMIN && allowedRoles.includes(UserRole.WARDEN)) {
+      // Allow Main Admin to act as Warden
+    } else {
+      throw new ForbiddenError(`Access denied: requires one of the roles [${allowedRoles.join(", ")}]`);
+    }
   }
 
   return { user: dbUser };

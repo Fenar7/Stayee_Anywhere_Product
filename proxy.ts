@@ -57,11 +57,15 @@ export async function proxy(request: NextRequest) {
   const isApiRoute = pathname.startsWith("/api/");
   const requiredRole = getRequiredRole(pathname);
 
+  console.log(`[Proxy Log] pathname: ${pathname}, isApiRoute: ${isApiRoute}, requiredRole: ${requiredRole}`);
+
   if (!requiredRole && !isApiRoute) {
+    console.log(`[Proxy Log] Allowing route because it has no required role and is not api: ${pathname}`);
     return NextResponse.next();
   }
 
   if (PUBLIC_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
+    console.log(`[Proxy Log] Allowing public route: ${pathname}`);
     return NextResponse.next();
   }
 
@@ -99,6 +103,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!dbUser) {
+    console.log(`[Proxy Log] dbUser not found, redirecting to login. pathname: ${pathname}`);
     if (isApiRoute) {
       return jsonError(401, "Unauthorized", "UNAUTHORIZED");
     }
@@ -107,22 +112,33 @@ export async function proxy(request: NextRequest) {
 
   // Force first-time password setup if passwordSetAt is null
   if (dbUser.passwordSetAt === null && pathname !== "/set-password") {
+    console.log(`[Proxy Log] Force password setup required. passwordSetAt: ${dbUser.passwordSetAt}, pathname: ${pathname}`);
     if (isApiRoute) {
       if (pathname !== "/api/auth/set-password" && pathname !== "/api/auth/logout") {
+        console.log(`[Proxy Log] Blocking API request due to password setup requirement: ${pathname}`);
         return jsonError(403, "Password setup required", "PASSWORD_SETUP_REQUIRED");
       }
     } else {
+      console.log(`[Proxy Log] Redirecting to /set-password from: ${pathname}`);
       return NextResponse.redirect(new URL("/set-password", request.url));
     }
   }
 
+  // MAIN_ADMIN is a superuser — treat as having all role permissions
+  if (dbUser.role === UserRole.MAIN_ADMIN) {
+    console.log(`[Proxy Log] Main Admin bypass for route: ${pathname}`);
+    return NextResponse.next();
+  }
+
   if (dbUser.role !== requiredRole) {
+    console.log(`[Proxy Log] Role mismatch. User role: ${dbUser.role}, required: ${requiredRole}, pathname: ${pathname}`);
     if (isApiRoute) {
       return jsonError(403, "Forbidden", "FORBIDDEN");
     }
     return redirectToLogin(request);
   }
 
+  console.log(`[Proxy Log] Allowing route to proceed: ${pathname}`);
   return NextResponse.next();
 }
 

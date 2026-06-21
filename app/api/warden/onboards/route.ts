@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
+import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { prisma } from "@/lib/db";
 import { handleApiError } from "@/lib/errors";
 import { UserRole, StayStatus } from "@prisma/client";
@@ -7,8 +8,7 @@ import { UserRole, StayStatus } from "@prisma/client";
 export async function GET(request: NextRequest) {
   try {
     const session = await requireRole([UserRole.WARDEN]);
-    const warden = session.user.warden!;
-    const hostelId = warden.hostelId;
+    const hostelId = await resolveHostelId(session, request);
 
     // Fetch stays and onboarding requests for warden's hostel
     const stays = await prisma.stay.findMany({

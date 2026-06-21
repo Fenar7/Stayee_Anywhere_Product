@@ -22,6 +22,13 @@ const mockPrisma = vi.hoisted(() => ({
 
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
 
+vi.mock("@/services/pdf/refund-invoice.service", () => ({
+  generateRefundInvoice: vi.fn().mockResolvedValue({
+    documentId: "doc-new",
+    storagePath: "refund.pdf",
+  }),
+}));
+
 vi.mock("next/headers", () => ({
   cookies: vi.fn().mockResolvedValue({
     getAll: vi.fn().mockReturnValue([]),
@@ -113,6 +120,7 @@ describe("Sprint 3.2: Warden Stay Lifecycle Controls", () => {
             createdAt: new Date(),
           },
         ],
+        refundInvoices: [],
       });
 
       const res = await stayDetailsGET(

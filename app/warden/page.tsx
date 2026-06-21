@@ -2,25 +2,48 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { requireRole } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { getWardenHostelStats } from "@/services/hostel/dashboard.service";
 import { UserRole } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-export default async function WardenPage() {
+export default async function WardenPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ hostelId?: string }>;
+}) {
+  const { hostelId: queryHostelId } = await searchParams;
 
   const { user } = await requireRole([UserRole.WARDEN]);
-  if (!user.warden) {
+
+  // For MAIN_ADMIN, resolve the hostel from query param or fall back to first available
+  let hostelId: string | null = null;
+  if (user.role === UserRole.MAIN_ADMIN) {
+    if (queryHostelId) {
+      const hostel = await prisma.hostel.findUnique({ where: { id: queryHostelId }, select: { id: true } });
+      hostelId = hostel?.id ?? null;
+    } else {
+      const firstHostel = await prisma.hostel.findFirst({ select: { id: true } });
+      hostelId = firstHostel?.id ?? null;
+    }
+  } else {
+    hostelId = user.warden?.hostelId ?? null;
+  }
+
+  if (!hostelId) {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-bold">Warden Dashboard</h1>
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
-          Warden account is not provisioned properly.
+          {user.role === UserRole.MAIN_ADMIN
+            ? "No hostels found in the system."
+            : "Warden account is not provisioned properly."}
         </div>
       </div>
     );
   }
-  const stats = await getWardenHostelStats(user.warden.hostelId);
+  const stats = await getWardenHostelStats(hostelId);
 
 
   const occupancyColor = (rate: number) => {
