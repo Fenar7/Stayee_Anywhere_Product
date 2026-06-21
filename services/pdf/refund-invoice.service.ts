@@ -53,21 +53,12 @@ export async function generateRefundInvoice(
   const storagePath = `refund_invoices/refund_${refundInvoiceId}.pdf`;
   await uploadToStorage(pdfBuffer, storagePath, "application/pdf");
 
-  const document = await prisma.document.create({
+  const document = await prisma.document.update({
+    where: { id: refund.pdfDocumentId },
     data: {
-      ownerType: DocumentOwnerType.STAY,
-      stayId: refund.stayId,
-      documentType: DocumentType.REFUND_INVOICE_PDF,
       storagePath,
       fileSizeBytes: pdfBuffer.length,
-      uploadedByUserId: refund.processedByUserId,
     },
-  });
-
-  // Update the RefundInvoice record to link to the PDF document
-  await prisma.refundInvoice.update({
-    where: { id: refundInvoiceId },
-    data: { pdfDocumentId: document.id },
   });
 
   return {

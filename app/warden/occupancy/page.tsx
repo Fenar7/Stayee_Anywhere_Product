@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   X,
@@ -738,12 +739,19 @@ export default function WardenOccupancyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStayId, setSelectedStayId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const hostelIdParam = searchParams.get("hostelId");
 
   function loadData() {
     setLoading(true);
     fetch("/api/warden/stays/natural-checkout", { method: "POST" })
       .catch(() => {})
-      .then(() => fetch("/api/hostel-structure/mine"))
+      .then(() => {
+        const url = hostelIdParam
+          ? `/api/hostel-structure/mine?hostelId=${hostelIdParam}`
+          : "/api/hostel-structure/mine";
+        return fetch(url);
+      })
       .then((res) => {
         if (!res.ok) return res.json().then((err) => Promise.reject(new Error(err.error || "Failed to fetch")));
         return res.json();
@@ -762,7 +770,7 @@ export default function WardenOccupancyPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [hostelIdParam]);
 
   if (loading) {
     return (

@@ -8,15 +8,25 @@ import { UserRole } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-export default async function WardenPage() {
+export default async function WardenPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ hostelId?: string }>;
+}) {
+  const { hostelId: queryHostelId } = await searchParams;
 
   const { user } = await requireRole([UserRole.WARDEN]);
 
-  // For MAIN_ADMIN, resolve the first hostel they have access to (or show error)
+  // For MAIN_ADMIN, resolve the hostel from query param or fall back to first available
   let hostelId: string | null = null;
   if (user.role === UserRole.MAIN_ADMIN) {
-    const firstHostel = await prisma.hostel.findFirst({ select: { id: true } });
-    hostelId = firstHostel?.id ?? null;
+    if (queryHostelId) {
+      const hostel = await prisma.hostel.findUnique({ where: { id: queryHostelId }, select: { id: true } });
+      hostelId = hostel?.id ?? null;
+    } else {
+      const firstHostel = await prisma.hostel.findFirst({ select: { id: true } });
+      hostelId = firstHostel?.id ?? null;
+    }
   } else {
     hostelId = user.warden?.hostelId ?? null;
   }
