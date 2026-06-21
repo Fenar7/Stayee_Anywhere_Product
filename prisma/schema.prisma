@@ -1,0 +1,421 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==========================================
+// 4.1 User & Role Models
+// ==========================================
+
+enum UserRole {
+  MAIN_ADMIN
+  WARDEN
+  TENANT
+}
+
+model User {
+  id              String   @id @default(uuid())
+  supabaseAuthId  String   @unique
+  phone           String   @unique
+  email           String?  @unique
+  passwordSetAt   DateTime?
+  role            UserRole
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Inverse relations
+  warden          Warden?
+  tenant          Tenant?
+  statusEvents    StayStatusEvent[]
+  paymentsVerified Payment[]          @relation("VerifiedPayments")
+  refundsProcessed RefundInvoice[]    @relation("ProcessedRefunds")
+  documentsUploaded Document[]        @relation("UploadedDocuments")
+}
+
+model Warden {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hostelId  String   @unique
+  hostel    Hostel   @relation(fields: [hostelId], references: [id])
+  createdAt DateTime @default(now())
+
+  // Inverse relations
+  onboardingRequests OnboardingRequest[]
+}
+
+enum OccupationType {
+  STUDENT
+  WORKING_PROFESSIONAL
+}
+
+model Tenant {
+  id                     String         @id @default(uuid())
+  userId                 String?        @unique
+  user                   User?          @relation(fields: [userId], references: [id])
+  fullName               String
+  dateOfBirth            DateTime
+  gender                 String
+  placeOfBirth           String
+  permanentAddress       String
+  emergencyContactName   String
+  relationship           String
+  emergencyContactNumber String
+  parentGuardianName     String
+  parentGuardianContact  String
+  occupationType         OccupationType
+  collegeName            String?
+  courseOrBranch         String?
+  companyName            String?
+  designation            String?
+  purposeOfStay          String
+  photoUrl               String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  // Inverse relations
+  stays                  Stay[]
+  documents              Document[]
+}
+
+// ==========================================
+// 4.2 Building Hierarchy Models
+// ==========================================
+
+enum AccommodationType {
+  MENS
+  WOMENS
+}
+
+model Hostel {
+  id                String            @id @default(uuid())
+  name              String
+  address           String
+  accommodationType AccommodationType
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Inverse relations
+  warden            Warden?
+  floors            Floor[]
+  stays             Stay[]
+  leads             Lead[]
+  onboardingRequests OnboardingRequest[]
+}
+
+model Floor {
+  id        String   @id @default(uuid())
+  hostelId  String
+  hostel    Hostel   @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  name      String
+  sortOrder Int
+  flats     Flat[]
+  rooms     Room[]
+}
+
+model Flat {
+  id        String   @id @default(uuid())
+  floorId   String
+  floor     Floor    @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  name      String
+  isPrivate Boolean  @default(false)
+  rooms     Room[]
+}
+
+model Room {
+  id         String    @id @default(uuid())
+  flatId     String?
+  flat       Flat?     @relation(fields: [flatId], references: [id], onDelete: Cascade)
+  floorId    String?
+  floor      Floor?    @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  roomNumber String
+  sharingType SharingType
+  isPrivate  Boolean   @default(false)
+  beds       Bed[]
+
+  // Note: Exactly one of Room.flatId or Room.floorId must be set.
+  // Enforced via application level validation.
+}
+
+enum SharingType {
+  SINGLE
+  DOUBLE
+  TRIPLE
+  FOUR
+  SIX
+  EIGHT
+}
+
+enum BedType {
+  UPPER_BERTH
+  LOWER_BERTH
+  SINGLE_COT
+}
+
+enum BedStatus {
+  AVAILABLE
+  OCCUPIED
+  IN_MAINTENANCE
+  ON_HOLD
+  NOT_IN_USE
+}
+
+model Bed {
+  id        String    @id @default(uuid())
+  roomId    String
+  room      Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  label     String
+  bedType   BedType?
+  status    BedStatus @default(AVAILABLE)
+
+  // Inverse relations
+  stays              Stay[]
+  onboardingRequests OnboardingRequest[]
+}
+
+// ==========================================
+// 4.3 Stay & Onboarding Models
+// ==========================================
+
+enum OnboardingRequestStatus {
+  PENDING
+  COMPLETED
+  EXPIRED
+}
+
+model OnboardingRequest {
+  id        String                  @id @default(uuid())
+  phone     String
+  hostelId  String
+  hostel    Hostel                  @relation(fields: [hostelId], references: [id])
+  bedId     String
+  bed       Bed                     @relation(fields: [bedId], references: [id])
+  wardenId  String
+  warden    Warden                  @relation(fields: [wardenId], references: [id])
+  status    OnboardingRequestStatus @default(PENDING)
+  createdAt DateTime                @default(now())
+
+  // Indexes
+  @@index([phone])
+  @@index([phone, status])
+  // Note: Unique index on phone where status = PENDING should be enforced at db/migration or application level.
+}
+
+enum StayStatus {
+  ONBOARDING_PENDING
+  APPROVED_AWAITING_PAYMENT
+  ACTIVE
+  EXTENDED
+  EARLY_EXIT
+  CHECKED_OUT
+  CANCELLED
+}
+
+enum DurationType {
+  MONTHLY
+  WEEKLY
+  DAILY
+  CUSTOM
+}
+
+enum FoodPlan {
+  NOT_INCLUDED
+  BREAKFAST_ONLY
+  BREAKFAST_DINNER
+  BLD
+}
+
+model Stay {
+  id                  String       @id @default(uuid())
+  tenantId            String
+  tenant              Tenant       @relation(fields: [tenantId], references: [id])
+  bedId               String
+  bed                 Bed          @relation(fields: [bedId], references: [id])
+  hostelId            String       // denormalized for speed
+  hostel              Hostel       @relation(fields: [hostelId], references: [id])
+  status              StayStatus
+  durationType        DurationType
+  joiningDate         DateTime
+  endDate             DateTime
+  isNewAdmission      Boolean
+  admissionFeePaise   Int
+  monthlyRentPaise    Int
+  securityDepositPaise Int
+  foodChargesPaise    Int
+  foodPlan            FoodPlan     @default(NOT_INCLUDED)
+  totalPayablePaise   Int
+  discountPaise       Int
+  marketingExecutive  String?
+  leadSource          String?
+  commissionStatus    String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  // Inverse relations
+  statusEvents        StayStatusEvent[]
+  payments            Payment[]
+  refundInvoices      RefundInvoice[]
+  foodOrders          FoodOrder[]
+  documents           Document[]
+
+  // Indexes
+  @@index([bedId, status])
+  @@index([hostelId, status])
+  @@index([endDate])
+}
+
+model StayStatusEvent {
+  id              String     @id @default(uuid())
+  stayId          String
+  stay            Stay       @relation(fields: [stayId], references: [id], onDelete: Cascade)
+  fromStatus      StayStatus
+  toStatus        StayStatus
+  changedByUserId String
+  changedByUser   User       @relation(fields: [changedByUserId], references: [id])
+  note            String?
+  createdAt       DateTime   @default(now())
+}
+
+// ==========================================
+// 4.4 Payments & Financial Models
+// ==========================================
+
+enum PaymentMode {
+  CASH
+  UPI
+  COMPANY_ACCOUNT
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PAID
+  PARTIALLY_PAID
+  PENDING
+}
+
+model Payment {
+  id                    String        @id @default(uuid())
+  stayId                String
+  stay                  Stay          @relation(fields: [stayId], references: [id], onDelete: Cascade)
+  amountPaidPaise       Int
+  paymentMode           PaymentMode
+  transactionRefNo      String?
+  receivedBy            String?
+  paymentStatus         PaymentStatus
+  verifiedByUserId      String?
+  verifiedByUser        User?         @relation("VerifiedPayments", fields: [verifiedByUserId], references: [id])
+  verifiedAt            DateTime?
+  screenshotDocumentId  String?       @unique
+  screenshotDocument    Document?     @relation("PaymentScreenshot", fields: [screenshotDocumentId], references: [id])
+  createdAt             DateTime      @default(now())
+
+  @@index([stayId])
+}
+
+model RefundInvoice {
+  id                String    @id @default(uuid())
+  stayId            String
+  stay              Stay      @relation(fields: [stayId], references: [id], onDelete: Cascade)
+  originalAmountPaise Int
+  daysUsed          Int
+  daysRemaining     Int
+  refundAmountPaise Int
+  processedByUserId String
+  processedByUser   User      @relation("ProcessedRefunds", fields: [processedByUserId], references: [id])
+  notes             String?
+  pdfDocumentId     String    @unique
+  pdfDocument       Document  @relation("RefundInvoicePDF", fields: [pdfDocumentId], references: [id])
+  createdAt         DateTime  @default(now())
+}
+
+// ==========================================
+// 4.5 Food, Documents & Leads
+// ==========================================
+
+model FoodOrder {
+  id          String    @id @default(uuid())
+  stayId      String
+  stay        Stay      @relation(fields: [stayId], references: [id], onDelete: Cascade)
+  forDate     DateTime
+  breakfast   Boolean
+  lunch       Boolean
+  dinner      Boolean
+  confirmedAt DateTime?
+  lockedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([stayId, forDate])
+}
+
+enum DocumentOwnerType {
+  TENANT
+  STAY
+}
+
+enum DocumentType {
+  AADHAAR
+  PAN
+  PASSPORT_PHOTO
+  COLLEGE_ID
+  COMPANY_ID
+  PROFILE_PHOTO
+  PAYMENT_SCREENSHOT
+  REGISTRATION_FORM_PDF
+  RECEIPT_PDF
+  REFUND_INVOICE_PDF
+  OTHER
+}
+
+model Document {
+  id               String            @id @default(uuid())
+  ownerType        DocumentOwnerType
+  tenantId         String?
+  tenant           Tenant?           @relation(fields: [tenantId], references: [id])
+  stayId           String?
+  stay             Stay?             @relation(fields: [stayId], references: [id])
+  documentType     DocumentType
+  storagePath      String
+  fileSizeBytes    Int
+  uploadedByUserId String
+  uploadedByUser   User              @relation("UploadedDocuments", fields: [uploadedByUserId], references: [id])
+  createdAt        DateTime          @default(now())
+
+  // Inverse 1-1 relations for screenshots/refunds
+  paymentScreenshot Payment?         @relation("PaymentScreenshot")
+  refundInvoicePDF  RefundInvoice?   @relation("RefundInvoicePDF")
+
+  @@index([ownerType, tenantId])
+  @@index([ownerType, stayId])
+}
+
+enum LeadSource {
+  WHATSAPP_BOT
+  MANUAL
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  FOLLOW_UP
+  CONVERTED
+  DROPPED
+}
+
+model Lead {
+  id        String     @id @default(uuid())
+  hostelId  String?
+  hostel    Hostel?    @relation(fields: [hostelId], references: [id])
+  phone     String
+  source    LeadSource
+  status    LeadStatus @default(NEW)
+  notes     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}

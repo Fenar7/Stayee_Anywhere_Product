@@ -1,0 +1,752 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  X,
+  Calendar,
+  Clock,
+  ArrowRight,
+  ShieldAlert,
+  DollarSign,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  FileText,
+  User,
+  Utensils,
+  Home
+} from "lucide-react";
+
+type Bed = {
+  id: string;
+  label: string;
+  bedType: string | null;
+  status: string;
+  derivedStatus?: string;
+  currentStay?: {
+    id: string;
+    status: string;
+    tenant: { fullName: string };
+  } | null;
+};
+
+type Room = {
+  id: string;
+  roomNumber: string;
+  sharingType: string;
+  isPrivate: boolean;
+  beds: Bed[];
+};
+
+type Flat = {
+  id: string;
+  name: string;
+  isPrivate: boolean;
+  rooms: Room[];
+};
+
+type Floor = {
+  id: string;
+  name: string;
+  flats: Flat[];
+  rooms: Room[];
+};
+
+type HostelHierarchy = {
+  id: string;
+  name: string;
+  address: string;
+  accommodationType: string;
+  floors: Floor[];
+};
+
+function BedPill({ bed, onClick }: { bed: Bed; onClick?: () => void }) {
+  const isOccupied = bed.derivedStatus === "OCCUPIED" || bed.status === "OCCUPIED";
+  const isAvailable = (bed.derivedStatus || bed.status) === "AVAILABLE" && !isOccupied;
+  const isMaintenance = bed.status === "IN_MAINTENANCE";
+  const isOnHold = bed.status === "ON_HOLD";
+  const isNotInUse = bed.status === "NOT_IN_USE";
+
+  let bgColor = "bg-gray-100 text-gray-800 border-gray-200";
+  let label = "N/A";
+
+  if (isOccupied) {
+    bgColor = "bg-red-500 text-white border-red-600 hover:bg-red-600";
+    label = "Occupied";
+  } else if (isAvailable) {
+    bgColor = "bg-green-500 text-white border-green-600";
+    label = "Available";
+  } else if (isMaintenance) {
+    bgColor = "bg-orange-400 text-white border-orange-500";
+    label = "Maintenance";
+  } else if (isOnHold) {
+    bgColor = "bg-yellow-400 text-yellow-900 border-yellow-500";
+    label = "On Hold";
+  } else if (isNotInUse) {
+    bgColor = "bg-gray-400 text-white border-gray-500";
+    label = "Not In Use";
+  }
+
+  return (
+    <div
+      onClick={isOccupied && onClick ? onClick : undefined}
+      className={`group relative inline-flex ${isOccupied ? "cursor-pointer" : "cursor-default"} items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-shadow hover:shadow-md ${bgColor}`}
+      title={isOccupied ? "Click to manage stay lifecycle" : `${bed.label} - ${label}`}
+    >
+      <span>{bed.label}</span>
+      {bed.currentStay && (
+        <span className="ml-1 hidden group-hover:inline">- {bed.currentStay.tenant.fullName}</span>
+      )}
+    </div>
+  );
+}
+
+function RoomBlock({ room, onBedClick }: { room: Room; onBedClick: (stayId: string) => void }) {
+  return (
+    <div className={`rounded-lg border p-3 ${room.isPrivate ? "border-dashed border-gray-300 bg-gray-50" : "bg-white"}`}>
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold">{room.roomNumber}</span>
+          <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+            {room.sharingType}
+          </span>
+          {room.isPrivate && (
+            <span className="rounded bg-gray-200 px-1.5 py-0.5 text-xs text-gray-500">Private</span>
+          )}
+        </div>
+        <span className="text-xs text-muted-foreground">{room.beds.length} bed(s)</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {room.beds.map((bed) => (
+          <BedPill key={bed.id} bed={bed} onClick={() => bed.currentStay && onBedClick(bed.currentStay.id)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FlatBlock({ flat, onBedClick }: { flat: Flat; onBedClick: (stayId: string) => void }) {
+  return (
+    <div className={`rounded-lg border-2 p-4 ${flat.isPrivate ? "border-dashed border-gray-300 bg-gray-50/50" : "border-gray-200"}`}>
+      <div className="mb-3 flex items-center gap-2">
+        <span className="font-semibold">{flat.name}</span>
+        {flat.isPrivate && (
+          <span className="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-500">Private Flat</span>
+        )}
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {flat.rooms.map((room) => (
+          <RoomBlock key={room.id} room={room} onBedClick={onBedClick} />
+        ))}
+      </div>
+      {flat.rooms.length === 0 && (
+        <p className="py-2 text-center text-sm text-muted-foreground">No rooms</p>
+      )}
+    </div>
+  );
+}
+
+function FloorSection({ floor, onBedClick }: { floor: Floor; onBedClick: (stayId: string) => void }) {
+  return (
+    <div className="rounded-xl border bg-card shadow-sm">
+      <div className="border-b bg-muted/20 px-5 py-3">
+        <h2 className="text-lg font-bold">{floor.name}</h2>
+      </div>
+
+      {floor.flats.length > 0 && (
+        <div className="space-y-4 p-5">
+          {floor.flats.map((flat) => (
+            <FlatBlock key={flat.id} flat={flat} onBedClick={onBedClick} />
+          ))}
+        </div>
+      )}
+
+      <div className="space-y-3 p-5 pt-0">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {floor.rooms.map((room) => (
+            <RoomBlock key={room.id} room={room} onBedClick={onBedClick} />
+          ))}
+        </div>
+        {floor.rooms.length === 0 && floor.flats.length > 0 && (
+          <p className="py-2 text-center text-sm text-muted-foreground">No direct rooms on this floor</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Lifecycle Modal Component
+function StayLifecycleModal({
+  stayId,
+  onClose,
+  onSuccess
+}: {
+  stayId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [stay, setStay] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [actionSuccess, setActionSuccess] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<"details" | "extend" | "checkout">("details");
+
+  // Extension Form States
+  const [newEndDate, setNewEndDate] = useState("");
+  const [additionalRent, setAdditionalRent] = useState("0");
+  const [additionalFoodCharges, setAdditionalFoodCharges] = useState("0");
+
+  // Early Checkout Form States
+  const [checkoutDate, setCheckoutDate] = useState("");
+  const [refundAmount, setRefundAmount] = useState("0");
+  const [notes, setNotes] = useState("");
+
+  // Days Calculation for Early Checkout
+  const [daysInfo, setDaysInfo] = useState<{
+    totalDays: number;
+    daysUsed: number;
+    daysRemaining: number;
+    suggestedRefund: number;
+  } | null>(null);
+
+  useEffect(() => {
+    fetchStayDetails();
+  }, [stayId]);
+
+  const fetchStayDetails = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await fetch(`/api/warden/stays/${stayId}`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to load stay details");
+      }
+      const data = await res.json();
+      setStay(data.stay);
+
+      // Pre-fill extension date (default to 1 month after current end date)
+      const currentEnd = new Date(data.stay.endDate);
+      const nextMonthEnd = new Date(currentEnd);
+      nextMonthEnd.setMonth(nextMonthEnd.getMonth() + 1);
+      setNewEndDate(nextMonthEnd.toISOString().split("T")[0]);
+
+      // Pre-fill checkout date (default to today)
+      const todayStr = new Date().toISOString().split("T")[0];
+      setCheckoutDate(todayStr);
+    } catch (e: any) {
+      setError(e.message || "An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!stay || activeTab !== "checkout" || !checkoutDate) return;
+
+    const jDate = new Date(stay.joiningDate);
+    const eDate = new Date(stay.endDate);
+    const cDate = new Date(checkoutDate);
+
+    if (cDate.getTime() < jDate.getTime() || cDate.getTime() >= eDate.getTime()) {
+      setDaysInfo(null);
+      return;
+    }
+
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const totalDays = Math.max(1, Math.round((eDate.getTime() - jDate.getTime()) / msPerDay));
+    const daysUsed = Math.max(0, Math.round((cDate.getTime() - jDate.getTime()) / msPerDay));
+    const daysRemaining = Math.max(0, totalDays - daysUsed);
+
+    // Sum PAID payments
+    const verifiedPaid = stay.payments
+      .filter((p: any) => p.paymentStatus === "PAID")
+      .reduce((sum: number, p: any) => sum + p.amountPaid, 0);
+
+    // Suggested Refund = Pro-rata unused rent/food out of verified paid
+    const proRataAmount = Math.max(0, verifiedPaid * (daysRemaining / totalDays));
+    const suggestedRefund = parseFloat(proRataAmount.toFixed(2));
+
+    setDaysInfo({
+      totalDays,
+      daysUsed,
+      daysRemaining,
+      suggestedRefund
+    });
+    setRefundAmount(suggestedRefund.toString());
+  }, [checkoutDate, activeTab, stay]);
+
+  const handleExtend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setActionError("");
+    setActionSuccess("");
+
+    try {
+      const res = await fetch(`/api/warden/stays/${stayId}/extend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          newEndDate,
+          additionalRent: parseFloat(additionalRent) || 0,
+          additionalFoodCharges: parseFloat(additionalFoodCharges) || 0
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to extend stay");
+
+      setActionSuccess("Stay extended successfully!");
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 1500);
+    } catch (err: any) {
+      setActionError(err.message || "Failed to process extension");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setActionError("");
+    setActionSuccess("");
+
+    try {
+      const res = await fetch(`/api/warden/stays/${stayId}/early-checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          checkoutDate,
+          refundAmount: parseFloat(refundAmount) || 0,
+          notes
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to process early checkout");
+
+      setActionSuccess("Early checkout processed successfully!");
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 1500);
+    } catch (err: any) {
+      setActionError(err.message || "Failed to process checkout");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+      <div className="bg-card w-full max-w-2xl rounded-xl border shadow-lg overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150">
+        {/* Header */}
+        <div className="border-b px-6 py-4 flex items-center justify-between bg-muted/15">
+          <div>
+            <h3 className="font-bold text-lg text-foreground flex items-center gap-1.5">
+              <User className="h-5 w-5 text-primary" /> Stay Lifecycle Management
+            </h3>
+            {stay && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Tenant: <span className="font-semibold text-foreground">{stay.tenant.fullName}</span> &middot; Bed: {stay.bed.roomNumber}-{stay.bed.label}
+              </p>
+            )}
+          </div>
+          <button onClick={onClose} className="rounded p-1 hover:bg-muted text-muted-foreground">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Loading / Error States */}
+        {loading && (
+          <div className="p-12 text-center space-y-3">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+            <p className="text-sm text-muted-foreground font-medium">Fetching stay records...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="p-8 text-center space-y-4">
+            <div className="rounded-full bg-red-100 p-3 w-fit mx-auto text-red-600">
+              <AlertCircle className="h-8 w-8" />
+            </div>
+            <p className="text-sm font-semibold text-destructive">{error}</p>
+            <Button onClick={onClose}>Close Portal</Button>
+          </div>
+        )}
+
+        {stay && !loading && !error && (
+          <>
+            {/* Tabs */}
+            <div className="border-b flex text-sm font-medium bg-muted/5">
+              <button
+                onClick={() => setActiveTab("details")}
+                className={`flex-1 py-3 text-center border-b-2 transition ${activeTab === "details" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              >
+                Stay Details
+              </button>
+              <button
+                onClick={() => setActiveTab("extend")}
+                className={`flex-1 py-3 text-center border-b-2 transition ${activeTab === "extend" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              >
+                Extend Stay
+              </button>
+              <button
+                onClick={() => setActiveTab("checkout")}
+                className={`flex-1 py-3 text-center border-b-2 transition ${activeTab === "checkout" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              >
+                Early Checkout
+              </button>
+            </div>
+
+            {/* Scrollable Tab Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {actionError && (
+                <div className="flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
+                  <AlertCircle className="h-4.5 w-4.5 shrink-0 mt-0.5" />
+                  <div>{actionError}</div>
+                </div>
+              )}
+              {actionSuccess && (
+                <div className="flex items-start gap-2.5 rounded-lg border border-green-200 bg-green-500/5 p-3 text-xs text-green-600 dark:border-green-950">
+                  <CheckCircle2 className="h-4.5 w-4.5 shrink-0 mt-0.5" />
+                  <div>{actionSuccess}</div>
+                </div>
+              )}
+
+              {/* Tab 1: Details */}
+              {activeTab === "details" && (
+                <div className="space-y-6">
+                  {/* Grid fields */}
+                  <div className="grid gap-4 grid-cols-2 text-sm">
+                    <div className="rounded-lg border p-3 space-y-1">
+                      <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Joining Date</span>
+                      <span className="font-semibold">{formatDate(stay.joiningDate)}</span>
+                    </div>
+                    <div className="rounded-lg border p-3 space-y-1">
+                      <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Check-out Date</span>
+                      <span className="font-semibold">{formatDate(stay.endDate)}</span>
+                    </div>
+                    <div className="rounded-lg border p-3 space-y-1">
+                      <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Monthly Rent</span>
+                      <span className="font-semibold">₹ {stay.monthlyRent.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="rounded-lg border p-3 space-y-1">
+                      <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Deposit Amount</span>
+                      <span className="font-semibold">₹ {stay.securityDeposit.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="rounded-lg border p-3 space-y-1">
+                      <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Food Plan</span>
+                      <span className="font-semibold flex items-center gap-1">
+                        <Utensils className="h-3.5 w-3.5 text-muted-foreground" />
+                        {stay.foodPlan?.replace(/_/g, " ") || "Not Included"}
+                      </span>
+                    </div>
+                    <div className="rounded-lg border p-3 space-y-1">
+                      <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Stay Status</span>
+                      <span className="rounded bg-primary/10 px-2 py-0.5 text-xs text-primary font-bold w-fit block mt-1 uppercase">
+                        {stay.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Financials Summary */}
+                  <div className="rounded-lg border p-4 bg-muted/10 space-y-3 text-xs">
+                    <h4 className="font-bold text-sm border-b pb-1">Billing Summary</h4>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total Initial Payable:</span>
+                      <span className="font-semibold">₹ {stay.totalPayable.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total Payments Verified:</span>
+                      <span className="font-semibold text-green-600">
+                        ₹ {stay.payments.filter((p: any) => p.paymentStatus === "PAID").reduce((sum: number, p: any) => sum + p.amountPaid, 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Payments list */}
+                  <div className="space-y-2">
+                    <h4 className="font-bold text-sm flex items-center gap-1">
+                      <FileText className="h-4 w-4 text-muted-foreground" /> Payment Ledger
+                    </h4>
+                    {stay.payments.length > 0 ? (
+                      <div className="border rounded-lg divide-y text-xs max-h-40 overflow-y-auto">
+                        {stay.payments.map((p: any) => (
+                          <div key={p.id} className="p-3 flex justify-between items-center bg-card">
+                            <div>
+                              <p className="font-semibold">₹ {p.amountPaid.toLocaleString("en-IN")} ({p.paymentMode})</p>
+                              <p className="text-[10px] text-muted-foreground">{formatDate(p.createdAt)} UTR: {p.transactionRefNo || "—"}</p>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${p.paymentStatus === "PAID" ? "bg-green-100 text-green-800" : p.paymentStatus === "PENDING" ? "bg-yellow-100 text-yellow-800 font-medium" : "bg-red-100 text-red-800"}`}>
+                              {p.paymentStatus}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground py-2 text-center bg-muted/10 rounded-lg">No payment ledger records found.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 2: Extend */}
+              {activeTab === "extend" && (
+                <form onSubmit={handleExtend} className="space-y-4 text-sm">
+                  <div className="rounded-lg border bg-blue-500/5 p-4 flex gap-2.5 text-xs text-blue-700 leading-relaxed border-blue-200">
+                    <Clock className="h-4.5 w-4.5 shrink-0 text-blue-500" />
+                    <div>
+                      Extending a stay sets the checkout date further out and transitions the status to <span className="font-bold">EXTENDED</span>. The system generates a new pending payment record for additional rent.
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">New Checkout End Date</label>
+                    <input
+                      type="date"
+                      value={newEndDate}
+                      onChange={(e) => setNewEndDate(e.target.value)}
+                      className="flex h-9 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid gap-4 grid-cols-2">
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Additional Rent (₹)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={additionalRent}
+                        onChange={(e) => setAdditionalRent(e.target.value)}
+                        className="flex h-9 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Additional Food Charges (₹)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={additionalFoodCharges}
+                        onChange={(e) => setAdditionalFoodCharges(e.target.value)}
+                        className="flex h-9 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <Button type="submit" disabled={submitting} className="w-full mt-2">
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Save Extension & Request Payment
+                  </Button>
+                </form>
+              )}
+
+              {/* Tab 3: Checkout */}
+              {activeTab === "checkout" && (
+                <form onSubmit={handleCheckout} className="space-y-4 text-sm">
+                  <div className="rounded-lg border bg-amber-500/5 p-4 flex gap-2.5 text-xs text-amber-700 leading-relaxed border-amber-200">
+                    <ShieldAlert className="h-4.5 w-4.5 shrink-0 text-amber-500" />
+                    <div>
+                      Processing early checkout immediately sets the stay status to <span className="font-bold">EARLY_EXIT</span>, frees the bed, cancels future food orders, and creates a refund record.
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Early Checkout Date</label>
+                    <input
+                      type="date"
+                      max={new Date().toISOString().split("T")[0]}
+                      value={checkoutDate}
+                      onChange={(e) => setCheckoutDate(e.target.value)}
+                      className="flex h-9 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"
+                      required
+                    />
+                  </div>
+
+                  {daysInfo && (
+                    <div className="grid gap-3 grid-cols-3 bg-muted/10 p-3 rounded-lg text-xs">
+                      <div>
+                        <span className="text-[10px] text-muted-foreground block">Total Days</span>
+                        <span className="font-semibold">{daysInfo.totalDays} days</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-muted-foreground block">Days Used</span>
+                        <span className="font-semibold">{daysInfo.daysUsed} days</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-muted-foreground block">Remaining Days</span>
+                        <span className="font-semibold text-primary">{daysInfo.daysRemaining} days</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid gap-4 grid-cols-3 items-end">
+                    <div className="col-span-2">
+                      <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                        Refund Amount (₹) {daysInfo && <span className="text-[10px] text-muted-foreground">(Suggested: ₹{daysInfo.suggestedRefund})</span>}
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={refundAmount}
+                        onChange={(e) => setRefundAmount(e.target.value)}
+                        className="flex h-9 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"
+                        required
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => daysInfo && setRefundAmount(daysInfo.suggestedRefund.toString())}
+                      className="text-xs h-9"
+                    >
+                      Use Suggested
+                    </Button>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Refund Processing Notes / Reasons</label>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Reason for early checkout or refund particulars..."
+                      className="flex min-h-16 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <Button type="submit" disabled={submitting} className="w-full mt-2" variant="destructive">
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Confirm Checkout & Issue Refund
+                  </Button>
+                </form>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function WardenOccupancyPage() {
+  const [data, setData] = useState<HostelHierarchy | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedStayId, setSelectedStayId] = useState<string | null>(null);
+
+  function loadData() {
+    setLoading(true);
+    fetch("/api/warden/stays/natural-checkout", { method: "POST" })
+      .catch(() => {})
+      .then(() => fetch("/api/hostel-structure/mine"))
+      .then((res) => {
+        if (!res.ok) return res.json().then((err) => Promise.reject(new Error(err.error || "Failed to fetch")));
+        return res.json();
+      })
+      .then((json) => {
+        setData(json);
+        setError(null);
+      })
+      .catch((e: Error) => {
+        setError(e.message);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <p className="text-muted-foreground">Loading occupancy map...</p>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold">Occupancy Map</h1>
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          {error || "Failed to load occupancy data"}
+        </div>
+        <button onClick={loadData} className="text-sm text-blue-600 hover:underline">Retry</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">{data.name} - Occupancy</h1>
+          <p className="text-sm text-muted-foreground">{data.address} &middot; {data.accommodationType}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-3 text-sm">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-full bg-green-500" />
+          <span>Available</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-full bg-red-500" />
+          <span>Occupied (Click to Manage)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-full bg-orange-400" />
+          <span>Maintenance</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-full bg-yellow-400" />
+          <span>On Hold</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-full bg-gray-400" />
+          <span>Not In Use / Private</span>
+        </div>
+      </div>
+
+      {data.floors.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground">
+          No structure data available.
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {data.floors.map((floor) => (
+            <FloorSection key={floor.id} floor={floor} onBedClick={(stayId) => setSelectedStayId(stayId)} />
+          ))}
+        </div>
+      )}
+
+      {selectedStayId && (
+        <StayLifecycleModal
+          stayId={selectedStayId}
+          onClose={() => setSelectedStayId(null)}
+          onSuccess={loadData}
+        />
+      )}
+    </div>
+  );
+}
