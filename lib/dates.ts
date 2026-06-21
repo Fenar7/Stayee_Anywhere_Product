@@ -4,7 +4,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 /**
  * Get IST date components (year, month, day) for a given Date.
  */
-function getISTDateParts(date: Date): { year: number; month: number; day: number } {
+export function getISTDateParts(date: Date): { year: number; month: number; day: number } {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: IST_TIMEZONE,
     year: "numeric",
