@@ -6,13 +6,12 @@ import { verifyAndGetFileType, compressImage } from "@/lib/image";
 import { uploadToStorage } from "@/lib/storage";
 import { UserRole, StayStatus, PaymentMode, PaymentStatus, DocumentType, DocumentOwnerType } from "@prisma/client";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   try {
     const session = await requireRole([UserRole.TENANT]);
-    
-    // Find the tenant profile
+
     const tenant = await prisma.tenant.findUnique({
       where: { userId: session.user.id },
     });
@@ -21,19 +20,26 @@ export async function POST(request: NextRequest) {
       throw new NotFoundError("Tenant profile not found");
     }
 
-    // Find the tenant's current stay awaiting payment
-    const stay = await prisma.stay.findFirst({
+    let stay = await prisma.stay.findFirst({
       where: {
         tenantId: tenant.id,
-        status: StayStatus.APPROVED_AWAITING_PAYMENT,
+        status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
       },
     });
 
     if (!stay) {
-      throw new ValidationError("No active stay awaiting payment was found for your account");
+      stay = await prisma.stay.findFirst({
+        where: {
+          tenantId: tenant.id,
+          status: StayStatus.APPROVED_AWAITING_PAYMENT,
+        },
+      });
     }
 
-    // Parse form data
+    if (!stay) {
+      throw new ValidationError("No active stay awaiting payment or active renewal stay found for your account");
+    }
+
     const formData = await request.formData();
     const screenshotFile = formData.get("screenshot") as File | null;
     const amountPaidStr = formData.get("amountPaid") as string | null;
@@ -64,13 +70,11 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("Screenshot must be a JPEG or PNG image");
     }
 
-    // Compress screenshot and upload to private storage
     const compressed = await compressImage(buffer, "document");
     const screenshotPath = `tenants/${tenant.id}/payment_screenshot_${Date.now()}.jpg`;
     await uploadToStorage(compressed.data, screenshotPath, compressed.mimeType);
 
     const result = await prisma.$transaction(async (tx) => {
-      // Create Document record
       const doc = await tx.document.create({
         data: {
           ownerType: DocumentOwnerType.STAY,
@@ -82,7 +86,6 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Create Payment record
       const payment = await tx.payment.create({
         data: {
           stayId: stay.id,
