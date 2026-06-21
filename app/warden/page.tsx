@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, ClipboardList } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getWardenHostelStats } from "@/services/hostel/dashboard.service";
@@ -108,6 +108,12 @@ export default async function WardenPage({
             <Link href="/warden/food">
               <Button variant="outline">
                 Kitchen Dashboard
+              </Button>
+            </Link>
+            <Link href={`/warden/worklists${queryHostelId ? `?hostelId=${queryHostelId}` : ""}`}>
+              <Button variant="outline">
+                <ClipboardList className="mr-2 h-4 w-4" />
+                Warden Worklists
               </Button>
             </Link>
           </div>

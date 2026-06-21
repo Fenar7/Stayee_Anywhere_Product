@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft, Check, X, CreditCard, ShieldCheck, AlertCircle, FileText, ExternalLink, MessageSquare, Clipboard, Upload } from "lucide-react";
+import { applicationApprovedPaymentRequest } from "@/lib/whatsapp/templates";
+import { normalizePhoneNumber, buildWaMeLink } from "@/lib/whatsapp/utils";
 
 interface DocumentItem {
   id: string;
@@ -253,7 +255,19 @@ export default function OnboardDetailPage() {
   const getWhatsAppMessage = () => {
     if (!stay || !tenant) return "";
     const portalLink = `${window.location.origin}/login`;
-    return `Hello ${tenant.fullName}! Your registration for ${bed?.roomNumber}-${bed?.label} in NextHome Hostel has been approved!\n\nDue Amount: ₹${stay.totalPayable.toLocaleString("en-IN")}\nBreakdown:\n- Admission Fee: ₹${stay.admissionFee.toLocaleString("en-IN")}\n- Monthly Rent: ₹${stay.monthlyRent.toLocaleString("en-IN")}\n- Security Deposit: ₹${stay.securityDeposit.toLocaleString("en-IN")}\n- Food Charges: ₹${stay.foodCharges.toLocaleString("en-IN")}\n- Discount: ₹${stay.discount.toLocaleString("en-IN")}\n\nPlease transfer to UPI ID: payment@nexthome or scan the hostel code. Kindly upload the receipt screenshot in your portal at ${portalLink} or share it here.\n\nThank you!`;
+    return applicationApprovedPaymentRequest({
+      name: tenant.fullName,
+      amount: stay.totalPayable,
+      paymentUrl: portalLink,
+      breakdown: {
+        admissionFee: stay.admissionFee,
+        monthlyRent: stay.monthlyRent,
+        securityDeposit: stay.securityDeposit,
+        foodCharges: stay.foodCharges,
+        discount: stay.discount,
+        roomBedLabel: bed ? `${bed.roomNumber}-${bed.label}` : undefined,
+      },
+    });
   };
 
   const handleCopyRequestLink = async () => {
@@ -276,8 +290,8 @@ export default function OnboardDetailPage() {
 
   const handleWhatsAppShare = () => {
     if (!tenant) return;
-    const cleanPhone = tenant.phone.replace(/[^0-9+]/g, "");
-    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(getWhatsAppMessage())}`, "_blank");
+    const normalized = normalizePhoneNumber(tenant.phone);
+    window.open(buildWaMeLink(normalized, getWhatsAppMessage()), "_blank");
   };
 
   if (loading) {

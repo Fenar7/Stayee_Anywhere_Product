@@ -4,6 +4,8 @@ import { useEffect, useState, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { onboardingLink } from "@/lib/whatsapp/templates";
+import { buildWaMeLink } from "@/lib/whatsapp/utils";
 
 interface OnboardingData {
   id: string;
@@ -68,8 +70,8 @@ function NewUserContent() {
   const handleWhatsAppShare = () => {
     if (!data) return;
     const link = `${window.location.origin}/newuser?id=${data.id}`;
-    const message = `Hello! Welcome to Next Home. Please click this link to complete your profile registration: ${link}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+    const message = onboardingLink(link);
+    window.open(buildWaMeLink("", message), "_blank");
   };
 
   const handleCopyLink = async () => {
