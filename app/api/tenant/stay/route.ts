@@ -20,16 +20,34 @@ const stayQueryInclude = {
 function calculateNextDueDate(
   joiningDate: Date,
   durationType: DurationType,
-  payments: { paymentStatus: string }[]
+  payments: { amountPaidPaise: number; paymentStatus: string }[],
+  stay: {
+    totalPayablePaise: number;
+    monthlyRentPaise: number;
+    foodChargesPaise: number;
+  }
 ): string | null {
   if (durationType !== DurationType.MONTHLY) return null;
 
-  const completedPayments = payments.filter(
-    (p) => p.paymentStatus === PaymentStatus.PAID || p.paymentStatus === PaymentStatus.PARTIALLY_PAID
-  ).length;
+  const totalVerifiedPaise = payments
+    .filter((p) => p.paymentStatus === PaymentStatus.PAID || p.paymentStatus === PaymentStatus.PARTIALLY_PAID)
+    .reduce((sum, p) => sum + p.amountPaidPaise, 0);
+
+  const initialPayable = stay.totalPayablePaise;
+  const recurringMonthlyCost = stay.monthlyRentPaise + stay.foodChargesPaise;
+
+  if (totalVerifiedPaise < initialPayable) {
+    return joiningDate.toISOString();
+  }
+
+  const additionalMonthsPaid = recurringMonthlyCost > 0
+    ? Math.floor((totalVerifiedPaise - initialPayable) / recurringMonthlyCost)
+    : 0;
+
+  const totalMonthsPaid = 1 + additionalMonthsPaid;
 
   const nextDue = new Date(joiningDate);
-  nextDue.setMonth(nextDue.getMonth() + completedPayments + 1);
+  nextDue.setMonth(nextDue.getMonth() + totalMonthsPaid);
 
   return nextDue.toISOString();
 }
@@ -137,7 +155,7 @@ export async function GET() {
 
     const nextDueDate =
       stay.status === StayStatus.ACTIVE || stay.status === StayStatus.EXTENDED
-        ? calculateNextDueDate(stay.joiningDate, stay.durationType as DurationType, stay.payments)
+        ? calculateNextDueDate(stay.joiningDate, stay.durationType as DurationType, stay.payments, stay)
         : null;
 
     return NextResponse.json({

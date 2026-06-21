@@ -107,7 +107,7 @@ describe("Sprint 3.1: Tenant Portal & Stay Renewal", () => {
         payments: [
           {
             id: "pay-1",
-            amountPaidPaise: 500000,
+            amountPaidPaise: 1100000,
             paymentMode: PaymentMode.UPI,
             transactionRefNo: "UTR123",
             paymentStatus: PaymentStatus.PAID,
@@ -154,7 +154,7 @@ describe("Sprint 3.1: Tenant Portal & Stay Renewal", () => {
       expect(data.bed.label).toBe("A1");
 
       expect(data.payments).toHaveLength(1);
-      expect(data.payments[0].amountPaid).toBe(5000);
+      expect(data.payments[0].amountPaid).toBe(11000);
       expect(data.payments[0].paymentStatus).toBe("PAID");
 
       expect(data.roommates).toHaveLength(1);
@@ -166,7 +166,7 @@ describe("Sprint 3.1: Tenant Portal & Stay Renewal", () => {
 
       expect(data.nextDueDate).toBeDefined();
       const nextDue = new Date(data.nextDueDate);
-      expect(nextDue.getMonth()).toBe(7);
+      expect(nextDue.getMonth()).toBe(6);
       expect(nextDue.getFullYear()).toBe(2025);
     });
 

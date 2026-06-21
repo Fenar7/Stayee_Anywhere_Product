@@ -58,6 +58,10 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("Please provide a valid payment amount");
     }
 
+    if (amountPaid > 100000) {
+      throw new ValidationError("Payment amount exceeds maximum transaction limit of ₹1,00,000");
+    }
+
     const amountPaidPaise = Math.round(amountPaid * 100);
 
     const buffer = Buffer.from(await screenshotFile.arrayBuffer());

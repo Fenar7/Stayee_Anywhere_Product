@@ -473,6 +473,14 @@ export default function TenantDashboardPage() {
                     <span className="font-semibold">{stay.durationType}</span>
                   </div>
                   <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground block">Monthly Rent</span>
+                    <span className="font-semibold">₹ {stay.monthlyRent.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground block">Security Deposit</span>
+                    <span className="font-semibold">₹ {stay.securityDeposit.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="space-y-1">
                     <span className="text-xs text-muted-foreground block">Food Plan</span>
                     <span className="font-semibold flex items-center gap-1">
                       <UtensilsCrossed className="h-3.5 w-3.5 text-muted-foreground" />
@@ -543,6 +551,10 @@ export default function TenantDashboardPage() {
                 )}
 
                 <div className="border-t pt-4">
+                  <div className="mb-3 rounded-lg bg-primary/5 px-3 py-2 text-sm">
+                    <span className="text-xs text-muted-foreground">Expected Monthly Rent</span>
+                    <p className="font-bold text-primary">₹ {stay.monthlyRent.toLocaleString("en-IN")}</p>
+                  </div>
                   <form onSubmit={handleUploadReceipt} className="space-y-3 text-sm">
                     <div>
                       <label className="text-xs font-semibold">Amount Paid (₹)</label>
