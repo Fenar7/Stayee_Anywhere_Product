@@ -21,6 +21,7 @@ const mockPrisma = vi.hoisted(() => ({
     findUnique: vi.fn(),
     create: vi.fn().mockResolvedValue({ id: "request-123" }),
   },
+  warden: { findUnique: vi.fn().mockResolvedValue({ id: "warden-1" }) },
   room: { findMany: vi.fn() },
 }));
 
@@ -57,6 +58,10 @@ vi.mock("../lib/db", () => ({ prisma: mockPrisma }));
 vi.mock("../lib/auth", () => ({
   requireRole: vi.fn().mockResolvedValue(fakeWardenSession),
   requireHostelAccess: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("../lib/auth/resolve-hostel", () => ({
+  resolveHostelId: vi.fn().mockResolvedValue("hostel-123"),
 }));
 
 // Needed for transitive imports inside route files

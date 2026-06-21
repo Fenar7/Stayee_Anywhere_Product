@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireRole, requireHostelAccess, AuthenticatedUserSession } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
+import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { getWardenHostelStats } from "@/services/hostel/dashboard.service";
 import { handleApiError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
@@ -7,8 +8,8 @@ import { UserRole } from "@prisma/client";
 export async function GET(request: NextRequest) {
   try {
     const session = await requireRole([UserRole.WARDEN]);
-    await requireHostelAccess(session, session.user.warden!.hostelId);
-    const stats = await getWardenHostelStats(session.user.warden!.hostelId);
+    const hostelId = await resolveHostelId(session, request);
+    const stats = await getWardenHostelStats(hostelId);
     return NextResponse.json(stats);
   } catch (error) {
     return handleApiError(error);

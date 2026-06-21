@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
+import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { prisma } from "@/lib/db";
 import { handleApiError, ValidationError } from "@/lib/errors";
 import { UserRole, StayStatus } from "@prisma/client";
@@ -7,6 +8,7 @@ import { UserRole, StayStatus } from "@prisma/client";
 export async function GET(request: NextRequest) {
   try {
     const session = await requireRole([UserRole.WARDEN]);
+    const hostelId = await resolveHostelId(session, request);
 
     const { searchParams } = new URL(request.url);
     const joiningDateParam = searchParams.get("joiningDate");
@@ -30,9 +32,6 @@ export async function GET(request: NextRequest) {
     if (end <= start) {
       throw new ValidationError("endDate must be after joiningDate");
     }
-
-    const warden = session.user.warden!;
-    const hostelId = warden.hostelId;
 
     // Step 1: collect all bed IDs with ACTIVE or EXTENDED stays overlapping the range
     const occupiedStays = await prisma.stay.findMany({

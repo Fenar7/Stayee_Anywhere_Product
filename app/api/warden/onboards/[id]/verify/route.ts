@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth";
+import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ForbiddenError, ValidationError, ConflictError } from "@/lib/errors";
 import { UserRole, StayStatus, PaymentStatus, BedStatus } from "@prisma/client";
+import { generatePaymentReceipt } from "@/services/pdf/receipt.service";
 
 const verifySchema = z.object({
   paymentId: z.string().uuid("Invalid payment ID format"),
@@ -15,8 +17,7 @@ export async function POST(
 ) {
   try {
     const session = await requireRole([UserRole.WARDEN]);
-    const warden = session.user.warden!;
-    const hostelId = warden.hostelId;
+    const hostelId = await resolveHostelId(session, request);
 
     const { id: stayId } = await params;
 
@@ -138,10 +139,19 @@ export async function POST(
       }
     });
 
+    // Auto-trigger receipt generation asynchronously (fire-and-forget).
+    // Failures here must NOT roll back the payment verification.
+    const activated = totalVerifiedWithCurrent >= stay.totalPayablePaise;
+    if (activated) {
+      generatePaymentReceipt(paymentId).catch((err) => {
+        console.error(`[Receipt] Failed to generate receipt for payment ${paymentId}:`, err);
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      activated: totalVerifiedWithCurrent >= stay.totalPayablePaise,
-      message: totalVerifiedWithCurrent >= stay.totalPayablePaise
+      activated,
+      message: activated
         ? "Payment verified. Stay is now ACTIVE."
         : "Partial payment verified. Additional payment required to activate stay.",
     });

@@ -98,6 +98,7 @@ model Hostel {
   name              String
   address           String
   accommodationType AccommodationType
+  affidavitText     String?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
