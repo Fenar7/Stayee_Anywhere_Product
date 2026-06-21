@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { DurationType, FoodPlan } from "@prisma/client";
+import { onboardingLink } from "@/lib/whatsapp/templates";
+import { buildWaMeLink } from "@/lib/whatsapp/utils";
 
 interface AvailableBed {
   id: string;
@@ -166,11 +168,8 @@ export default function WardenOnboardPage() {
   };
 
   const handleWhatsAppShare = () => {
-    const message = `Hello! Welcome to Next Home. Please click this link to complete your profile registration: ${submittedLink}`;
-    window.open(
-      `https://wa.me/?text=${encodeURIComponent(message)}`,
-      "_blank"
-    );
+    const message = onboardingLink(submittedLink);
+    window.open(buildWaMeLink("", message), "_blank");
   };
 
   // Shared native input class

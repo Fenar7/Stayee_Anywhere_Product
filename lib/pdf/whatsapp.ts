@@ -1,6 +1,14 @@
 /**
+ * WhatsApp utilities for payment receipt sharing.
+ *
+ * Delegates to the centralized lib/whatsapp/templates and lib/whatsapp/utils
+ * modules for message formatting and phone normalization.
+ */
+import { normalizePhoneNumber, buildWaMeLink } from "@/lib/whatsapp/utils";
+
+/**
  * Generate a WhatsApp message string for payment receipt sharing.
- * Format: wa.me/<phone>?text=<encoded message>
+ * Preserves backward compatibility with the original amountFormatted parameter.
  */
 export function buildReceiptWhatsAppMessage(params: {
   tenantName: string;
@@ -21,8 +29,5 @@ export function buildReceiptWhatsAppUrl(params: {
   downloadLink: string;
 }): string {
   const message = buildReceiptWhatsAppMessage(params);
-  const encoded = encodeURIComponent(message);
-  // Normalize phone: remove + prefix if present, wa.me expects raw digits
-  const phone = params.phone.replace(/^\+/, "");
-  return `https://wa.me/${phone}?text=${encoded}`;
+  return buildWaMeLink(params.phone, message);
 }
