@@ -70,6 +70,9 @@ export async function POST(
     await prisma.$transaction(async (tx) => {
       if (totalVerifiedWithCurrent >= stay.totalPayablePaise) {
         // 1. Strict Bed conflict check inside transaction AT THE MOMENT OF ACTIVATION
+        // Lock the Bed row to serialize concurrent verifications for the exact same bed
+        await tx.$executeRaw`SELECT 1 FROM "Bed" WHERE id = ${stay.bedId} FOR UPDATE`;
+
         const overlappingStay = await tx.stay.findFirst({
           where: {
             bedId: stay.bedId,
