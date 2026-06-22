@@ -289,6 +289,7 @@ export default function AdminUsersPage() {
               <tr className="border-b bg-muted/30 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
                 <th className="px-6 py-4">User Info / Name</th>
                 <th className="px-6 py-4">Role</th>
+                <th className="px-6 py-4">Current Assignment</th>
                 <th className="px-6 py-4">Contact Details</th>
                 <th className="px-6 py-4">Password Set</th>
                 <th className="px-6 py-4">Joined Date</th>
@@ -298,18 +299,31 @@ export default function AdminUsersPage() {
             <tbody className="divide-y">
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-muted-foreground text-sm">
+                  <td colSpan={7} className="text-center py-10 text-muted-foreground text-sm">
                     No matching users found.
                   </td>
                 </tr>
               ) : (
                 filteredUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-muted/10 transition-colors">
+                  <tr
+                    key={u.id}
+                    onClick={() => {
+                      if (u.role === "TENANT") {
+                        setSelectedUser(u);
+                      }
+                    }}
+                    className={`hover:bg-muted/15 transition-colors ${
+                      u.role === "TENANT" ? "cursor-pointer" : "cursor-default"
+                    }`}
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {u.tenant?.photoUrl ? (
                           <div
-                            onClick={() => setShowLightboxUrl(u.tenant?.photoUrl || null)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowLightboxUrl(u.tenant?.photoUrl || null);
+                            }}
                             className="h-9 w-9 rounded-lg overflow-hidden border bg-muted shadow-sm cursor-zoom-in shrink-0"
                             title="Click to view full screen"
                           >
@@ -345,6 +359,57 @@ export default function AdminUsersPage() {
                         </span>
                       )}
                     </td>
+                    <td className="px-6 py-4">
+                      {u.role === "TENANT" && u.tenant?.stays ? (
+                        (() => {
+                          const activeStay = u.tenant.stays.find(
+                            (s) => s.status === "ACTIVE" || s.status === "EXTENDED"
+                          );
+                          if (activeStay) {
+                            return (
+                              <div className="space-y-1">
+                                <span className="font-semibold text-foreground flex items-center gap-1.5">
+                                  <Building className="h-3.5 w-3.5 text-primary shrink-0" />
+                                  {activeStay.hostel.name}
+                                </span>
+                                <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                  <Bed className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                  Room {activeStay.bed.room.roomNumber} &middot; Bed {activeStay.bed.label}
+                                </span>
+                              </div>
+                            );
+                          }
+                          const pendingStay = u.tenant.stays.find(
+                            (s) => s.status === "APPROVED_AWAITING_PAYMENT" || s.status === "ONBOARDING_PENDING"
+                          );
+                          if (pendingStay) {
+                            return (
+                              <div className="space-y-1">
+                                <span className="text-muted-foreground flex items-center gap-1.5">
+                                  <Building className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                  {pendingStay.hostel.name}
+                                </span>
+                                <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                  <Bed className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                  Room {pendingStay.bed.room.roomNumber} &middot; Bed {pendingStay.bed.label}
+                                </span>
+                                <span className="inline-block text-[9px] bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold px-1.5 py-0.5 rounded border border-blue-200/50 uppercase tracking-wider">
+                                  Pending
+                                </span>
+                              </div>
+                            );
+                          }
+                          return <span className="text-xs text-muted-foreground">No stay history</span>;
+                        })()
+                      ) : u.role === "WARDEN" && u.warden?.hostel ? (
+                        <div className="flex items-center gap-1.5 text-xs text-foreground font-semibold">
+                          <Building className="h-3.5 w-3.5 text-primary shrink-0" />
+                          {u.warden.hostel.name}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">&mdash;</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 space-y-1">
                       <p className="flex items-center gap-1.5 text-xs font-medium">
                         <Phone className="h-3.5 w-3.5 text-muted-foreground" />
@@ -364,7 +429,10 @@ export default function AdminUsersPage() {
                             {u.plainTextPassword}
                           </span>
                           <button
-                            onClick={() => copyToClipboard(u.plainTextPassword || "")}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyToClipboard(u.plainTextPassword || "");
+                            }}
                             className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
                             title="Copy Password"
                           >
@@ -390,7 +458,10 @@ export default function AdminUsersPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => setSelectedUser(u)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedUser(u);
+                            }}
                             className="h-8 w-8 p-0"
                             title="View Full Profile"
                           >
@@ -400,7 +471,8 @@ export default function AdminUsersPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setResettingUser(u);
                             setNewPassword("");
                             setResetSuccess(false);
