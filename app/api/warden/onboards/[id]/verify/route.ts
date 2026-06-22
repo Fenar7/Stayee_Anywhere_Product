@@ -60,24 +60,6 @@ export async function POST(
       throw new ValidationError("Payment has already been processed");
     }
 
-    // 1. Bed conflict check AT THE MOMENT OF ACTIVATION
-    // Find any ACTIVE or EXTENDED stays overlapping the stay dates on the same bed
-    const overlappingStay = await prisma.stay.findFirst({
-      where: {
-        bedId: stay.bedId,
-        id: { not: stay.id }, // Exclude current stay
-        status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
-        joiningDate: { lte: stay.endDate },
-        endDate: { gte: stay.joiningDate },
-      },
-    });
-
-    if (overlappingStay) {
-      throw new ConflictError(
-        "Cannot activate stay. The bed has been booked by another active/extended resident for this date range."
-      );
-    }
-
     // Calculate verified payment aggregates
     const alreadyVerifiedSum = stay.payments
       .filter((p) => p.id !== paymentId && p.paymentStatus === PaymentStatus.PAID)
@@ -87,6 +69,26 @@ export async function POST(
 
     await prisma.$transaction(async (tx) => {
       if (totalVerifiedWithCurrent >= stay.totalPayablePaise) {
+        // 1. Strict Bed conflict check inside transaction AT THE MOMENT OF ACTIVATION
+        // Lock the Bed row to serialize concurrent verifications for the exact same bed
+        await tx.$executeRaw`SELECT 1 FROM "Bed" WHERE id = ${stay.bedId} FOR UPDATE`;
+
+        const overlappingStay = await tx.stay.findFirst({
+          where: {
+            bedId: stay.bedId,
+            id: { not: stay.id },
+            status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
+            joiningDate: { lte: stay.endDate },
+            endDate: { gte: stay.joiningDate },
+          },
+        });
+
+        if (overlappingStay) {
+          throw new ConflictError(
+            "Cannot activate stay. The bed has been booked by another active/extended resident for this date range."
+          );
+        }
+
         // Fully paid -> Transition Stay to ACTIVE, verify payment as PAID, Bed to OCCUPIED
         await tx.payment.update({
           where: { id: paymentId },

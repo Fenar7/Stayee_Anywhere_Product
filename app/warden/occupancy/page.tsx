@@ -280,7 +280,7 @@ function StayLifecycleModal({
 
     // Suggested Refund = Pro-rata unused rent/food out of verified paid
     const proRataAmount = Math.max(0, verifiedPaid * (daysRemaining / totalDays));
-    const suggestedRefund = parseFloat(proRataAmount.toFixed(2));
+    const suggestedRefund = Math.round(proRataAmount);
 
     setDaysInfo({
       totalDays,
@@ -303,8 +303,8 @@ function StayLifecycleModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           newEndDate,
-          additionalRent: parseFloat(additionalRent) || 0,
-          additionalFoodCharges: parseFloat(additionalFoodCharges) || 0
+          additionalRent: parseInt(additionalRent, 10) || 0,
+          additionalFoodCharges: parseInt(additionalFoodCharges, 10) || 0
         }),
       });
 
@@ -335,7 +335,7 @@ function StayLifecycleModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           checkoutDate,
-          refundAmount: parseFloat(refundAmount) || 0,
+          refundAmount: parseInt(refundAmount, 10) || 0,
           notes
         }),
       });
@@ -620,7 +620,7 @@ function StayLifecycleModal({
                       <label className="text-xs font-semibold text-muted-foreground block mb-1">Additional Rent (₹)</label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="1"
                         value={additionalRent}
                         onChange={(e) => setAdditionalRent(e.target.value)}
                         className="flex h-9 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"
@@ -631,7 +631,7 @@ function StayLifecycleModal({
                       <label className="text-xs font-semibold text-muted-foreground block mb-1">Additional Food Charges (₹)</label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="1"
                         value={additionalFoodCharges}
                         onChange={(e) => setAdditionalFoodCharges(e.target.value)}
                         className="flex h-9 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"
@@ -693,7 +693,7 @@ function StayLifecycleModal({
                       </label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="1"
                         value={refundAmount}
                         onChange={(e) => setRefundAmount(e.target.value)}
                         className="flex h-9 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"

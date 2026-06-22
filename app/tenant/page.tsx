@@ -184,7 +184,7 @@ export default function TenantDashboardPage() {
       setError("Please select your receipt screenshot file");
       return;
     }
-    if (!amountPaid || parseFloat(amountPaid) <= 0) {
+    if (!amountPaid || parseInt(amountPaid, 10) <= 0) {
       setError("Please provide a valid payment amount");
       return;
     }
@@ -379,7 +379,7 @@ export default function TenantDashboardPage() {
                       <label className="text-xs font-semibold">Amount Paid (₹)</label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="1"
                         placeholder={remainingBalance.toString()}
                         value={amountPaid}
                         onChange={(e) => setAmountPaid(e.target.value)}
@@ -662,7 +662,7 @@ export default function TenantDashboardPage() {
                       <label className="text-xs font-semibold">Amount Paid (₹)</label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="1"
                         placeholder="Enter amount"
                         value={amountPaid}
                         onChange={(e) => setAmountPaid(e.target.value)}
