@@ -1,30 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ConflictError, ValidationError } from "@/lib/errors";
+import { progressSchema } from "@/lib/validation/onboarding";
 
-const progressSchema = z.object({
-  step: z.number().int().min(2).max(5),
-  data: z.object({
-    fullName: z.string().optional(),
-    dateOfBirth: z.string().optional(),
-    gender: z.string().optional(),
-    placeOfBirth: z.string().optional(),
-    permanentAddress: z.string().optional(),
-    emergencyContactName: z.string().optional(),
-    relationship: z.string().optional(),
-    emergencyContactNumber: z.string().optional(),
-    parentGuardianName: z.string().optional(),
-    parentGuardianContact: z.string().optional(),
-    occupationType: z.string().optional(),
-    collegeName: z.string().nullable().optional(),
-    courseOrBranch: z.string().nullable().optional(),
-    companyName: z.string().nullable().optional(),
-    designation: z.string().nullable().optional(),
-    purposeOfStay: z.string().optional(),
-    email: z.string().nullable().optional(),
-  }),
-});
+
 
 export async function GET(
   _request: NextRequest,

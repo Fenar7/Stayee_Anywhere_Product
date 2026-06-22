@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { createClient } from "@/lib/auth/server";
 import { fetchUserBySupabaseId, setUserPasswordSetAt } from "@/services/auth/auth.service";
 import { handleApiError } from "@/lib/errors";
+import { setPasswordSchema } from "@/lib/validation/auth";
 
-const setPasswordSchema = z.object({
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string().min(8),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords must match",
-  path: ["confirmPassword"],
-});
+
 
 export async function POST(request: NextRequest) {
   try {

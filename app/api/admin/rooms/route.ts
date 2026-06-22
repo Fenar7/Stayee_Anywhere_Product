@@ -6,16 +6,7 @@ import { UserRole, SharingType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { createRoom } from "@/services/hostel/structure.service";
 
-const createRoomSchema = z.object({
-  flatId: z.string().uuid().optional().nullable(),
-  floorId: z.string().uuid().optional().nullable(),
-  roomNumber: z.string().min(1, "Room number is required"),
-  sharingType: z.nativeEnum(SharingType),
-  isPrivate: z.boolean().optional().default(false),
-}).refine(
-  (data) => (!!data.flatId) !== (!!data.floorId),
-  { message: "Exactly one of flatId or floorId must be provided" }
-);
+import { createRoomSchema } from "@/lib/validation/hostel";
 
 export async function POST(request: NextRequest) {
   try {

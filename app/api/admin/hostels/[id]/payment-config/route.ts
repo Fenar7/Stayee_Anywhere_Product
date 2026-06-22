@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { handleApiError, NotFoundError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
@@ -7,10 +6,9 @@ import { prisma } from "@/lib/db";
 import { verifyAndGetFileType, compressImage } from "@/lib/image";
 import { uploadToStorage } from "@/lib/storage";
 import { createAdminClient } from "@/lib/auth/server";
+import { paymentConfigSchema } from "@/lib/validation/payment";
 
-const putSchema = z.object({
-  upiId: z.string().nullable().optional(),
-});
+
 
 export async function GET(
   _request: NextRequest,

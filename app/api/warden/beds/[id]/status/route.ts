@@ -1,14 +1,12 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { handleApiError } from "@/lib/errors";
 import { UserRole, BedStatus } from "@prisma/client";
 import { updateBedStatus } from "@/services/hostel/structure.service";
+import { updateBedStatusSchema } from "@/lib/validation/hostel";
 
-const updateBedStatusSchema = z.object({
-  status: z.nativeEnum(BedStatus),
-});
+
 
 export async function PATCH(
   request: NextRequest,

@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { handleApiError, NotFoundError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
 import { processEarlyCheckout } from "@/services/stays/checkout";
 import { prisma } from "@/lib/db";
+import { earlyCheckoutSchema } from "@/lib/validation/stay";
 
-const earlyCheckoutSchema = z.object({
-  checkoutDate: z.string().transform((val) => new Date(val)),
-  refundAmount: z.number().nonnegative(),
-  notes: z.string().optional(),
-});
+
 
 export async function POST(
   request: NextRequest,

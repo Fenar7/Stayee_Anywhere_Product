@@ -22,23 +22,7 @@ import {
   BedStatus,
 } from "@prisma/client";
 
-const onboardSchema = z.object({
-  phone: z
-    .string()
-    .regex(/^\+91[0-9]{10}$/, "Phone must be in format +91XXXXXXXXXX"),
-  bedId: z.string().uuid("Invalid bed ID format"),
-  hostelId: z.string().uuid("Invalid hostel ID").optional(),
-  joiningDate: z.string().transform((val) => new Date(val)),
-  endDate: z.string().transform((val) => new Date(val)),
-  durationType: z.nativeEnum(DurationType),
-  foodPlan: z.nativeEnum(FoodPlan),
-  isNewAdmission: z.boolean(),
-  admissionFee: z.number().nonnegative(),
-  monthlyRent: z.number().nonnegative(),
-  securityDeposit: z.number().nonnegative(),
-  foodCharges: z.number().nonnegative(),
-  discount: z.number().nonnegative(),
-});
+import { onboardSchema } from "@/lib/validation/onboarding";
 
 export async function POST(request: NextRequest) {
   try {

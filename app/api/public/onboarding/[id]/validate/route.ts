@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { createHash } from "crypto";
 import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ConflictError, ValidationError } from "@/lib/errors";
 import { OnboardingRequestStatus } from "@prisma/client";
+import { validateSchema } from "@/lib/validation/onboarding";
 
-const validateSchema = z.object({
-  phone: z.string().regex(/^\+91[0-9]{10}$/),
-  tempPassword: z.string().min(1),
-});
+
 
 export async function POST(
   request: NextRequest,

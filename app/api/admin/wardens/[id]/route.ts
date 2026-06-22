@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { handleApiError, NotFoundError, ConflictError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { updateWardenSchema } from "@/lib/validation/hostel";
 
-const updateWardenSchema = z.object({
-  email: z.string().email("Invalid email").nullable().optional(),
-});
+
 
 export async function PATCH(
   request: NextRequest,

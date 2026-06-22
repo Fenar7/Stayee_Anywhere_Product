@@ -5,7 +5,7 @@ import { handleApiError, ValidationError, ForbiddenError, NotFoundError } from "
 import { isPastFoodCutoff } from "@/lib/dates/food-cutoff";
 import { getStartOfDayIST, addDays } from "@/lib/dates";
 import { UserRole, StayStatus } from "@prisma/client";
-import { z } from "zod";
+import { toggleSchema } from "@/lib/validation/food";
 
 /**
  * GET /api/tenant/food-orders
@@ -141,12 +141,7 @@ export async function GET(request: NextRequest) {
  * Uses prisma.foodOrder.upsert for concurrent safety.
  * Blocks if current IST time is past 10:00 PM on D-1.
  */
-const toggleSchema = z.object({
-  forDate: z.string(),
-  breakfast: z.boolean().optional(),
-  lunch: z.boolean().optional(),
-  dinner: z.boolean().optional(),
-});
+
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { handleApiError, NotFoundError, ConflictError, ValidationError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { createAdminClient } from "@/lib/auth/server";
+import { adminResetWardenPasswordSchema } from "@/lib/validation/auth";
 
-const resetPasswordSchema = z.object({
-  password: z.string().min(8, "Password must be at least 8 characters"),
-});
+
 
 export async function POST(
   request: NextRequest,
@@ -19,7 +17,7 @@ export async function POST(
     const wardenId = (await params).id;
 
     const body = await request.json();
-    const data = resetPasswordSchema.parse(body);
+    const data = adminResetWardenPasswordSchema.parse(body);
 
     const warden = await prisma.warden.findUnique({
       where: { id: wardenId },

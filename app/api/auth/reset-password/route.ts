@@ -1,15 +1,12 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { createClient } from "@/lib/auth/server";
 import { requireRole } from "@/lib/auth";
 import { authorizePasswordReset, resetPasswordViaAdmin } from "@/services/auth/password.service";
 import { handleApiError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
+import { resetPasswordSchema } from "@/lib/validation/auth";
 
-const resetPasswordSchema = z.object({
-  targetUserId: z.string().uuid(),
-  newPassword: z.string().min(8, "Password must be at least 8 characters"),
-});
+
 
 export async function POST(request: NextRequest) {
   try {

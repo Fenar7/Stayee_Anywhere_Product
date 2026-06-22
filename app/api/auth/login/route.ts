@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { cookies } from "next/headers";
 import { createClient as createSupabaseServerClient } from "@/lib/auth/server";
 import { authenticateUser } from "@/services/auth/auth.service";
 import { handleApiError } from "@/lib/errors";
+import { loginSchema } from "@/lib/validation/auth";
 
-const loginSchema = z.object({
-  identifier: z.string().min(1, "Email or phone is required"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-});
+
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { handleApiError, NotFoundError, ConflictError, ValidationError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { createAdminClient } from "@/lib/auth/server";
+import { assignWardenSchema } from "@/lib/validation/hostel";
 
-const assignWardenSchema = z.object({
-  phone: z.string().regex(/^\+\d{1,3}\d{6,14}$/, "Phone must start with country code (e.g. +91)"),
-  email: z.string().email("Invalid email").nullable().optional(),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-});
+
 
 export async function POST(
   request: NextRequest,

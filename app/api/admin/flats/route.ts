@@ -1,16 +1,12 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { requireRole, requireHostelAccess } from "@/lib/auth";
 import { handleApiError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { createFlat } from "@/services/hostel/structure.service";
+import { createFlatSchema } from "@/lib/validation/hostel";
 
-const createFlatSchema = z.object({
-  floorId: z.string().uuid(),
-  name: z.string().min(1, "Flat name is required"),
-  isPrivate: z.boolean().optional().default(false),
-});
+
 
 export async function POST(request: NextRequest) {
   try {

@@ -8,25 +8,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, Loader2, ArrowLeft, Plus, Check, X } from "lucide-react";
 import Link from "next/link";
+import { createHostelSchema } from "@/lib/validation/hostel";
 
 const AccommodationType = {
   MENS: "MENS",
   WOMENS: "WOMENS",
 } as const;
 
-const createHostelSchema = z.object({
-  name: z.string().min(1, "Hostel name is required"),
-  address: z.string().min(1, "Address is required"),
-  accommodationType: z.enum(["MENS", "WOMENS"], {
-    message: "Select a valid accommodation type",
-  }),
-  locationId: z.string().optional().nullable(),
-  wardenEmail: z.string().email("Invalid email for warden"),
-  wardenPhone: z
-    .string()
-    .regex(/^\+\d{1,3}\d{6,14}$/, "Phone must start with country code (e.g. +91) and have 10-15 digits"),
-  wardenPassword: z.string().min(8, "Password must be at least 8 characters"),
-});
+
 
 type HostelFormValues = z.infer<typeof createHostelSchema>;
 

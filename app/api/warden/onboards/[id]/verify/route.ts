@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ForbiddenError, ValidationError, ConflictError } from "@/lib/errors";
 import { UserRole, StayStatus, PaymentStatus, BedStatus } from "@prisma/client";
 import { generatePaymentReceipt } from "@/services/pdf/receipt.service";
+import { verifySchema } from "@/lib/validation/onboarding";
 
-const verifySchema = z.object({
-  paymentId: z.string().uuid("Invalid payment ID format"),
-});
+
 
 export async function POST(
   request: NextRequest,

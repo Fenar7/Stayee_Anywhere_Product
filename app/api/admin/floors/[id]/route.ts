@@ -1,15 +1,12 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { requireRole, requireHostelAccess } from "@/lib/auth";
 import { handleApiError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { updateFloor, deleteFloor } from "@/services/hostel/structure.service";
+import { updateFloorSchema } from "@/lib/validation/hostel";
 
-const updateFloorSchema = z.object({
-  name: z.string().min(1).optional(),
-  sortOrder: z.number().int().min(0).optional(),
-});
+
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

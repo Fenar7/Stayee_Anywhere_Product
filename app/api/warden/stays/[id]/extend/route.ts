@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { handleApiError, NotFoundError } from "@/lib/errors";
 import { UserRole, PaymentMode } from "@prisma/client";
 import { extendStay } from "@/services/stays/extend";
 import { prisma } from "@/lib/db";
+import { extendSchema } from "@/lib/validation/stay";
 
-const extendSchema = z.object({
-  newEndDate: z.string().transform((val) => new Date(val)),
-  additionalRent: z.number().nonnegative(),
-  additionalFoodCharges: z.number().nonnegative(),
-  paymentMode: z.nativeEnum(PaymentMode).default(PaymentMode.UPI),
-});
+
 
 export async function POST(
   request: NextRequest,

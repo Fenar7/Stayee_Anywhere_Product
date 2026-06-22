@@ -1,22 +1,12 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { handleApiError } from "@/lib/errors";
 import { UserRole, AccommodationType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { createHostelWithWarden } from "@/services/hostel/hostel.service";
+import { createHostelSchema } from "@/lib/validation/hostel";
 
-const createHostelSchema = z.object({
-  name: z.string().min(1, "Hostel name is required"),
-  address: z.string().min(1, "Address is required"),
-  accommodationType: z.nativeEnum(AccommodationType),
-  wardenEmail: z.string().email("Invalid email for warden"),
-  wardenPhone: z
-    .string()
-    .regex(/^\+\d{1,3}\d{6,14}$/, "Phone must start with country code (e.g. +91)"),
-  wardenPassword: z.string().min(8, "Password must be at least 8 characters"),
-  locationId: z.string().nullable().optional(),
-});
+
 
 export async function POST(request: NextRequest) {
   try {

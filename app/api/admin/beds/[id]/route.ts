@@ -1,16 +1,12 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { requireRole, requireHostelAccess } from "@/lib/auth";
 import { handleApiError } from "@/lib/errors";
 import { UserRole, BedStatus, BedType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { updateBed, deleteBed } from "@/services/hostel/structure.service";
+import { updateBedSchema } from "@/lib/validation/hostel";
 
-const updateBedSchema = z.object({
-  label: z.string().min(1).optional(),
-  bedType: z.nativeEnum(BedType).nullable().optional(),
-  status: z.nativeEnum(BedStatus).optional(),
-});
+
 
 async function getBedHostelId(bedId: string): Promise<string | null> {
   const bed = await prisma.bed.findUnique({

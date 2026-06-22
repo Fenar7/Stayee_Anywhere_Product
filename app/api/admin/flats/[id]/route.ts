@@ -1,15 +1,12 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { requireRole, requireHostelAccess } from "@/lib/auth";
 import { handleApiError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { updateFlat, deleteFlat } from "@/services/hostel/structure.service";
+import { updateFlatSchema } from "@/lib/validation/hostel";
 
-const updateFlatSchema = z.object({
-  name: z.string().min(1).optional(),
-  isPrivate: z.boolean().optional(),
-});
+
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

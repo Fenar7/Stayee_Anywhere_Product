@@ -1,13 +1,11 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { handleApiError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { createLocationSchema } from "@/lib/validation/hostel";
 
-const createLocationSchema = z.object({
-  name: z.string().min(1, "Location name is required"),
-});
+
 
 export async function GET() {
   try {

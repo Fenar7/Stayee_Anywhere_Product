@@ -1,18 +1,12 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { requireRole, requireHostelAccess } from "@/lib/auth";
 import { handleApiError } from "@/lib/errors";
 import { UserRole, SharingType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { updateRoom, deleteRoom } from "@/services/hostel/structure.service";
+import { updateRoomSchema } from "@/lib/validation/hostel";
 
-const updateRoomSchema = z.object({
-  roomNumber: z.string().min(1).optional(),
-  sharingType: z.nativeEnum(SharingType).optional(),
-  isPrivate: z.boolean().optional(),
-  flatId: z.string().uuid().nullable().optional(),
-  floorId: z.string().uuid().nullable().optional(),
-});
+
 
 async function getRoomHostelId(roomId: string): Promise<string | null> {
   const room = await prisma.room.findUnique({

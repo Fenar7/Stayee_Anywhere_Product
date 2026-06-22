@@ -7,18 +7,9 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { loginSchema } from "@/lib/validation/auth";
 
-const loginSchema = z.object({
-  identifier: z
-    .string()
-    .min(1, "Email or phone is required")
-    .refine(
-      (val) => val.includes("@") || /^\+?[1-9]\d{6,14}$/.test(val.replace(/[\s-]/g, "")),
-      "Enter a valid email or phone number"
-    ),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  rememberMe: z.boolean().optional(),
-});
+
 
 type LoginForm = z.infer<typeof loginSchema>;
 

@@ -7,15 +7,11 @@ import { handleApiError, NotFoundError, ForbiddenError, ValidationError } from "
 import { verifyAndGetFileType, compressImage } from "@/lib/image";
 import { uploadToStorage } from "@/lib/storage";
 import { UserRole, StayStatus, PaymentMode, PaymentStatus, DocumentType, DocumentOwnerType } from "@prisma/client";
+import { recordPaymentSchema } from "@/lib/validation/payment";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
 
-const paymentSchema = z.object({
-  amountPaid: z.preprocess((val) => Number(val), z.number().positive("Amount paid must be positive")),
-  paymentMode: z.nativeEnum(PaymentMode),
-  transactionRefNo: z.string().nullable().optional(),
-  receivedBy: z.string().nullable().optional(),
-});
+
 
 export async function POST(
   request: NextRequest,
@@ -45,13 +41,13 @@ export async function POST(
 
     // Determine content type (FormData vs JSON)
     const contentType = request.headers.get("content-type") || "";
-    let data: z.infer<typeof paymentSchema>;
+    let data: z.infer<typeof recordPaymentSchema>;
     let screenshotFile: File | null = null;
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
       
-      const parsed = paymentSchema.safeParse({
+      const parsed = recordPaymentSchema.safeParse({
         amountPaid: formData.get("amountPaid"),
         paymentMode: formData.get("paymentMode"),
         transactionRefNo: formData.get("transactionRefNo"),
@@ -65,7 +61,7 @@ export async function POST(
       screenshotFile = formData.get("screenshot") as File | null;
     } else {
       const body = await request.json();
-      const parsed = paymentSchema.safeParse(body);
+      const parsed = recordPaymentSchema.safeParse(body);
       if (!parsed.success) {
         throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid payment data");
       }
