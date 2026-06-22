@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("Amount paid is required");
     }
 
-    const amountPaid = parseFloat(amountPaidStr);
+    const amountPaid = parseInt(amountPaidStr, 10);
     if (isNaN(amountPaid) || amountPaid <= 0) {
       throw new ValidationError("Please provide a valid payment amount");
     }

@@ -561,11 +561,11 @@ export default function WardenOnboardPage() {
                   <input
                     id="admission-fee"
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0"
                     value={admissionFee}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setAdmissionFee(parseFloat(e.target.value) || 0)
+                      setAdmissionFee(parseInt(e.target.value, 10) || 0)
                     }
                     className={inputClass}
                   />
@@ -580,11 +580,11 @@ export default function WardenOnboardPage() {
                   <input
                     id="monthly-rent"
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0"
                     value={monthlyRent}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setMonthlyRent(parseFloat(e.target.value) || 0)
+                      setMonthlyRent(parseInt(e.target.value, 10) || 0)
                     }
                     className={inputClass}
                   />
@@ -599,11 +599,11 @@ export default function WardenOnboardPage() {
                   <input
                     id="security-deposit"
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0"
                     value={securityDeposit}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setSecurityDeposit(parseFloat(e.target.value) || 0)
+                      setSecurityDeposit(parseInt(e.target.value, 10) || 0)
                     }
                     className={inputClass}
                   />
@@ -618,11 +618,11 @@ export default function WardenOnboardPage() {
                   <input
                     id="food-charges"
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0"
                     value={foodCharges}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setFoodCharges(parseFloat(e.target.value) || 0)
+                      setFoodCharges(parseInt(e.target.value, 10) || 0)
                     }
                     className={inputClass}
                   />
@@ -634,11 +634,11 @@ export default function WardenOnboardPage() {
                   <input
                     id="discount"
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0"
                     value={discount}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setDiscount(parseFloat(e.target.value) || 0)
+                      setDiscount(parseInt(e.target.value, 10) || 0)
                     }
                     className={inputClass}
                   />

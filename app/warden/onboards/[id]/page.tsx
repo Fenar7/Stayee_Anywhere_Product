@@ -175,7 +175,7 @@ export default function OnboardDetailPage() {
 
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amountPaid || parseFloat(amountPaid) <= 0) {
+    if (!amountPaid || parseInt(amountPaid, 10) <= 0) {
       setError("Please provide a valid payment amount");
       return;
     }
@@ -649,7 +649,7 @@ export default function OnboardDetailPage() {
                   <label className="text-xs font-semibold">Amount Paid (₹)</label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="1"
                     placeholder={balanceAmount.toString()}
                     value={amountPaid}
                     onChange={(e) => setAmountPaid(e.target.value)}
