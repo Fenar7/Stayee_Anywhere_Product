@@ -11,8 +11,6 @@ export async function POST(
 ) {
   try {
     const session = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
-    const hostelId = await resolveHostelId(session, request);
-
     const { id } = await params;
 
     const stay = await prisma.stay.findUnique({
@@ -22,6 +20,8 @@ export async function POST(
     if (!stay) {
       throw new NotFoundError("Stay record not found");
     }
+
+    const hostelId = await resolveHostelId(session, request, stay.hostelId);
 
     if (stay.hostelId !== hostelId) {
       throw new ForbiddenError("You are not authorized to reject this stay");

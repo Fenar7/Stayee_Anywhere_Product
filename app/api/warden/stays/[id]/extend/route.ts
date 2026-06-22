@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { resolveHostelId } from "@/lib/auth/resolve-hostel";
-import { handleApiError } from "@/lib/errors";
+import { handleApiError, NotFoundError } from "@/lib/errors";
 import { UserRole, PaymentMode } from "@prisma/client";
 import { extendStay } from "@/services/stays/extend";
+import { prisma } from "@/lib/db";
 
 const extendSchema = z.object({
   newEndDate: z.string().transform((val) => new Date(val)),
@@ -18,10 +19,19 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireRole([UserRole.WARDEN]);
-    const hostelId = await resolveHostelId(session, request);
-
+    const session = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
     const { id: stayId } = await params;
+
+    const stay = await prisma.stay.findUnique({
+      where: { id: stayId },
+      select: { hostelId: true },
+    });
+
+    if (!stay) {
+      throw new NotFoundError("Stay record not found");
+    }
+
+    const hostelId = await resolveHostelId(session, request, stay.hostelId);
 
     const body = await request.json();
     const parsed = extendSchema.safeParse(body);

@@ -12,8 +12,6 @@ export async function GET(
 ) {
   try {
     const session = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
-    const hostelId = await resolveHostelId(session, request);
-
     const { id } = await params;
 
     // Fetch the Stay with full relations
@@ -42,6 +40,8 @@ export async function GET(
     if (!stay) {
       throw new NotFoundError("Stay record not found");
     }
+
+    const hostelId = await resolveHostelId(session, request, stay.hostelId);
 
     // Verify warden scope: stay must belong to the warden's hostel
     if (stay.hostelId !== hostelId) {

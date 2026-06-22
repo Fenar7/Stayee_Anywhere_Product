@@ -11,9 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireRole([UserRole.WARDEN]);
-    const hostelId = await resolveHostelId(session, request);
-
+    const session = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
     const { id: stayId } = await params;
 
     const stay = await prisma.stay.findUnique({
@@ -46,6 +44,8 @@ export async function GET(
     if (!stay) {
       throw new NotFoundError("Stay record not found");
     }
+
+    const hostelId = await resolveHostelId(session, request, stay.hostelId);
 
     if (stay.hostelId !== hostelId) {
       throw new ForbiddenError("You are not authorized to view this stay");
