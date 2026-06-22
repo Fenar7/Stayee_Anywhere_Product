@@ -44,7 +44,7 @@ export async function GET(
     const hostelId = await resolveHostelId(session, request, stay.hostelId);
 
     // Verify warden scope: stay must belong to the warden's hostel
-    if (stay.hostelId !== hostelId) {
+    if (session.user.role !== UserRole.MAIN_ADMIN && stay.hostelId !== hostelId) {
       throw new ForbiddenError("You are not authorized to view this stay record");
     }
 

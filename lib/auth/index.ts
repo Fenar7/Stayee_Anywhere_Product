@@ -35,12 +35,13 @@ export async function requireRole(allowedRoles: UserRole[]): Promise<Authenticat
     throw new UnauthorizedError("User record not found in system database");
   }
 
+  if (dbUser.role === UserRole.MAIN_ADMIN) {
+    // MAIN_ADMIN is a superuser and can access any route/role in the system
+    return { user: dbUser };
+  }
+
   if (!allowedRoles.includes(dbUser.role)) {
-    if (dbUser.role === UserRole.MAIN_ADMIN && allowedRoles.includes(UserRole.WARDEN)) {
-      // Allow Main Admin to act as Warden
-    } else {
-      throw new ForbiddenError(`Access denied: requires one of the roles [${allowedRoles.join(", ")}]`);
-    }
+    throw new ForbiddenError(`Access denied: requires one of the roles [${allowedRoles.join(", ")}]`);
   }
 
   return { user: dbUser };
