@@ -62,7 +62,7 @@ interface TenantDetails {
   purposeOfStay: string;
   phone: string;
   email: string;
-  plainTextPassword?: string | null;
+
   documents: DocumentItem[];
 }
 
@@ -425,11 +425,7 @@ export default function OnboardDetailPage() {
                 <h2 className="text-2xl font-bold">{tenant?.fullName}</h2>
                 <p className="text-sm text-muted-foreground">Phone: {tenant?.phone || stay?.id}</p>
                 {tenant?.email && <p className="text-xs text-muted-foreground">Email: {tenant.email}</p>}
-                {tenant?.plainTextPassword && (
-                  <p className="text-xs text-muted-foreground flex items-center justify-center sm:justify-start gap-1.5 mt-1">
-                    Password: <span className="font-mono bg-muted/80 dark:bg-muted/30 px-1.5 py-0.5 rounded border text-foreground font-bold select-all">{tenant.plainTextPassword}</span>
-                  </p>
-                )}
+
                 <p className="text-xs mt-1">
                   Occupation: <span className="font-semibold">{tenant?.occupationType}</span>
                 </p>

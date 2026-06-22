@@ -332,7 +332,7 @@ describe("Sprint 4.2: Registration Form & Refund Invoice", () => {
     it("handles tenant with no photo gracefully", async () => {
       const { renderRegistrationForm } = await import("@/lib/pdf/render");
       const stay = createStayMock();
-      stay.tenant.photoUrl = null;
+      stay.tenant.photoUrl = null as any;
       mockPrisma.stay.findUnique.mockResolvedValue(stay);
 
       await generateRegistrationForm(STAY_ID, "user-warden-1");
@@ -574,7 +574,7 @@ describe("Sprint 4.2: Registration Form & Refund Invoice", () => {
         vi.mocked(authModule.requireRole).mockResolvedValue(fakeAdminSession as any);
         mockPrisma.hostel.findUnique.mockResolvedValue({ id: "hostel-1" });
         mockPrisma.stay.findMany.mockResolvedValue([]);
-        mockPrisma.onboardingRequest = { findMany: vi.fn().mockResolvedValue([]) } as any;
+        (mockPrisma as any).onboardingRequest = { findMany: vi.fn().mockResolvedValue([]) } as any;
 
         const { GET } = await import("@/app/api/warden/onboards/route");
         const res = await GET(

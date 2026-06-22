@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Loader2, ArrowLeft, Plus, Check, X } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowLeft, Plus, Check, X, Copy } from "lucide-react";
 import Link from "next/link";
 
 const AccommodationType = {
@@ -34,6 +34,8 @@ export default function NewHostelPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [initialPassword, setInitialPassword] = useState<string | null>(null);
+  const [copiedPassword, setCopiedPassword] = useState(false);
 
   const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
   const [isAddingLocation, setIsAddingLocation] = useState(false);
@@ -115,12 +117,34 @@ export default function NewHostelPage() {
         return;
       }
 
-      router.push("/admin");
-      router.refresh();
-    } catch (err: any) {
+      const responseData = await res.json();
+      if (responseData.initialPassword) {
+        setInitialPassword(responseData.initialPassword);
+      } else {
+        router.push("/admin");
+        router.refresh();
+      }
+    } catch (err: unknown) {
       setServerError("An unexpected error occurred. Please try again.");
     }
   }
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedPassword(true);
+      setTimeout(() => setCopiedPassword(false), 2000);
+    } catch {
+      const el = document.createElement("textarea");
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      setCopiedPassword(true);
+      setTimeout(() => setCopiedPassword(false), 2000);
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 py-6">
@@ -366,6 +390,39 @@ export default function NewHostelPage() {
           </Button>
         </div>
       </form>
+
+      {initialPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-background p-6 rounded-xl shadow-2xl border text-center space-y-4">
+            <h3 className="text-xl font-bold">Warden Created Successfully</h3>
+            <p className="text-sm text-muted-foreground">
+              Save this password now &mdash; it will not be shown again.
+            </p>
+            <div className="bg-muted p-4 rounded-lg flex items-center justify-between border">
+              <span className="font-mono text-lg font-bold select-all">{initialPassword}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(initialPassword)}
+                className="ml-4"
+              >
+                {copiedPassword ? <Check className="h-4 w-4 text-green-500 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                {copiedPassword ? "Copied" : "Copy"}
+              </Button>
+            </div>
+            <Button
+              className="w-full mt-4"
+              onClick={() => {
+                setInitialPassword(null);
+                router.push("/admin");
+                router.refresh();
+              }}
+            >
+              I have saved the password
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

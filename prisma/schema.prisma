@@ -25,7 +25,7 @@ model User {
   phone           String   @unique
   email           String?  @unique
   passwordSetAt     DateTime?
-  plainTextPassword String?
+
   role              UserRole
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

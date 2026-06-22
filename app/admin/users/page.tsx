@@ -32,7 +32,6 @@ interface UserItem {
   email: string | null;
   role: "MAIN_ADMIN" | "WARDEN" | "TENANT";
   passwordSetAt: string | null;
-  plainTextPassword: string | null;
   createdAt: string;
   warden: {
     id: string;
@@ -423,23 +422,7 @@ export default function AdminUsersPage() {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      {u.plainTextPassword ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-xs bg-muted/60 dark:bg-muted/30 border px-2 py-1 rounded font-bold select-all">
-                            {u.plainTextPassword}
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              copyToClipboard(u.plainTextPassword || "");
-                            }}
-                            className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
-                            title="Copy Password"
-                          >
-                            <Copy className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ) : u.passwordSetAt ? (
+                      {u.passwordSetAt ? (
                         <span className="inline-flex items-center gap-1 text-xs text-green-600 font-semibold">
                           <CheckCircle className="h-4 w-4" /> Set ({formatDate(u.passwordSetAt)})
                         </span>
@@ -543,7 +526,7 @@ export default function AdminUsersPage() {
                     Phone: {selectedUser.phone} &middot; Email: {selectedUser.email || "N/A"}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Password: <span className="font-mono bg-muted/80 dark:bg-muted/30 px-1.5 py-0.5 rounded border text-foreground font-bold select-all">{selectedUser.plainTextPassword || "Set in Auth (Hashed)"}</span>
+                    Password: <span className="font-mono bg-muted/80 dark:bg-muted/30 px-1.5 py-0.5 rounded border text-foreground font-bold select-all">{selectedUser.passwordSetAt ? "Set in Auth (Hashed)" : "Initial password shown once at creation"}</span>
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Joined NextHome System: {formatDate(selectedUser.createdAt)}

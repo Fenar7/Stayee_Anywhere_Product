@@ -82,7 +82,6 @@ export async function resetPasswordViaAdmin(targetUserId: string, newPassword: s
     where: { id: targetUserId },
     data: {
       passwordSetAt: new Date(),
-      plainTextPassword: newPassword,
     },
   });
 }

@@ -155,7 +155,7 @@ describe("Task A: Hostel Creation with Warden Provisioning", () => {
         phone: "+919876543210",
         email: "warden@test.com",
         passwordSetAt: null,
-        plainTextPassword: "securePassword123",
+
         role: UserRole.WARDEN,
       },
     });
@@ -189,6 +189,7 @@ describe("Task A: Hostel Creation with Warden Provisioning", () => {
         email: "warden@test.com",
         phone: "+919876543210",
       },
+      initialPassword: "securePassword123",
     });
   });
 

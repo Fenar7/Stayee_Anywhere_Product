@@ -56,13 +56,13 @@ export async function POST(
       where: { id: warden.user.id },
       data: {
         passwordSetAt: new Date(),
-        plainTextPassword: data.password,
       },
     });
 
     return NextResponse.json({
       success: true,
       message: "Password reset successfully",
+      initialPassword: data.password,
     });
   } catch (error) {
     return handleApiError(error);

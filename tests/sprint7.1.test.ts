@@ -393,7 +393,7 @@ describe("PATCH /api/warden/leads/[id]", () => {
     mockPrisma.lead.findUnique.mockResolvedValue(
       makeLead({ notes: existingNotes })
     );
-    (mockPrisma.lead.update as any).mockImplementation(({ data }) =>
+    (mockPrisma.lead.update as any).mockImplementation(({ data }: any) =>
       Promise.resolve(makeLead({ notes: data.notes }))
     );
 
@@ -420,7 +420,7 @@ describe("PATCH /api/warden/leads/[id]", () => {
     mockPrisma.lead.findUnique.mockResolvedValue(
       makeLead({ notes: "Old freeform note" })
     );
-    (mockPrisma.lead.update as any).mockImplementation(({ data }) =>
+    (mockPrisma.lead.update as any).mockImplementation(({ data }: any) =>
       Promise.resolve(makeLead({ notes: data.notes }))
     );
 

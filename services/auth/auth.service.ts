@@ -62,12 +62,11 @@ export async function fetchUserBySupabaseId(supabaseAuthId: string) {
   return user;
 }
 
-export async function setUserPasswordSetAt(userId: string, plainTextPassword?: string): Promise<void> {
+export async function setUserPasswordSetAt(userId: string): Promise<void> {
   await prisma.user.update({
     where: { id: userId },
     data: {
       passwordSetAt: new Date(),
-      ...(plainTextPassword ? { plainTextPassword } : {}),
     },
   });
 }

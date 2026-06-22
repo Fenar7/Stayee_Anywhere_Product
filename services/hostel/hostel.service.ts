@@ -48,7 +48,6 @@ export async function createHostelWithWarden(input: CreateHostelInput) {
           phone: input.wardenPhone,
           email: input.wardenEmail.toLowerCase(),
           passwordSetAt: null,
-          plainTextPassword: input.wardenPassword,
           role: UserRole.WARDEN,
         },
       });
@@ -85,6 +84,7 @@ export async function createHostelWithWarden(input: CreateHostelInput) {
         email: dbUser.email,
         phone: dbUser.phone,
       },
+      initialPassword: input.wardenPassword,
     };
   } catch (error) {
     await supabase.auth.admin.deleteUser(supabaseAuthId).catch(() => {});

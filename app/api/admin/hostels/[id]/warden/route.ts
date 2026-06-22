@@ -103,7 +103,6 @@ export async function POST(
             phone: data.phone,
             email: data.email?.toLowerCase() || null,
             passwordSetAt: null,
-            plainTextPassword: data.password,
             role: UserRole.WARDEN,
           },
         });
@@ -125,6 +124,7 @@ export async function POST(
 
       return NextResponse.json({
         success: true,
+        initialPassword: data.password,
         warden: {
           id: warden.id,
           userId: user.id,

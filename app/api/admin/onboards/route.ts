@@ -55,7 +55,7 @@ export async function GET() {
           phone: stay.tenant.user?.phone || matchingReq?.phone || "",
           gender: stay.tenant.gender,
           hasProfile: stay.tenant.userId !== null,
-          plainTextPassword: stay.tenant.user?.plainTextPassword || null,
+
         },
         bed: {
           id: stay.bed.id,

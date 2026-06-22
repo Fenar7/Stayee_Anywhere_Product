@@ -139,7 +139,7 @@ export async function GET(
         purposeOfStay: stay.tenant.purposeOfStay,
         phone: stay.tenant.user?.phone || "",
         email: stay.tenant.user?.email || "",
-        plainTextPassword: stay.tenant.user?.plainTextPassword || null,
+
         documents: documentsWithUrls,
       },
       bed: {
