@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { createClient as createSupabaseServerClient } from "@/lib/auth/server";
 import { authenticateUser } from "@/services/auth/auth.service";
 import { handleApiError } from "@/lib/errors";
+import { rateLimit } from "@/lib/rate-limit";
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Email or phone is required"),
@@ -12,6 +13,15 @@ const loginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for") || "unknown-ip";
+    const rl = rateLimit(`login_${ip}`, { limit: 5, windowMs: 60 * 1000 });
+    
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: "Too many login attempts. Please try again later." },
+        { status: 429, headers: { "Retry-After": Math.ceil((rl.resetTime - Date.now()) / 1000).toString() } }
+      );
+    }
     const body = await request.json();
     const { identifier, password } = loginSchema.parse(body);
     const rememberMe = body.rememberMe === true;

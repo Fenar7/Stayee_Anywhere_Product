@@ -6,6 +6,7 @@ import { OnboardingRequestStatus, StayStatus, UserRole, PaymentStatus, BedStatus
 // ──────────────────────────────────────────────────────────────────────────────
 const mockPrisma = vi.hoisted(() => ({
   $transaction: vi.fn((fn: (tx: typeof mockPrisma) => Promise<unknown>) => fn(mockPrisma)),
+  $executeRaw: vi.fn().mockResolvedValue([]),
   user: {
     findUnique: vi.fn(),
   },
