@@ -9,6 +9,11 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { StayCard } from "@/components/tenant/StayCard";
+import { RoommatesCard } from "@/components/tenant/RoommatesCard";
+import { PaymentHistory } from "@/components/tenant/PaymentHistory";
+import { PaymentUploadForm, RentRenewalForm } from "@/components/tenant/PaymentForms";
+import { InitialPaymentForm } from "@/components/tenant/InitialPaymentForm";
 
 interface PaymentItem {
   id: string;
@@ -79,28 +84,7 @@ function formatDate(dateStr: string) {
   });
 }
 
-function RoommateAvatar({ photoUrl, fullName }: { photoUrl: string | null; fullName: string }) {
-  if (photoUrl) {
-    return (
-      <img
-        src={photoUrl}
-        alt={fullName}
-        className="h-10 w-10 rounded-full object-cover border-2 border-border"
-      />
-    );
-  }
-  const initials = fullName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-  return (
-    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary border-2 border-border">
-      {initials}
-    </div>
-  );
-}
+
 
 export default function TenantDashboardPage() {
   const router = useRouter();
@@ -117,13 +101,6 @@ export default function TenantDashboardPage() {
   const [nextDueDate, setNextDueDate] = useState<string | null>(null);
 
   const [paymentConfig, setPaymentConfig] = useState<PaymentConfig | null>(null);
-  const [paymentMode, setPaymentMode] = useState<"UPI" | "CASH">("UPI");
-
-  const [amountPaid, setAmountPaid] = useState("");
-  const [transactionRefNo, setTransactionRefNo] = useState("");
-  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchStayDetails = async () => {
     try {
@@ -159,15 +136,7 @@ export default function TenantDashboardPage() {
     fetchStayDetails();
   }, []);
 
-  useEffect(() => {
-    if (!screenshotFile) {
-      setPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(screenshotFile);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [screenshotFile]);
+
 
   const handleLogout = async () => {
     try {
@@ -178,57 +147,7 @@ export default function TenantDashboardPage() {
     }
   };
 
-  const handleUploadReceipt = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (paymentMode === "UPI" && !screenshotFile) {
-      setError("Please select your receipt screenshot file");
-      return;
-    }
-    if (!amountPaid || parseFloat(amountPaid) <= 0) {
-      setError("Please provide a valid payment amount");
-      return;
-    }
 
-    setSubmitting(true);
-    setError("");
-    setSuccessMsg("");
-
-    try {
-      const formData = new FormData();
-      formData.append("paymentMode", paymentMode);
-      if (screenshotFile) {
-        formData.append("screenshot", screenshotFile);
-      }
-      formData.append("amountPaid", amountPaid);
-      formData.append("transactionRefNo", transactionRefNo);
-
-      const response = await fetch("/api/tenant/payment/screenshot", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || "Failed to submit payment");
-      }
-
-      setSuccessMsg(
-        paymentMode === "CASH"
-          ? "Cash payment submitted successfully! Your warden will verify it shortly."
-          : "Receipt uploaded successfully! Your warden will verify this payment shortly."
-      );
-      setAmountPaid("");
-      setTransactionRefNo("");
-      setScreenshotFile(null);
-      setPreviewUrl(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      await fetchStayDetails();
-    } catch (err: any) {
-      setError(err.message || "An error occurred while submitting payment");
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -307,137 +226,20 @@ export default function TenantDashboardPage() {
         ) : stay.status === "APPROVED_AWAITING_PAYMENT" ? (
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
-              <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <Landmark className="h-5 w-5 text-primary" /> Step 1: Choose Payment Method
-                </h2>
-
-                <div className="flex gap-2 p-1 rounded-lg bg-muted/30 w-fit">
-                  <button
-                    type="button"
-                    onClick={() => { setPaymentMode("UPI"); setScreenshotFile(null); setPreviewUrl(null); }}
-                    className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${paymentMode === "UPI" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                  >
-                    UPI Payment
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setPaymentMode("CASH"); setScreenshotFile(null); setPreviewUrl(null); }}
-                    className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${paymentMode === "CASH" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                  >
-                    Cash Payment
-                  </button>
-                </div>
-
-                {paymentMode === "UPI" ? (
-                  <>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Your profile has been approved! Please transfer the required booking deposit to the hostel account below via any UPI app (GPay, PhonePay, Paytm, etc.).
-                    </p>
-                    <div className="rounded-lg border p-4 bg-muted/10 grid gap-4 sm:grid-cols-2 text-sm">
-                      <div>
-                        <span className="text-xs text-muted-foreground block uppercase">UPI ID</span>
-                        <span className="font-bold text-foreground">{paymentConfig?.upiId || "payment@nexthome"}</span>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground block uppercase">Hostel Merchant Name</span>
-                        <span className="font-bold text-foreground">{hostel?.name}</span>
-                      </div>
-                      {paymentConfig?.qrCodeUrl && (
-                        <div className="sm:col-span-2 flex justify-center pt-2">
-                          <img src={paymentConfig.qrCodeUrl} alt="UPI QR Code" className="h-40 w-40 object-contain rounded-lg border" />
-                        </div>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <div className="rounded-lg border p-6 bg-muted/10 text-center space-y-3">
-                    <Landmark className="h-10 w-10 text-muted-foreground mx-auto" />
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Your profile has been approved! You can pay the booking deposit in cash at the hostel reception.
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      After making the cash payment, submit the details below so the warden can verify and confirm your booking.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <Upload className="h-5 w-5 text-primary" /> Step 2: Submit Payment Details
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  {paymentMode === "UPI"
-                    ? "Once the transfer is complete, please upload the transaction receipt screenshot below to request Warden verification."
-                    : "Enter the cash payment amount below to notify the warden for verification."}
-                </p>
-
-                <form onSubmit={handleUploadReceipt} className="space-y-4 text-sm mt-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="text-xs font-semibold">Amount Paid (₹)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder={remainingBalance.toString()}
-                        value={amountPaid}
-                        onChange={(e) => setAmountPaid(e.target.value)}
-                        className="mt-1 flex h-9 w-full rounded border bg-transparent px-3 py-1.5 text-xs focus:outline-none"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold">Transaction Reference UTR {paymentMode === "CASH" ? "(Optional)" : "(Optional)"}</label>
-                      <input
-                        type="text"
-                        placeholder={paymentMode === "CASH" ? "Cash receipt / note ref" : "UPI UTR number"}
-                        value={transactionRefNo}
-                        onChange={(e) => setTransactionRefNo(e.target.value)}
-                        className="mt-1 flex h-9 w-full rounded border bg-transparent px-3 py-1.5 text-xs focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {paymentMode === "UPI" && (
-                    <div className="border border-dashed rounded-lg p-6 bg-muted/15 flex flex-col items-center justify-center gap-2">
-                      {screenshotFile && previewUrl ? (
-                        <div className="text-center space-y-2">
-                          <img
-                            src={previewUrl}
-                            alt="Receipt preview"
-                            className="max-h-40 rounded-lg object-contain mx-auto border"
-                          />
-                          <span className="font-bold text-xs max-w-xs truncate block">{screenshotFile.name}</span>
-                          <Button type="button" variant="secondary" size="xs" onClick={() => { setScreenshotFile(null); setPreviewUrl(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>Remove</Button>
-                        </div>
-                      ) : (
-                        <div className="text-center space-y-2">
-                          <Upload className="h-8 w-8 text-muted-foreground mx-auto" />
-                          <span className="text-xs font-medium block">Select transaction screenshot file</span>
-                          <span className="text-[10px] text-muted-foreground block">JPG, JPEG or PNG (Max 5MB)</span>
-                          <div className="relative inline-block mt-2">
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => setScreenshotFile(e.target.files?.[0] || null)}
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                              required
-                            />
-                            <Button type="button" size="xs">Browse Files</Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <Button type="submit" disabled={submitting} className="w-full">
-                    {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    {paymentMode === "CASH" ? "Submit Cash Payment" : "Submit Screenshot for Verification"}
-                  </Button>
-                </form>
-              </div>
+              <InitialPaymentForm
+                hostel={hostel}
+                paymentConfig={paymentConfig}
+                remainingBalance={remainingBalance}
+                onSuccess={(msg) => {
+                  setSuccessMsg(msg);
+                  setError("");
+                  fetchStayDetails();
+                }}
+                onError={(msg) => {
+                  setError(msg);
+                  setSuccessMsg("");
+                }}
+              />
             </div>
 
             <div className="space-y-6">
@@ -519,251 +321,32 @@ export default function TenantDashboardPage() {
         ) : (
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
-              <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-primary" /> Current Stay Details
-                </h2>
-                <div className="grid gap-4 sm:grid-cols-2 text-sm">
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground block">Hostel</span>
-                    <span className="font-semibold">{hostel?.name || "—"}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground block">Room</span>
-                    <span className="font-semibold flex items-center gap-1">
-                      <BedSingle className="h-3.5 w-3.5 text-muted-foreground" />
-                      {bed?.roomNumber} – {bed?.label} ({bed?.sharingType})
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground block">Duration Type</span>
-                    <span className="font-semibold">{stay.durationType}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground block">Monthly Rent</span>
-                    <span className="font-semibold">₹ {stay.monthlyRent.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground block">Security Deposit</span>
-                    <span className="font-semibold">₹ {stay.securityDeposit.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground block">Food Plan</span>
-                    <span className="font-semibold flex items-center gap-1">
-                      <UtensilsCrossed className="h-3.5 w-3.5 text-muted-foreground" />
-                      {stay.foodPlan?.replace(/_/g, " ") || "Not Included"}
-                    </span>
-                    {stay.foodPlan !== "NOT_INCLUDED" && (
-                      <Link href="/tenant/food" className="block mt-1">
-                        <Button size="sm" variant="outline" className="h-7 text-xs px-2">
-                          Manage Meals
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground block">Joining Date</span>
-                    <span className="font-semibold flex items-center gap-1">
-                      <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-                      {formatDate(stay.joiningDate)}
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground block">Check-out Date</span>
-                    <span className="font-semibold flex items-center gap-1">
-                      <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-                      {formatDate(stay.endDate)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <Users className="h-5 w-5 text-primary" /> Roommates
-                </h2>
-                {roommates.length > 0 ? (
-                  <div className="space-y-3">
-                    {roommates.map((rm, idx) => (
-                      <div key={idx} className="flex items-center gap-3 rounded-lg border p-3 bg-muted/10">
-                        <RoommateAvatar photoUrl={rm.photoUrl} fullName={rm.fullName} />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm truncate">{rm.fullName}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {rm.occupationType === "STUDENT"
-                              ? `Student at ${rm.collegeName || "—"}`
-                              : `Working at ${rm.companyName || "—"}${rm.designation ? ` as ${rm.designation}` : ""}`}
-                          </p>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">Bed {rm.bedLabel}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground py-4 text-center">
-                    No roommates currently registered in your room.
-                  </p>
-                )}
-              </div>
+              <StayCard
+                stay={stay}
+                hostel={hostel}
+                bed={bed}
+                formatDate={formatDate}
+              />
+              <RoommatesCard roommates={roommates} />
             </div>
 
             <div className="space-y-6">
-              <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-primary" /> Rent Renewal
-                </h2>
-                {nextDueDate ? (
-                  <div className="rounded-lg bg-muted/20 p-3 text-sm space-y-1">
-                    <span className="text-xs text-muted-foreground block">Next Rent Due Date</span>
-                    <span className="font-bold text-base flex items-center gap-1.5">
-                      <Clock className="h-4 w-4 text-primary" />
-                      {formatDate(nextDueDate)}
-                    </span>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">Due date calculation not available for your stay type.</p>
-                )}
-
-                <div className="border-t pt-4">
-                  <div className="mb-3 rounded-lg bg-primary/5 px-3 py-2 text-sm">
-                    <span className="text-xs text-muted-foreground">Expected Monthly Rent</span>
-                    <p className="font-bold text-primary">₹ {stay.monthlyRent.toLocaleString("en-IN")}</p>
-                  </div>
-
-                  <div className="flex gap-2 p-1 rounded-lg bg-muted/30 w-fit mb-4">
-                    <button
-                      type="button"
-                      onClick={() => { setPaymentMode("UPI"); setScreenshotFile(null); setPreviewUrl(null); }}
-                      className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${paymentMode === "UPI" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                    >
-                      UPI Payment
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setPaymentMode("CASH"); setScreenshotFile(null); setPreviewUrl(null); }}
-                      className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${paymentMode === "CASH" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                    >
-                      Cash Payment
-                    </button>
-                  </div>
-
-                  {paymentMode === "UPI" && paymentConfig?.upiId && (
-                    <div className="rounded-lg border p-3 bg-muted/10 mb-4 text-xs">
-                      <span className="text-muted-foreground block">UPI ID</span>
-                      <span className="font-bold">{paymentConfig.upiId}</span>
-                      {paymentConfig.qrCodeUrl && (
-                        <img src={paymentConfig.qrCodeUrl} alt="QR" className="h-20 w-20 mt-2 object-contain rounded border" />
-                      )}
-                    </div>
-                  )}
-
-                  <form onSubmit={handleUploadReceipt} className="space-y-3 text-sm">
-                    <div>
-                      <label className="text-xs font-semibold">Amount Paid (₹)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="Enter amount"
-                        value={amountPaid}
-                        onChange={(e) => setAmountPaid(e.target.value)}
-                        className="mt-1 flex h-9 w-full rounded border bg-transparent px-3 py-1.5 text-xs focus:outline-none"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold">Transaction Reference (UTR)</label>
-                      <input
-                        type="text"
-                        placeholder={paymentMode === "CASH" ? "Cash receipt / note ref" : "UPI UTR number"}
-                        value={transactionRefNo}
-                        onChange={(e) => setTransactionRefNo(e.target.value)}
-                        className="mt-1 flex h-9 w-full rounded border bg-transparent px-3 py-1.5 text-xs focus:outline-none"
-                      />
-                    </div>
-
-                    {paymentMode === "UPI" && (
-                    <div className="border border-dashed rounded-lg p-4 bg-muted/15 flex flex-col items-center justify-center gap-2">
-                      {screenshotFile && previewUrl ? (
-                        <div className="text-center space-y-1">
-                          <img
-                            src={previewUrl}
-                            alt="Receipt preview"
-                            className="max-h-24 rounded object-contain mx-auto border"
-                          />
-                          <span className="font-bold text-[10px] max-w-32 truncate block">{screenshotFile.name}</span>
-                          <Button type="button" variant="secondary" size="xs" onClick={() => { setScreenshotFile(null); setPreviewUrl(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>Remove</Button>
-                        </div>
-                      ) : (
-                        <div className="text-center space-y-1">
-                          <Upload className="h-6 w-6 text-muted-foreground mx-auto" />
-                          <span className="text-[10px] font-medium block">Receipt screenshot</span>
-                          <div className="relative inline-block mt-1">
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => setScreenshotFile(e.target.files?.[0] || null)}
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                              required
-                            />
-                            <Button type="button" size="xs">Browse</Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    )}
-
-                    <Button type="submit" disabled={submitting} className="w-full" size="sm">
-                      {submitting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
-                      {paymentMode === "CASH" ? "Submit Cash Payment" : "Submit Payment"}
-                    </Button>
-                  </form>
-                </div>
-              </div>
-
-              <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" /> Ledger History
-                </h2>
-                {payments.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-b text-muted-foreground">
-                          <th className="text-left pb-2 font-semibold">Amount</th>
-                          <th className="text-left pb-2 font-semibold">Date</th>
-                          <th className="text-left pb-2 font-semibold hidden sm:table-cell">UTR</th>
-                          <th className="text-right pb-2 font-semibold">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {payments.map((pmt) => (
-                          <tr key={pmt.id} className="border-b last:border-0">
-                            <td className="py-2.5 font-semibold">₹ {pmt.amountPaid.toLocaleString("en-IN")}</td>
-                            <td className="py-2.5 text-muted-foreground">{formatDate(pmt.createdAt)}</td>
-                            <td className="py-2.5 text-muted-foreground hidden sm:table-cell max-w-24 truncate">{pmt.transactionRefNo || "—"}</td>
-                            <td className="py-2.5 text-right">
-                              <span
-                                className={
-                                  pmt.paymentStatus === "PENDING"
-                                    ? "inline-block rounded-full bg-yellow-100 px-2 py-0.5 text-[9px] font-bold text-yellow-800 uppercase dark:bg-yellow-900/30 dark:text-yellow-400"
-                                    : pmt.paymentStatus === "PAID"
-                                    ? "inline-block rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-bold text-green-800 uppercase dark:bg-green-900/30 dark:text-green-400"
-                                    : "inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold text-amber-800 uppercase dark:bg-amber-900/30 dark:text-amber-400"
-                                }
-                              >
-                                {pmt.paymentStatus === "PENDING" ? "Verifying" : pmt.paymentStatus === "PAID" ? "Settled" : "Partial"}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground py-4 text-center">No payment records found.</p>
-                )}
-              </div>
+              <RentRenewalForm
+                stay={stay}
+                paymentConfig={paymentConfig}
+                nextDueDate={nextDueDate}
+                formatDate={formatDate}
+                onSuccess={(msg) => {
+                  setSuccessMsg(msg);
+                  setError("");
+                  fetchStayDetails();
+                }}
+                onError={(msg) => {
+                  setError(msg);
+                  setSuccessMsg("");
+                }}
+              />
+              <PaymentHistory payments={payments} formatDate={formatDate} />
             </div>
           </div>
         )}
