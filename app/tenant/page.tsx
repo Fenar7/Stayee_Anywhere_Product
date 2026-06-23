@@ -15,6 +15,7 @@ import { PaymentHistory } from "@/components/tenant/PaymentHistory";
 import { PaymentUploadForm, RentRenewalForm } from "@/components/tenant/PaymentForms";
 import { InitialPaymentForm } from "@/components/tenant/InitialPaymentForm";
 import { notify } from "@/lib/toast";
+import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
 
 interface PaymentItem {
   id: string;
@@ -151,10 +152,7 @@ export default function TenantDashboardPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-          <p className="text-muted-foreground font-medium">Loading your portal dashboard...</p>
-        </div>
+        <DashboardSkeleton />
       </div>
     );
   }

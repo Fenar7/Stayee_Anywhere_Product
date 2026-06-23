@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
+import { notify } from "@/lib/toast";
 
 interface OnboardItem {
   id: string;
@@ -43,7 +44,6 @@ interface OnboardItem {
 export default function AdminOnboardsPage() {
   const [onboards, setOnboards] = useState<OnboardItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<{stayId: string, hostelId: string} | null>(null);
 
@@ -55,7 +55,6 @@ export default function AdminOnboardsPage() {
   const [revealedPassword, setRevealedPassword] = useState("");
   const [passwordCopied, setPasswordCopied] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
 
   const fetchOnboards = useCallback(async () => {
     try {
@@ -64,7 +63,7 @@ export default function AdminOnboardsPage() {
       const data = await response.json();
       setOnboards(data.onboards);
     } catch (err: any) {
-      setError(err.message || "An error occurred");
+      notify.error(err.message || "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -80,7 +79,6 @@ export default function AdminOnboardsPage() {
     
     setConfirmCancel(null);
     setCancelling(stayId);
-    setError("");
 
     try {
       const response = await fetch(`/api/admin/onboards/${stayId}/cancel`, {
@@ -95,8 +93,9 @@ export default function AdminOnboardsPage() {
       }
 
       fetchOnboards();
+      notify.success("Request cancelled successfully");
     } catch (err: any) {
-      setError(err.message || "Failed to cancel onboarding request");
+      notify.error(err.message || "Failed to cancel onboarding request");
     } finally {
       setCancelling(null);
     }
@@ -106,7 +105,6 @@ export default function AdminOnboardsPage() {
     setPasswordModal({ onboardingReqId, phone });
     setRevealedPassword("");
     setPasswordCopied(false);
-    setPasswordError("");
     setPasswordLoading(true);
     try {
       const res = await fetch(
@@ -117,7 +115,7 @@ export default function AdminOnboardsPage() {
       if (!res.ok) throw new Error(data.error || "Failed to get password");
       setRevealedPassword(data.tempPassword);
     } catch (err: any) {
-      setPasswordError(err.message || "An error occurred");
+      notify.error(err.message || "An error occurred");
     } finally {
       setPasswordLoading(false);
     }
@@ -163,13 +161,6 @@ export default function AdminOnboardsPage() {
           Oversee, review, cancel and manage all tenant onboarding flows across all portfolio hostels.
         </p>
       </div>
-
-      {error && (
-        <div className="flex items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive max-w-2xl">
-          <AlertCircle className="h-5 w-5 shrink-0" />
-          <div>{error}</div>
-        </div>
-      )}
 
       {/* 1. LINK SENT, AWAITING FORM */}
       <div className="space-y-6">
@@ -448,12 +439,6 @@ export default function AdminOnboardsPage() {
               <p className="text-xs text-muted-foreground">
                 Phone Number: <span className="font-mono text-foreground font-semibold">{passwordModal.phone}</span>
               </p>
-
-              {passwordError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-200">
-                  {passwordError}
-                </div>
-              )}
 
               {passwordLoading ? (
                 <div className="flex items-center justify-center py-8">

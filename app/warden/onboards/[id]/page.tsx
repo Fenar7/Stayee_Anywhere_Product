@@ -7,6 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft, Check, X, CreditCard, ShieldCheck, AlertCircle, FileText, ExternalLink, MessageSquare, Clipboard, Upload } from "lucide-react";
 import { applicationApprovedPaymentRequest } from "@/lib/whatsapp/templates";
 import { normalizePhoneNumber, buildWaMeLink } from "@/lib/whatsapp/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface DocumentItem {
   id: string;
@@ -106,6 +116,7 @@ export default function OnboardDetailPage() {
   const [showPaymentRequest, setShowPaymentRequest] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
+  const [showRejectConfirm, setShowRejectConfirm] = useState(false);
 
   const fetchDetails = async () => {
     try {
@@ -151,7 +162,7 @@ export default function OnboardDetailPage() {
   };
 
   const handleReject = async () => {
-    if (!confirm("Are you sure you want to reject this registration request?")) return;
+    setShowRejectConfirm(false);
     setProcessingReject(true);
     try {
       const response = await fetch(`/api/warden/onboards/${stayId}/reject`, {
@@ -582,7 +593,7 @@ export default function OnboardDetailPage() {
                   Approve Profile
                 </Button>
                 <Button
-                  onClick={handleReject}
+                  onClick={() => setShowRejectConfirm(true)}
                   disabled={processingApprove || processingReject}
                   variant="outline"
                   className="border-destructive hover:bg-destructive/5 text-destructive"
@@ -780,6 +791,32 @@ export default function OnboardDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Reject Confirm Dialog */}
+      <AlertDialog open={showRejectConfirm} onOpenChange={setShowRejectConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reject Registration Request</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to reject this registration request? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={processingReject}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleReject();
+              }}
+              disabled={processingReject}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {processingReject ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Reject
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

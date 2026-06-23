@@ -7,6 +7,7 @@ import {
   Coffee, Sun, Moon, Search, Users, Lock, Unlock, CalendarDays
 } from "lucide-react";
 import { notify } from "@/lib/toast";
+import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
 
 interface ResidentFoodEntry {
   stayId: string;
@@ -119,9 +120,7 @@ export default function WardenFoodPage() {
       </div>
 
       {loading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <DashboardSkeleton />
       ) : data ? (
         <>
           {/* Locking Status Badge */}

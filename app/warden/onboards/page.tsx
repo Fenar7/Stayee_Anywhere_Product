@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
+import { notify } from "@/lib/toast";
 
 interface OnboardItem {
   id: string;
@@ -45,7 +46,6 @@ interface OnboardItem {
 export default function WardenOnboardsPage() {
   const [onboards, setOnboards] = useState<OnboardItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
 
@@ -57,7 +57,6 @@ export default function WardenOnboardsPage() {
   const [revealedPassword, setRevealedPassword] = useState("");
   const [passwordCopied, setPasswordCopied] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
 
   const fetchOnboards = async () => {
     try {
@@ -68,7 +67,7 @@ export default function WardenOnboardsPage() {
       const data = await response.json();
       setOnboards(data.onboards);
     } catch (err: any) {
-      setError(err.message || "An error occurred while loading lists");
+      notify.error(err.message || "An error occurred while loading lists");
     } finally {
       setLoading(false);
     }
@@ -88,8 +87,9 @@ export default function WardenOnboardsPage() {
         throw new Error(errData.error || "Failed to cancel");
       }
       await fetchOnboards();
+      notify.success("Request cancelled successfully");
     } catch (err: any) {
-      setError(err.message || "Failed to cancel onboarding request");
+      notify.error(err.message || "Failed to cancel onboarding request");
     } finally {
       setCancellingId(null);
     }
@@ -99,7 +99,6 @@ export default function WardenOnboardsPage() {
     setPasswordModal({ onboardingReqId, phone });
     setRevealedPassword("");
     setPasswordCopied(false);
-    setPasswordError("");
     setPasswordLoading(true);
     try {
       const res = await fetch(
@@ -110,7 +109,7 @@ export default function WardenOnboardsPage() {
       if (!res.ok) throw new Error(data.error || "Failed to get password");
       setRevealedPassword(data.tempPassword);
     } catch (err: any) {
-      setPasswordError(err.message || "An error occurred");
+      notify.error(err.message || "An error occurred");
     } finally {
       setPasswordLoading(false);
     }
@@ -128,15 +127,6 @@ export default function WardenOnboardsPage() {
           <div className="h-4 w-96 bg-muted rounded animate-pulse" />
         </div>
         <TableSkeleton />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive max-w-lg mx-auto">
-        <AlertCircle className="h-5 w-5 shrink-0" />
-        <div>{error}</div>
       </div>
     );
   }
@@ -458,12 +448,6 @@ export default function WardenOnboardsPage() {
               <p className="text-xs text-muted-foreground">
                 Phone Number: <span className="font-mono text-foreground font-semibold">{passwordModal.phone}</span>
               </p>
-
-              {passwordError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-200">
-                  {passwordError}
-                </div>
-              )}
 
               {passwordLoading ? (
                 <div className="flex items-center justify-center py-8">
