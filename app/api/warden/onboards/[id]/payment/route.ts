@@ -6,12 +6,11 @@ import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ForbiddenError, ValidationError } from "@/lib/errors";
 import { verifyAndGetFileType, compressImage } from "@/lib/image";
 import { uploadToStorage } from "@/lib/storage";
-import { UserRole, StayStatus, PaymentMode, PaymentStatus, DocumentType, DocumentOwnerType } from "@prisma/client";
+import { UserRole, DocumentType, DocumentOwnerType } from "@prisma/client";
 import { recordPaymentSchema } from "@/lib/validation/payment";
+import { recordPayment } from "@/services/payments/payment.service";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
-
-
 
 export async function POST(
   request: NextRequest,
@@ -35,11 +34,6 @@ export async function POST(
       throw new ForbiddenError("You are not authorized to record payment for this stay");
     }
 
-    if (stay.status !== StayStatus.APPROVED_AWAITING_PAYMENT) {
-      throw new ValidationError(`Cannot record payment for stay in status: ${stay.status}`);
-    }
-
-    // Determine content type (FormData vs JSON)
     const contentType = request.headers.get("content-type") || "";
     let data: z.infer<typeof recordPaymentSchema>;
     let screenshotFile: File | null = null;
@@ -68,20 +62,8 @@ export async function POST(
       data = parsed.data;
     }
 
-    const { amountPaid, paymentMode, transactionRefNo, receivedBy } = data;
-    const amountPaidPaise = Math.round(amountPaid * 100);
-
-    // If UPI/Bank transfer, ref no is required
-    if (
-      (paymentMode === PaymentMode.UPI || paymentMode === PaymentMode.BANK_TRANSFER) &&
-      !transactionRefNo?.trim()
-    ) {
-      throw new ValidationError("Transaction reference number is required for UPI or Bank Transfer payments");
-    }
-
     let screenshotDocId: string | null = null;
 
-    // Handle screenshot upload if present
     if (screenshotFile && typeof screenshotFile !== "string" && typeof screenshotFile.arrayBuffer === "function") {
       const buffer = Buffer.from(await screenshotFile.arrayBuffer());
       if (buffer.length > MAX_FILE_SIZE) {
@@ -97,7 +79,6 @@ export async function POST(
       const screenshotPath = `tenants/${stay.tenantId}/payment_screenshot_${Date.now()}.jpg`;
       await uploadToStorage(compressed.data, screenshotPath, compressed.mimeType);
 
-      // Create Document record
       const doc = await prisma.document.create({
         data: {
           ownerType: DocumentOwnerType.STAY,
@@ -111,17 +92,13 @@ export async function POST(
       screenshotDocId = doc.id;
     }
 
-    // Create unverified Payment record (status PENDING)
-    const payment = await prisma.payment.create({
-      data: {
-        stayId: stay.id,
-        amountPaidPaise,
-        paymentMode,
-        transactionRefNo: transactionRefNo || null,
-        receivedBy: receivedBy || `User ${session.user.id}`,
-        paymentStatus: PaymentStatus.PENDING,
-        screenshotDocumentId: screenshotDocId,
-      },
+    const payment = await recordPayment({
+      stayId: stay.id,
+      amountPaid: data.amountPaid,
+      paymentMode: data.paymentMode,
+      transactionRefNo: data.transactionRefNo,
+      receivedBy: data.receivedBy || `User ${session.user.id}`,
+      screenshotDocId,
     });
 
     return NextResponse.json({

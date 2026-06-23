@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { resolveHostelId } from "@/lib/auth/resolve-hostel";
-import { prisma } from "@/lib/db";
 import { handleApiError, ValidationError } from "@/lib/errors";
-import { UserRole, StayStatus } from "@prisma/client";
+import { UserRole } from "@prisma/client";
+import { getAvailableBeds } from "@/services/beds/bed.service";
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,60 +33,22 @@ export async function GET(request: NextRequest) {
       throw new ValidationError("endDate must be after joiningDate");
     }
 
-    // Step 1: collect all bed IDs with ACTIVE or EXTENDED stays overlapping the range
-    const occupiedStays = await prisma.stay.findMany({
-      where: {
-        hostelId,
-        status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
-        joiningDate: { lte: end },
-        endDate: { gte: start },
-      },
-      select: { bedId: true },
-    });
+    const availableBeds = await getAvailableBeds(hostelId, start, end);
 
-    const occupiedBedIdSet = new Set(occupiedStays.map((s) => s.bedId));
+    const bedsByRoom = availableBeds.reduce((acc, bed) => {
+      const flatName = bed.room.flat ? `${bed.room.flat.name} - ` : "";
+      const roomKey = `${flatName}Room ${bed.room.roomNumber} (${bed.room.sharingType})`;
+      if (!acc[roomKey]) {
+        acc[roomKey] = [];
+      }
+      acc[roomKey].push({
+        id: bed.id,
+        label: bed.label,
+      });
+      return acc;
+    }, {} as Record<string, any[]>);
 
-    // Step 2: fetch AVAILABLE beds using a nested relation filter — no double query round-trip.
-    // Rooms belong EITHER to a flat (flat -> floor) OR directly to a floor.
-    const availableBeds = await prisma.bed.findMany({
-      where: {
-        status: "AVAILABLE",
-        id: { notIn: Array.from(occupiedBedIdSet) },
-        room: {
-          OR: [
-            { flat: { floor: { hostelId } } },
-            { floor: { hostelId } },
-          ],
-        },
-      },
-      include: {
-        room: {
-          include: {
-            flat: { include: { floor: true } },
-            floor: true, // direct floor link
-          },
-        },
-      },
-    });
-
-    return NextResponse.json({
-      availableBeds: availableBeds.map((bed) => {
-        // Safe resolution — room may not have a flat
-        const floorName =
-          bed.room.flat?.floor.name ?? bed.room.floor?.name ?? "";
-        const flatName = bed.room.flat?.name ?? null;
-
-        return {
-          id: bed.id,
-          label: bed.label,
-          bedType: bed.bedType,
-          roomNumber: bed.room.roomNumber,
-          sharingType: bed.room.sharingType,
-          floorName,
-          flatName,
-        };
-      }),
-    });
+    return NextResponse.json(bedsByRoom);
   } catch (error) {
     return handleApiError(error);
   }

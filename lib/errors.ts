@@ -48,7 +48,7 @@ export function handleApiError(error: unknown) {
       { 
         error: "Validation Error", 
         code: "VALIDATION_ERROR",
-        details: error.errors.map(e => ({ path: e.path.join('.'), message: e.message }))
+        details: error.issues.map((e: any) => ({ path: e.path.join('.'), message: e.message }))
       },
       { status: 400 }
     );

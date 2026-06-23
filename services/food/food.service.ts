@@ -1,0 +1,118 @@
+import { prisma } from "@/lib/db";
+import { isPastFoodCutoff } from "@/lib/dates/food-cutoff";
+import { ValidationError, ForbiddenError } from "@/lib/errors";
+
+export async function validateCutoff(forDate: Date): Promise<{ isOpen: boolean; closedAt?: Date }> {
+  const pastCutoff = isPastFoodCutoff(forDate);
+  if (pastCutoff) {
+    const closedAt = new Date(forDate);
+    closedAt.setDate(closedAt.getDate() - 1);
+    closedAt.setHours(22, 0, 0, 0); // 10 PM IST
+    return { isOpen: false, closedAt };
+  }
+  return { isOpen: true };
+}
+
+export async function getOrCreateFoodOrder(stayId: string, forDate: Date) {
+  const existing = await prisma.foodOrder.findUnique({
+    where: { stayId_forDate: { stayId, forDate } },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  return prisma.foodOrder.create({
+    data: {
+      stayId,
+      forDate,
+      breakfast: false,
+      lunch: false,
+      dinner: false,
+    },
+  });
+}
+
+export async function updateFoodOrder(
+  stayId: string,
+  forDate: Date,
+  meals: { breakfast?: boolean; lunch?: boolean; dinner?: boolean }
+) {
+  const { isOpen } = await validateCutoff(forDate);
+  if (!isOpen) {
+    throw new ValidationError(
+      "Cannot modify food orders past the 10:00 PM IST cutoff. Orders for tomorrow must be placed before 10 PM tonight."
+    );
+  }
+
+  if (meals.breakfast === undefined && meals.lunch === undefined && meals.dinner === undefined) {
+    throw new ValidationError("At least one of breakfast, lunch, or dinner must be provided");
+  }
+
+  const existing = await prisma.foodOrder.findUnique({
+    where: { stayId_forDate: { stayId, forDate } },
+  });
+
+  const updatedBreakfast = meals.breakfast ?? existing?.breakfast ?? false;
+  const updatedLunch = meals.lunch ?? existing?.lunch ?? false;
+  const updatedDinner = meals.dinner ?? existing?.dinner ?? false;
+
+  return prisma.foodOrder.upsert({
+    where: {
+      stayId_forDate: { stayId, forDate },
+    },
+    create: {
+      stayId,
+      forDate,
+      breakfast: updatedBreakfast,
+      lunch: updatedLunch,
+      dinner: updatedDinner,
+    },
+    update: {
+      breakfast: updatedBreakfast,
+      lunch: updatedLunch,
+      dinner: updatedDinner,
+    },
+  });
+}
+
+export async function getFoodOrdersInRange(stayId: string, startDate: Date, endDate: Date) {
+  const existingOrders = await prisma.foodOrder.findMany({
+    where: {
+      stayId,
+      forDate: { gte: startDate, lte: endDate },
+    },
+    select: {
+      forDate: true,
+      breakfast: true,
+      lunch: true,
+      dinner: true,
+      confirmedAt: true,
+      lockedAt: true,
+    },
+  });
+
+  const orderMap = new Map(existingOrders.map((o) => [o.forDate.toISOString(), o]));
+  const days = [];
+
+  let current = new Date(startDate);
+  while (current <= endDate) {
+    const isoDate = current.toISOString();
+    const existing = orderMap.get(isoDate);
+    const { isOpen } = await validateCutoff(current);
+
+    days.push({
+      forDate: isoDate,
+      breakfast: existing?.breakfast ?? false,
+      lunch: existing?.lunch ?? false,
+      dinner: existing?.dinner ?? false,
+      isEditable: isOpen,
+      confirmedAt: existing?.confirmedAt?.toISOString() ?? null,
+      lockedAt: existing?.lockedAt?.toISOString() ?? null,
+    });
+
+    current.setDate(current.getDate() + 1);
+  }
+
+  return days;
+}

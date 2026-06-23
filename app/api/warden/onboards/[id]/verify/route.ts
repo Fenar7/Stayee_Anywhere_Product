@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { prisma } from "@/lib/db";
-import { handleApiError, NotFoundError, ForbiddenError, ValidationError, ConflictError } from "@/lib/errors";
-import { UserRole, StayStatus, PaymentStatus, BedStatus } from "@prisma/client";
-import { generatePaymentReceipt } from "@/services/pdf/receipt.service";
+import { handleApiError, NotFoundError, ForbiddenError, ValidationError } from "@/lib/errors";
+import { UserRole } from "@prisma/client";
 import { verifySchema } from "@/lib/validation/onboarding";
-
-
+import { verifyPayment } from "@/services/payments/payment.service";
 
 export async function POST(
   request: NextRequest,
@@ -24,12 +22,9 @@ export async function POST(
     }
     const { paymentId } = parsed.data;
 
-    // Fetch the Stay, Payment and Bed details
+    // Fetch the Stay to check authorization
     const stay = await prisma.stay.findUnique({
       where: { id: stayId },
-      include: {
-        payments: true,
-      },
     });
 
     if (!stay) {
@@ -54,104 +49,12 @@ export async function POST(
       throw new ValidationError("Payment does not belong to this stay");
     }
 
-    if (payment.paymentStatus !== PaymentStatus.PENDING) {
-      throw new ValidationError("Payment has already been processed");
-    }
-
-    // 1. Bed conflict check AT THE MOMENT OF ACTIVATION
-    // Find any ACTIVE or EXTENDED stays overlapping the stay dates on the same bed
-    const overlappingStay = await prisma.stay.findFirst({
-      where: {
-        bedId: stay.bedId,
-        id: { not: stay.id }, // Exclude current stay
-        status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
-        joiningDate: { lte: stay.endDate },
-        endDate: { gte: stay.joiningDate },
-      },
-    });
-
-    if (overlappingStay) {
-      throw new ConflictError(
-        "Cannot activate stay. The bed has been booked by another active/extended resident for this date range."
-      );
-    }
-
-    // Calculate verified payment aggregates
-    const alreadyVerifiedSum = stay.payments
-      .filter((p) => p.id !== paymentId && p.paymentStatus === PaymentStatus.PAID)
-      .reduce((sum, p) => sum + p.amountPaidPaise, 0);
-
-    const totalVerifiedWithCurrent = alreadyVerifiedSum + payment.amountPaidPaise;
-
-    await prisma.$transaction(async (tx) => {
-      if (totalVerifiedWithCurrent >= stay.totalPayablePaise) {
-        // Fully paid -> Transition Stay to ACTIVE, verify payment as PAID, Bed to OCCUPIED
-        await tx.payment.update({
-          where: { id: paymentId },
-          data: {
-            paymentStatus: PaymentStatus.PAID,
-            verifiedByUserId: session.user.id,
-            verifiedAt: new Date(),
-          },
-        });
-
-        const originalStatus = stay.status;
-
-        await tx.stay.update({
-          where: { id: stayId },
-          data: {
-            status: StayStatus.ACTIVE,
-          },
-        });
-
-        // Record StayStatusEvent
-        await tx.stayStatusEvent.create({
-          data: {
-            stayId,
-            fromStatus: originalStatus,
-            toStatus: StayStatus.ACTIVE,
-            changedByUserId: session.user.id,
-            note: "Payment fully verified. Stay activated.",
-          },
-        });
-
-        // Update Bed status to OCCUPIED
-        await tx.bed.update({
-          where: { id: stay.bedId },
-          data: {
-            status: BedStatus.OCCUPIED,
-          },
-        });
-      } else {
-        // Partially paid -> Set payment to PARTIALLY_PAID, Stay status remains APPROVED_AWAITING_PAYMENT
-        await tx.payment.update({
-          where: { id: paymentId },
-          data: {
-            paymentStatus: PaymentStatus.PARTIALLY_PAID,
-            verifiedByUserId: session.user.id,
-            verifiedAt: new Date(),
-          },
-        });
-
-        // If some other payment is already verified but overall is still partial, we don't activate yet.
-      }
-    });
-
-    // Auto-trigger receipt generation asynchronously (fire-and-forget).
-    // Failures here must NOT roll back the payment verification.
-    const activated = totalVerifiedWithCurrent >= stay.totalPayablePaise;
-    if (activated) {
-      generatePaymentReceipt(paymentId).catch((err) => {
-        console.error(`[Receipt] Failed to generate receipt for payment ${paymentId}:`, err);
-      });
-    }
+    const result = await verifyPayment(paymentId, session.user.id);
 
     return NextResponse.json({
       success: true,
-      activated,
-      message: activated
-        ? "Payment verified. Stay is now ACTIVE."
-        : "Partial payment verified. Additional payment required to activate stay.",
+      activated: result.stay.status === "ACTIVE",
+      message: result.stay.status === "ACTIVE" ? "Payment verified and stay activated" : "Payment verified partially",
     });
   } catch (error) {
     return handleApiError(error);
