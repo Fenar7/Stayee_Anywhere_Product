@@ -17,6 +17,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
 
 interface DocumentItem {
   id: string;
@@ -305,8 +307,8 @@ export default function OnboardDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="p-6">
+        <DashboardSkeleton />
       </div>
     );
   }
@@ -321,21 +323,23 @@ export default function OnboardDetailPage() {
   const balanceAmount = stay ? stay.totalPayable - totalPaid : 0;
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <button
-          onClick={() => router.push("/warden/onboards")}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-semibold"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to Onboard Management
-        </button>
-
-        {stay?.status === "ACTIVE" && (
-          <div className="rounded bg-green-500/10 border border-green-500/20 px-3 py-1.5 text-xs text-green-600 font-bold flex items-center gap-1.5">
-            <Check className="h-4 w-4" /> Activated &amp; Occupying Room {bed?.roomNumber}
-          </div>
-        )}
-      </div>
+    <div className="flex flex-col min-h-full">
+      <PageHeader
+        title={tenant?.fullName ?? "Onboarding Detail"}
+        description={tenant ? `${tenant.phone} · Bed ${bed?.roomNumber}-${bed?.label}` : undefined}
+        breadcrumbs={[
+          { label: "Onboards", href: "/warden/onboards" },
+          { label: tenant?.fullName ?? "Detail" },
+        ]}
+        actions={
+          stay?.status === "ACTIVE" ? (
+            <div className="rounded bg-green-500/10 border border-green-500/20 px-3 py-1.5 text-xs text-green-600 font-bold flex items-center gap-1.5">
+              <Check className="h-4 w-4" /> Activated &amp; Occupying Room {bed?.roomNumber}
+            </div>
+          ) : undefined
+        }
+      />
+      <div className="space-y-6 p-6 pb-12">
 
       {/* WHATSAPP PAYMENT REQUEST MODAL/ALERT */}
       {showPaymentRequest && (
@@ -817,6 +821,7 @@ export default function OnboardDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }

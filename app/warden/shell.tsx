@@ -1,10 +1,25 @@
-import { Navbar } from "@/components/auth/navbar";
+import { Sidebar } from "@/components/shared/Sidebar";
 
-export default function RoleShell({ children, userName, role }: { children: React.ReactNode; userName: string; role: string }) {
+/**
+ * RoleShell — wraps all /warden pages with the shared sidebar layout.
+ * Receives hydrated user info from the server-side WardenLayout.
+ */
+export default function RoleShell({
+  children,
+  userName,
+  role,
+}: {
+  children: React.ReactNode;
+  userName: string;
+  role: string;
+}) {
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar userName={userName} role={role} />
-      <main className="flex-1 p-6">{children}</main>
+    <div className="flex h-screen overflow-hidden bg-background">
+      <Sidebar role="WARDEN" userName={userName} />
+      {/* Offset for mobile hamburger button */}
+      <main className="flex-1 overflow-y-auto pt-14 lg:pt-0">
+        {children}
+      </main>
     </div>
   );
 }

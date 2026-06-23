@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { notify } from "@/lib/toast";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 interface OnboardItem {
   id: string;
@@ -178,15 +179,20 @@ export default function WardenOnboardsPage() {
   };
 
   return (
-    <div className="space-y-10 max-w-7xl mx-auto px-4 py-6">
-      <div className="border-b pb-6">
-        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-          Onboarding Applications
-        </h1>
-        <p className="text-sm text-muted-foreground mt-2">
-          Verify documents, record deposits, activate resident stays and retrieve access passwords.
-        </p>
-      </div>
+    <div className="flex flex-col min-h-full">
+      <PageHeader
+        title="Onboarding Applications"
+        description="Verify documents, record deposits, activate resident stays and retrieve access passwords."
+        actions={
+          <a
+            href="/warden/onboard"
+            className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-primary px-2.5 text-[0.8rem] font-medium text-primary-foreground hover:bg-primary/80 transition-colors"
+          >
+            + Onboard New Tenant
+          </a>
+        }
+      />
+      <div className="space-y-10 p-6">
 
       {/* 1. AWAITING WARDEN REVIEW (Tenant form completed) */}
       <div className="space-y-6">
@@ -532,6 +538,7 @@ export default function WardenOnboardsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }

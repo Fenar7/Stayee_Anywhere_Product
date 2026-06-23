@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 type Bed = {
   id: string;
@@ -226,13 +227,19 @@ export default function AdminOccupancyPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{data.name} - Occupancy</h1>
-          <p className="text-sm text-muted-foreground">{data.address} &middot; {data.accommodationType}</p>
-        </div>
-      </div>
+    <div className="flex flex-col min-h-full">
+      <PageHeader
+        title={`${data.name} - Occupancy`}
+        description={`${data.address} · ${data.accommodationType}`}
+        breadcrumbs={[
+          { label: "Admin", href: "/admin" },
+          { label: "Hostels", href: "/admin/hostels" },
+          { label: data.name },
+          { label: "Occupancy Map" }
+        ]}
+      />
+      <div className="space-y-6 p-6">
+
 
       <div className="flex flex-wrap gap-3 text-sm">
         <div className="flex items-center gap-1.5">
@@ -268,6 +275,7 @@ export default function AdminOccupancyPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
