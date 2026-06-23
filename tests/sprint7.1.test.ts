@@ -118,6 +118,7 @@ describe("Sprint 7.1 – normalizePhoneNumber for leads", () => {
 describe("POST /api/warden/leads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrisma.hostel.findUnique.mockResolvedValue({ id: "hostel-1" });
   });
 
   it("creates a lead as Warden with normalized phone", async () => {
@@ -157,10 +158,10 @@ describe("POST /api/warden/leads", () => {
 
     await POST(req);
     const createCall = (mockPrisma.lead.create as any).mock.calls[0][0];
-    const parsedNotes = JSON.parse(createCall.data.notes);
-    expect(Array.isArray(parsedNotes)).toBe(true);
-    expect(parsedNotes[0].author).toBe("Warden");
-    expect(parsedNotes[0].text).toBe("Initial enquiry");
+    const createdNote = createCall.data.notes?.create;
+    expect(createdNote).toBeDefined();
+    expect(createdNote.authorId).toBe("user-warden-1");
+    expect(createdNote.note).toBe("Initial enquiry");
   });
 
   it("uses empty JSON array when no notes provided", async () => {
@@ -175,9 +176,7 @@ describe("POST /api/warden/leads", () => {
 
     await POST(req);
     const createCall = (mockPrisma.lead.create as any).mock.calls[0][0];
-    const parsedNotes = JSON.parse(createCall.data.notes);
-    expect(Array.isArray(parsedNotes)).toBe(true);
-    expect(parsedNotes).toHaveLength(0);
+    expect(createCall.data.notes).toBeUndefined();
   });
 
   it("creates lead as Admin with explicit hostelId", async () => {
@@ -393,7 +392,7 @@ describe("PATCH /api/warden/leads/[id]", () => {
     mockPrisma.lead.findUnique.mockResolvedValue(
       makeLead({ notes: existingNotes })
     );
-    (mockPrisma.lead.update as any).mockImplementation(({ data }) =>
+    (mockPrisma.lead.update as any).mockImplementation(({ data }: { data: any }) =>
       Promise.resolve(makeLead({ notes: data.notes }))
     );
 
@@ -409,10 +408,10 @@ describe("PATCH /api/warden/leads/[id]", () => {
 
     expect(res.status).toBe(200);
     const updateCall = (mockPrisma.lead.update as any).mock.calls[0][0];
-    const updatedNotes = JSON.parse(updateCall.data.notes);
-    expect(updatedNotes).toHaveLength(2);
-    expect(updatedNotes[1].text).toBe("Follow-up scheduled");
-    expect(updatedNotes[1].author).toBe("Warden");
+    const createdNote = updateCall.data.notes?.create;
+    expect(createdNote).toBeDefined();
+    expect(createdNote.note).toBe("Follow-up scheduled");
+    expect(createdNote.authorId).toBe("user-warden-1");
   });
 
   it("converts legacy unstructured notes to array format", async () => {
@@ -420,7 +419,7 @@ describe("PATCH /api/warden/leads/[id]", () => {
     mockPrisma.lead.findUnique.mockResolvedValue(
       makeLead({ notes: "Old freeform note" })
     );
-    (mockPrisma.lead.update as any).mockImplementation(({ data }) =>
+    (mockPrisma.lead.update as any).mockImplementation(({ data }: { data: any }) =>
       Promise.resolve(makeLead({ notes: data.notes }))
     );
 
@@ -436,11 +435,10 @@ describe("PATCH /api/warden/leads/[id]", () => {
 
     expect(res.status).toBe(200);
     const updateCall = (mockPrisma.lead.update as any).mock.calls[0][0];
-    const notes = JSON.parse(updateCall.data.notes);
-    expect(notes).toHaveLength(2);
-    expect(notes[0].text).toBe("Old freeform note");
-    expect(notes[0].author).toBe("Unknown");
-    expect(notes[1].text).toBe("New structured note");
+    const createdNote = updateCall.data.notes?.create;
+    expect(createdNote).toBeDefined();
+    expect(createdNote.note).toBe("New structured note");
+    expect(createdNote.authorId).toBe("user-warden-1");
   });
 
   it("returns existing lead when no update fields provided", async () => {
@@ -525,13 +523,10 @@ describe("Sprint 7.1 – Access Control", () => {
     expect(res.status).toBe(403);
   });
 
-  it("Warden can PATCH lead with null hostelId (unassigned)", async () => {
+  it("Warden cannot PATCH lead with null hostelId (unassigned)", async () => {
     (authModule.requireRole as any).mockResolvedValue(fakeWardenSession);
     mockPrisma.lead.findUnique.mockResolvedValue(
       makeLead({ hostelId: null })
-    );
-    (mockPrisma.lead.update as any).mockResolvedValue(
-      makeLead({ hostelId: null, status: LeadStatus.CONTACTED })
     );
 
     const { PATCH } = await import("@/app/api/warden/leads/[id]/route");
@@ -544,7 +539,7 @@ describe("Sprint 7.1 – Access Control", () => {
       params: Promise.resolve({ id: "lead-1" }),
     });
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(403);
   });
 
   it("Admin can PATCH any lead regardless of hostel", async () => {

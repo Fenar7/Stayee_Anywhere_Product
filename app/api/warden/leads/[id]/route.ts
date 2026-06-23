@@ -18,7 +18,7 @@ export async function GET(
 
     if (user.role === UserRole.WARDEN) {
       const hostelId = await resolveHostelId(session);
-      if (lead.hostelId !== null && lead.hostelId !== hostelId) {
+      if (lead.hostelId !== hostelId) {
         throw new ForbiddenError("Access denied: Lead does not belong to your hostel");
       }
     }
@@ -42,7 +42,7 @@ export async function PATCH(
 
     if (user.role === UserRole.WARDEN) {
       const hostelId = await resolveHostelId(session);
-      if (lead.hostelId !== null && lead.hostelId !== hostelId) {
+      if (lead.hostelId !== hostelId) {
         throw new ForbiddenError("Access denied: Lead does not belong to your hostel");
       }
     }
