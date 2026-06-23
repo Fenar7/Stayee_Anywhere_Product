@@ -6,9 +6,9 @@ export const createHostelSchema = z.object({
   address: z.string().min(1, "Address is required").max(500),
   accommodationType: z.nativeEnum(AccommodationType),
   locationId: z.string().uuid("Invalid location ID").optional(),
-  wardenEmail: z.string().email("Invalid email").optional().or(z.literal("")),
-  wardenPhone: z.string().regex(/^\+?[0-9\s\-]{10,15}$/, "Invalid phone format").optional(),
-  wardenPassword: z.string().min(8, "Password must be at least 8 characters").optional(),
+  wardenEmail: z.string().email("Invalid email for warden"),
+  wardenPhone: z.string().regex(/^\+?[0-9\s\-]{10,15}$/, "Invalid phone format"),
+  wardenPassword: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 export const createLocationSchema = z.object({

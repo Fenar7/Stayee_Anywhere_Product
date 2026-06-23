@@ -30,4 +30,5 @@ export const progressSchema = z.object({
 
 export const validateSchema = z.object({
   phone: z.string().regex(/^\+?[0-9\s\-]{10,15}$/, "Invalid phone format"),
+  tempPassword: z.string().min(1, "Password is required"),
 });
