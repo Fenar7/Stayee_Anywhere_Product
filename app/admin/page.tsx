@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Plus, UserPlus, Users, Shield, ShieldAlert, AlertCircle, TrendingUp, Building, Bed, Activity } from "lucide-react";
 import { getAdminPortfolioStats } from "@/services/hostel/dashboard.service";
@@ -88,51 +90,61 @@ export default async function AdminPage() {
 
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-background/50 p-6 shadow-sm backdrop-blur-xl transition-all hover:shadow-md hover:border-border">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-muted-foreground">Total Hostels</p>
-            <Building className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
-          </div>
-          <p className="mt-4 text-3xl font-bold tracking-tight">{stats.totalHostels}</p>
-        </div>
+        <Card className="border-b-4 border-b-primary shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Hostels</CardTitle>
+            <Building className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalHostels}</div>
+            <p className="text-xs text-muted-foreground">Across all regions</p>
+          </CardContent>
+        </Card>
         
-        <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-background/50 p-6 shadow-sm backdrop-blur-xl transition-all hover:shadow-md hover:border-border">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-muted-foreground">Total Beds</p>
-            <Bed className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
-          </div>
-          <p className="mt-4 text-3xl font-bold tracking-tight">{stats.totalBeds}</p>
-        </div>
+        <Card className="border-b-4 border-b-blue-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Beds</CardTitle>
+            <Bed className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalBeds}</div>
+            <p className="text-xs text-muted-foreground">Total capacity</p>
+          </CardContent>
+        </Card>
 
-        <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-background/50 p-6 shadow-sm backdrop-blur-xl transition-all hover:shadow-md hover:border-border">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-muted-foreground">Portfolio Occupancy</p>
-            <Activity className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
-          </div>
-          <div className="mt-4 flex items-baseline gap-2">
-            <p className={`text-3xl font-bold tracking-tight ${occupancyColor(stats.portfolioOccupancyRate)}`}>
-              {stats.portfolioOccupancyRate}%
-            </p>
-            <p className="text-sm text-muted-foreground">({stats.totalOccupiedBeds} occupied)</p>
-          </div>
-          {/* Mini progress bar */}
-          <div className="mt-3 h-1.5 w-full rounded-full bg-muted overflow-hidden">
-            <div 
-              className={`h-full rounded-full ${occupancyBgColor(stats.portfolioOccupancyRate)} transition-all duration-1000 ease-out`} 
-              style={{ width: `${stats.portfolioOccupancyRate}%` }} 
-            />
-          </div>
-        </div>
+        <Card className="border-b-4 border-b-emerald-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Portfolio Occupancy</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <div className={`text-2xl font-bold ${occupancyColor(stats.portfolioOccupancyRate)}`}>
+                {stats.portfolioOccupancyRate}%
+              </div>
+              <p className="text-xs text-muted-foreground">({stats.totalOccupiedBeds} occupied)</p>
+            </div>
+            <div className="mt-3 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+              <div 
+                className={`h-full rounded-full ${occupancyBgColor(stats.portfolioOccupancyRate)} transition-all duration-1000 ease-out`} 
+                style={{ width: `${stats.portfolioOccupancyRate}%` }} 
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-background/50 p-6 shadow-sm backdrop-blur-xl transition-all hover:shadow-md hover:border-border">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-muted-foreground">Pending Payments</p>
-            <TrendingUp className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
-          </div>
-          <p className={`mt-4 text-3xl font-bold tracking-tight ${stats.totalPendingPayments > 0 ? "text-rose-500" : ""}`}>
-            {stats.totalPendingPayments}
-          </p>
-        </div>
+        <Card className="border-b-4 border-b-rose-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Payments</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${stats.totalPendingPayments > 0 ? "text-rose-500" : ""}`}>
+              {stats.totalPendingPayments}
+            </div>
+            <p className="text-xs text-muted-foreground">Requires attention</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Hostels List */}
@@ -140,35 +152,28 @@ export default async function AdminPage() {
         <h2 className="text-xl font-semibold tracking-tight">Properties</h2>
         <div className="grid gap-4 lg:grid-cols-2">
           {stats.hostels.map((hostel) => (
-            <div
-              key={hostel.id}
-              className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-border/50 bg-background/50 shadow-sm backdrop-blur-xl transition-all hover:shadow-md hover:border-border"
-            >
-              <div className="p-6 flex-1">
-                <div className="flex items-start justify-between">
+            <Card key={hostel.id} className="flex flex-col hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
                   <div>
-                    <Link
-                      href={`/admin/hostels/${hostel.id}`}
-                      className="font-semibold text-lg hover:text-primary transition-colors focus:outline-none"
-                    >
-                      {hostel.name}
-                    </Link>
-                    <p className="text-sm text-muted-foreground mt-1 truncate max-w-[250px]">{hostel.address}</p>
+                    <CardTitle className="text-lg">
+                      <Link href={`/admin/hostels/${hostel.id}`} className="hover:text-primary transition-colors">
+                        {hostel.name}
+                      </Link>
+                    </CardTitle>
+                    <CardDescription className="truncate max-w-[250px] mt-1">{hostel.address}</CardDescription>
                   </div>
-                  <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${
-                      accommodationTypeColors[hostel.accommodationType] || "bg-secondary text-secondary-foreground"
-                    }`}
-                  >
+                  <Badge variant="outline" className={accommodationTypeColors[hostel.accommodationType] || ""}>
                     {hostel.accommodationType}
-                  </span>
+                  </Badge>
                 </div>
-
-                <div className="mt-6 grid grid-cols-2 gap-4">
+              </CardHeader>
+              <CardContent className="flex-1 pb-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-wider">Occupancy</p>
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold text-base">{hostel.occupiedBeds} / {hostel.totalBeds}</p>
+                      <p className="font-semibold">{hostel.occupiedBeds} / {hostel.totalBeds}</p>
                       <span className={`text-xs font-medium ${occupancyColor(hostel.occupancyRate)}`}>
                         ({hostel.occupancyRate}%)
                       </span>
@@ -176,42 +181,35 @@ export default async function AdminPage() {
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-wider">Payments</p>
-                    <p className="font-semibold text-base">
-                      {hostel.pendingPayments}{" "}
-                      <span className="text-muted-foreground text-xs font-normal lowercase">pending</span>
+                    <p className="font-semibold">
+                      {hostel.pendingPayments} <span className="text-muted-foreground text-xs font-normal lowercase">pending</span>
                     </p>
                   </div>
                 </div>
-                
                 <div className="mt-4 h-1.5 w-full rounded-full bg-muted overflow-hidden">
                   <div 
                     className={`h-full rounded-full ${occupancyBgColor(hostel.occupancyRate)} transition-all duration-1000 ease-out`} 
                     style={{ width: `${hostel.occupancyRate}%` }} 
                   />
                 </div>
-              </div>
-
-              <div className="bg-muted/30 px-6 py-3 border-t border-border/50 flex items-center justify-between">
+              </CardContent>
+              <CardFooter className="bg-muted/30 border-t px-6 py-3 flex justify-between items-center rounded-b-xl">
                 <p className="text-xs text-muted-foreground">ID: {hostel.id.slice(0, 8)}</p>
-                <div className="flex gap-2 items-center">
+                <div className="flex gap-2">
                   <AdminDashboardClient 
                     hostelId={hostel.id} 
                     hostelName={hostel.name} 
                     hasWarden={!!hostel.warden} 
                   />
                   <Link href={`/admin/hostels/${hostel.id}/occupancy`}>
-                    <Button variant="ghost" size="sm" className="h-8 text-xs hover:bg-background/80">
-                      Map
-                    </Button>
+                    <Button variant="ghost" size="sm">Map</Button>
                   </Link>
                   <Link href={`/admin/hostels/${hostel.id}`}>
-                    <Button variant="secondary" size="sm" className="h-8 text-xs bg-background/50 hover:bg-background shadow-sm border border-border/50">
-                      Manage
-                    </Button>
+                    <Button variant="secondary" size="sm">Manage</Button>
                   </Link>
                 </div>
-              </div>
-            </div>
+              </CardFooter>
+            </Card>
           ))}
           {stats.hostels.length === 0 && (
             <div className="col-span-full rounded-2xl border border-dashed p-12 text-center bg-muted/10">

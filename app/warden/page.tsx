@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Plus, ClipboardList, Users, AlertCircle, TrendingUp, Bed, Activity, UserCheck, Utensils } from "lucide-react";
 import { requireRole } from "@/lib/auth";
@@ -113,42 +114,48 @@ export default async function WardenPage({
 
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-background/50 p-6 shadow-sm backdrop-blur-xl transition-all hover:shadow-md hover:border-border lg:col-span-2">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-muted-foreground">Overall Occupancy</p>
-            <Activity className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
-          </div>
-          <div className="mt-4 flex items-end gap-3">
-            <p className={`text-4xl font-bold tracking-tight ${occupancyColor(stats.occupancyRate)}`}>
-              {stats.occupancyRate}%
-            </p>
-            <p className="text-sm text-muted-foreground mb-1">
-              {stats.occupiedBeds} occupied / {stats.totalBeds} total beds
-            </p>
-          </div>
-          <div className="mt-4 h-2 w-full rounded-full bg-muted overflow-hidden">
-            <div 
-              className={`h-full rounded-full ${occupancyBgColor(stats.occupancyRate)} transition-all duration-1000 ease-out`} 
-              style={{ width: `${stats.occupancyRate}%` }} 
-            />
-          </div>
-        </div>
+        <Card className="lg:col-span-2 border-b-4 border-b-primary shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Overall Occupancy</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-end gap-3">
+              <div className={`text-4xl font-bold tracking-tight ${occupancyColor(stats.occupancyRate)}`}>
+                {stats.occupancyRate}%
+              </div>
+              <p className="text-sm text-muted-foreground mb-1">
+                {stats.occupiedBeds} occupied / {stats.totalBeds} total beds
+              </p>
+            </div>
+            <div className="mt-4 h-2 w-full rounded-full bg-muted overflow-hidden">
+              <div 
+                className={`h-full rounded-full ${occupancyBgColor(stats.occupancyRate)} transition-all duration-1000 ease-out`} 
+                style={{ width: `${stats.occupancyRate}%` }} 
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-background/50 p-6 shadow-sm backdrop-blur-xl transition-all hover:shadow-md hover:border-border">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-muted-foreground">Available Beds</p>
-            <Bed className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
-          </div>
-          <p className="mt-4 text-3xl font-bold tracking-tight">{stats.availableBeds}</p>
-        </div>
+        <Card className="border-b-4 border-b-emerald-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Available Beds</CardTitle>
+            <Bed className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold tracking-tight">{stats.availableBeds}</div>
+          </CardContent>
+        </Card>
 
-        <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-background/50 p-6 shadow-sm backdrop-blur-xl transition-all hover:shadow-md hover:border-border">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-muted-foreground">Active Tenants</p>
-            <Users className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
-          </div>
-          <p className="mt-4 text-3xl font-bold tracking-tight">{stats.activeTenants}</p>
-        </div>
+        <Card className="border-b-4 border-b-blue-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Tenants</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold tracking-tight">{stats.activeTenants}</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Quick Actions & Overview */}
@@ -199,41 +206,49 @@ export default async function WardenPage({
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold tracking-tight">Onboarding Queue</h2>
+          <h2 className="text-xl font-semibold tracking-tight">Today's Tasks</h2>
           <div className="flex flex-col gap-4">
-            <Link href="/warden/onboards" className="group block">
-              <div className="rounded-2xl border border-border/50 bg-background/50 p-5 shadow-sm backdrop-blur-xl transition-all hover:shadow-md hover:border-primary/50">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">Pending Requests</p>
-                  <UserCheck className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold tracking-tight group-hover:text-primary transition-colors">
-                    {stats.pendingOnboarding}
-                  </p>
-                  <span className="text-sm text-muted-foreground font-medium group-hover:text-primary/70 transition-colors">
-                    &rarr; Review
-                  </span>
-                </div>
-              </div>
-            </Link>
+            <Card className="hover:border-primary/50 transition-colors">
+              <Link href="/warden/onboards" className="group block">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Applications to Review</CardTitle>
+                    <UserCheck className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-baseline gap-2">
+                    <div className="text-3xl font-bold tracking-tight group-hover:text-primary transition-colors">
+                      {stats.pendingOnboarding}
+                    </div>
+                    <span className="text-sm text-muted-foreground font-medium group-hover:text-primary/70 transition-colors">
+                      &rarr; Review
+                    </span>
+                  </div>
+                </CardContent>
+              </Link>
+            </Card>
 
-            <Link href="/warden/onboards" className="group block">
-              <div className="rounded-2xl border border-border/50 bg-background/50 p-5 shadow-sm backdrop-blur-xl transition-all hover:shadow-md hover:border-rose-500/50">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">Pending Payments</p>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground group-hover:text-rose-500 transition-colors" />
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <p className={`text-3xl font-bold tracking-tight transition-colors ${stats.pendingPayments > 0 ? "text-rose-500 group-hover:text-rose-600" : "group-hover:text-primary"}`}>
-                    {stats.pendingPayments}
-                  </p>
-                  <span className={`text-sm font-medium transition-colors ${stats.pendingPayments > 0 ? "text-rose-500/70 group-hover:text-rose-600" : "text-muted-foreground group-hover:text-primary/70"}`}>
-                    &rarr; Verify
-                  </span>
-                </div>
-              </div>
-            </Link>
+            <Card className="hover:border-rose-500/50 transition-colors">
+              <Link href="/warden/onboards" className="group block">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Payments to Verify</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground group-hover:text-rose-500 transition-colors" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-baseline gap-2">
+                    <div className={`text-3xl font-bold tracking-tight transition-colors ${stats.pendingPayments > 0 ? "text-rose-500 group-hover:text-rose-600" : "group-hover:text-primary"}`}>
+                      {stats.pendingPayments}
+                    </div>
+                    <span className={`text-sm font-medium transition-colors ${stats.pendingPayments > 0 ? "text-rose-500/70 group-hover:text-rose-600" : "text-muted-foreground group-hover:text-primary/70"}`}>
+                      &rarr; Verify
+                    </span>
+                  </div>
+                </CardContent>
+              </Link>
+            </Card>
           </div>
         </div>
       </div>

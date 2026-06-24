@@ -3,7 +3,23 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, Eye, AlertCircle, FileText, CheckCircle, Clock, XCircle, Key, Copy, Check } from "lucide-react";
+import { Loader2, ArrowRight, Check, Copy, Eye, Clock, Key } from "lucide-react";
+import { TableSkeleton } from "@/components/shared/TableSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { notify } from "@/lib/toast";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { STAY_STATUS_LABELS, STAY_STATUS_COLORS } from "@/lib/labels";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,9 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { TableSkeleton } from "@/components/shared/TableSkeleton";
-import { notify } from "@/lib/toast";
-import { PageHeader } from "@/components/shared/PageHeader";
+import { useRouter } from "next/navigation";
 
 interface OnboardItem {
   id: string;
@@ -45,8 +59,10 @@ interface OnboardItem {
 }
 
 export default function WardenOnboardsPage() {
+  const router = useRouter();
   const [onboards, setOnboards] = useState<OnboardItem[]>([]);
   const [loading, setLoading] = useState(true);
+  
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
 
@@ -132,23 +148,6 @@ export default function WardenOnboardsPage() {
     );
   }
 
-  // Filter stays into categories
-  const awaitingTenant = onboards.filter(
-    (item) => item.status === "ONBOARDING_PENDING" && !item.tenant.hasProfile
-  );
-  
-  const awaitingReview = onboards.filter(
-    (item) => item.status === "ONBOARDING_PENDING" && item.tenant.hasProfile
-  );
-
-  const awaitingPayment = onboards.filter(
-    (item) => item.status === "APPROVED_AWAITING_PAYMENT"
-  );
-
-  const activeStays = onboards.filter(
-    (item) => item.status === "ACTIVE" || item.status === "EXTENDED"
-  );
-
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-IN", {
       day: "2-digit",
@@ -157,388 +156,250 @@ export default function WardenOnboardsPage() {
     });
   };
 
-  const getStatusBadge = (status: string, hasPendingPayment?: boolean) => {
-    switch (status) {
-      case "ONBOARDING_PENDING":
-        return <span className="inline-flex items-center gap-1 rounded bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"><Clock className="h-3 w-3" /> Awaiting Form</span>;
-      case "APPROVED_AWAITING_PAYMENT":
-        if (hasPendingPayment) {
-          return (
-            <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-500/30 animate-pulse">
-              ⚡ Verify Payment
-            </span>
-          );
-        }
-        return <span className="inline-flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"><FileText className="h-3 w-3" /> Awaiting Payment</span>;
-      case "ACTIVE":
-      case "EXTENDED":
-        return <span className="inline-flex items-center gap-1 rounded bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-400"><CheckCircle className="h-3 w-3" /> Active</span>;
-      default:
-        return <span className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-800">{status}</span>;
-    }
+  const getInitials = (name: string) => {
+    return name.substring(0, 2).toUpperCase();
   };
+
+  const renderTable = (items: OnboardItem[], emptyMessage: string) => {
+    if (items.length === 0) {
+      return (
+        <EmptyState
+          icon={Loader2}
+          title="No Onboards Found"
+          description={emptyMessage}
+          action={{
+            label: "+ Onboard New Tenant",
+            href: "/warden/onboard"
+          }}
+        />
+      );
+    }
+
+    return (
+      <div className="rounded-md border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tenant</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Bed Assigned</TableHead>
+              <TableHead>Stay Duration</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((item) => {
+              const label = STAY_STATUS_LABELS[item.status] || item.status;
+              const colorClass = STAY_STATUS_COLORS[item.status] || "bg-gray-100 text-gray-800";
+              const needsPaymentVerify = item.status === "APPROVED_AWAITING_PAYMENT" && item.hasPendingPayment;
+
+              return (
+                <TableRow 
+                  key={item.id} 
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => router.push(`/warden/onboards/${item.id}`)}
+                >
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-9 w-9">
+                        <AvatarFallback>{getInitials(item.tenant.fullName)}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span>{item.tenant.fullName}</span>
+                        <span className="text-xs text-muted-foreground">{item.tenant.phone}</span>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1 items-start">
+                      <Badge variant="outline" className={colorClass}>
+                        {label}
+                      </Badge>
+                      {needsPaymentVerify && (
+                        <Badge variant="destructive" className="animate-pulse text-[10px] px-1.5 py-0">
+                          Verify Payment
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span>{item.bed.roomNumber} - {item.bed.label}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">
+                      {formatDate(item.joiningDate)} - {formatDate(item.endDate)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-end gap-2">
+                      {item.status === "ONBOARDING_PENDING" && !item.tenant.hasProfile && item.onboardingRequest && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewPassword(item.onboardingRequest!.id, item.tenant.phone)}
+                        >
+                          <Key className="h-4 w-4 mr-1" /> Key
+                        </Button>
+                      )}
+                      {item.status === "ONBOARDING_PENDING" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                          onClick={() => setConfirmCancelId(item.id)}
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                      <Link href={`/warden/onboards/${item.id}`}>
+                        <Button variant="ghost" size="icon">
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
+
+  const awaitingForm = onboards.filter((i) => i.status === "ONBOARDING_PENDING" && !i.tenant.hasProfile);
+  const awaitingReview = onboards.filter((i) => i.status === "ONBOARDING_PENDING" && i.tenant.hasProfile);
+  const awaitingPayment = onboards.filter((i) => i.status === "APPROVED_AWAITING_PAYMENT");
+  const activeStays = onboards.filter((i) => i.status === "ACTIVE" || i.status === "EXTENDED");
+  const cancelled = onboards.filter((i) => i.status === "CANCELLED");
 
   return (
     <div className="flex flex-col min-h-full">
       <PageHeader
-        title="Onboarding Applications"
-        description="Verify documents, record deposits, activate resident stays and retrieve access passwords."
+        title="Onboarding & Stays"
+        description="Manage tenant applications, verification, and active stays."
         actions={
-          <a
-            href="/warden/onboard"
-            className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-primary px-2.5 text-[0.8rem] font-medium text-primary-foreground hover:bg-primary/80 transition-colors"
-          >
-            + Onboard New Tenant
-          </a>
+          <Link href="/warden/onboard">
+            <Button size="sm">+ Onboard New Tenant</Button>
+          </Link>
         }
       />
-      <div className="space-y-10 p-6">
+      <div className="p-6">
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="mb-6 overflow-x-auto flex-nowrap w-full justify-start h-auto p-1 bg-muted/50">
+            <TabsTrigger value="all">All Stays ({onboards.length})</TabsTrigger>
+            <TabsTrigger value="form">Awaiting Form ({awaitingForm.length})</TabsTrigger>
+            <TabsTrigger value="review">Awaiting Review ({awaitingReview.length})</TabsTrigger>
+            <TabsTrigger value="payment">Awaiting Payment ({awaitingPayment.length})</TabsTrigger>
+            <TabsTrigger value="active">Active ({activeStays.length})</TabsTrigger>
+            <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
+          </TabsList>
 
-      {/* 1. AWAITING WARDEN REVIEW (Tenant form completed) */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between border-b pb-2">
-          <h2 className="text-xl font-bold flex items-center gap-2.5 text-foreground">
-            <span>📋 Awaiting Warden Review</span>
-            <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-              {awaitingReview.length}
-            </span>
-          </h2>
-        </div>
-        {awaitingReview.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm bg-card/25 shadow-sm">
-            No registration forms awaiting review right now.
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2">
-            {awaitingReview.map((item) => (
-              <Link
-                href={`/warden/onboards/${item.id}`}
-                key={item.id}
-                className="group relative flex flex-col justify-between rounded-xl border bg-card p-6 shadow-sm hover:shadow-md hover:border-primary/50 transition-all cursor-pointer duration-200 overflow-hidden"
-              >
-                <div>
-                  <div className="flex justify-between items-start gap-4">
-                    <div>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
-                        Application Form Complete
-                      </span>
-                      <h3 className="font-extrabold text-lg text-foreground group-hover:text-primary transition-colors">
-                        {item.tenant.fullName}
-                      </h3>
-                      <p className="text-sm text-muted-foreground font-mono mt-0.5">{item.tenant.phone}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(item.status)}
-                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                    </div>
-                  </div>
-                  <div className="mt-6 grid grid-cols-2 gap-4 text-xs border-t pt-4 border-muted/50">
-                    <div>
-                      <span className="text-muted-foreground block mb-0.5">Assigned Bed</span>
-                      <span className="font-semibold text-foreground bg-muted px-2 py-0.5 rounded inline-block">
-                        {item.bed.roomNumber} - {item.bed.label}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block mb-0.5">Expected Stay</span>
-                      <span className="font-semibold text-foreground">
-                        {formatDate(item.joiningDate)} to {formatDate(item.endDate)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+          <TabsContent value="all" className="m-0">
+            {renderTable(onboards, "No onboarding applications or stays found.")}
+          </TabsContent>
+          <TabsContent value="form" className="m-0">
+            {renderTable(awaitingForm, "No tenants currently filling out forms.")}
+          </TabsContent>
+          <TabsContent value="review" className="m-0">
+            {renderTable(awaitingReview, "No applications pending warden review.")}
+          </TabsContent>
+          <TabsContent value="payment" className="m-0">
+            {renderTable(awaitingPayment, "No approved applications waiting for payment.")}
+          </TabsContent>
+          <TabsContent value="active" className="m-0">
+            {renderTable(activeStays, "No active stays found.")}
+          </TabsContent>
+          <TabsContent value="cancelled" className="m-0">
+            {renderTable(cancelled, "No cancelled applications found.")}
+          </TabsContent>
+        </Tabs>
       </div>
 
-      {/* 2. AWAITING PAYMENT (Approved by Warden) */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between border-b pb-2">
-          <h2 className="text-xl font-bold flex items-center gap-2.5 text-foreground">
-            <span>💳 Awaiting Deposit Payment</span>
-            <span className="rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-bold text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-              {awaitingPayment.length}
-            </span>
-          </h2>
-        </div>
-        {awaitingPayment.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm bg-card/25 shadow-sm">
-            No approved applications awaiting payments.
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2">
-            {awaitingPayment.map((item) => (
-              <Link
-                href={`/warden/onboards/${item.id}`}
-                key={item.id}
-                className="group relative flex flex-col justify-between rounded-xl border bg-card p-6 shadow-sm hover:shadow-md hover:border-primary/50 transition-all cursor-pointer duration-200 overflow-hidden"
-              >
-                <div>
-                  <div className="flex justify-between items-start gap-4">
-                    <div>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
-                        Approved Stay &amp; Rent Set
-                      </span>
-                      <h3 className="font-extrabold text-lg text-foreground group-hover:text-primary transition-colors">
-                        {item.tenant.fullName}
-                      </h3>
-                      <p className="text-sm text-muted-foreground font-mono mt-0.5">{item.tenant.phone}</p>
-                      {item.hasPendingPayment && (
-                        <div className="mt-2">
-                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/15 px-2.5 py-1 text-[10px] font-extrabold text-amber-700 dark:text-amber-400 border border-amber-500/30 animate-pulse">
-                            ⚡ Payment Uploaded (Verify Now)
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(item.status, item.hasPendingPayment)}
-                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                    </div>
-                  </div>
-                  <div className="mt-6 grid grid-cols-2 gap-4 text-xs border-t pt-4 border-muted/50">
-                    <div>
-                      <span className="text-muted-foreground block mb-0.5">Total Amount Due</span>
-                      <span className="font-bold text-sm text-primary">
-                        ₹ {item.totalPayable.toLocaleString("en-IN")}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block mb-0.5">Bed Assignment</span>
-                      <span className="font-semibold text-foreground bg-muted px-2 py-0.5 rounded inline-block">
-                        {item.bed.roomNumber} - {item.bed.label}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* 3. AWAITING TENANT FORM SUBMISSION */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between border-b pb-2">
-          <h2 className="text-xl font-bold flex items-center gap-2.5 text-muted-foreground">
-            <span>⏳ Link Sent, Awaiting Registration Form</span>
-            <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-bold text-muted-foreground">
-              {awaitingTenant.length}
-            </span>
-          </h2>
-        </div>
-        {awaitingTenant.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm bg-card/25 shadow-sm">
-            All sent onboarding links have been acted upon.
-          </div>
-        ) : (
-          <div className="border rounded-xl bg-card divide-y overflow-hidden shadow-sm">
-            {awaitingTenant.map((item) => (
-              <div
-                key={item.id}
-                className="group relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 hover:bg-muted/20 transition-all duration-150"
-              >
-                <Link
-                  href={`/warden/onboards/${item.id}`}
-                  className="flex-1 min-w-0 pr-4"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Clock className="h-4 w-4 text-yellow-500 shrink-0" />
-                    <p className="font-bold text-base text-foreground group-hover:text-primary transition-colors">
-                      Prospect: {item.tenant.phone}
-                    </p>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Bed: {item.bed.roomNumber} - {item.bed.label} &middot; Expected Joining: {formatDate(item.joiningDate)} &middot; Created: {item.onboardingRequest ? formatDate(item.onboardingRequest.createdAt) : "—"}
-                  </p>
-                </Link>
-                <div className="flex items-center gap-2 shrink-0 z-10 self-end sm:self-center">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() =>
-                      handleViewPassword(
-                        item.onboardingRequest?.id || "",
-                        item.tenant.phone
-                      )
-                    }
-                    disabled={!item.onboardingRequest?.id}
-                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20 text-xs font-semibold"
-                  >
-                    <Key className="h-4 w-4 mr-1.5" />
-                    Reveal Password
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setConfirmCancelId(item.id)}
-                    disabled={cancellingId === item.id}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10 text-xs font-semibold"
-                  >
-                    {cancellingId === item.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <XCircle className="h-4 w-4 mr-1.5" />
-                    )}
-                    Cancel Request
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* 4. ACTIVE RESIDENTS HISTORY */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between border-b pb-2">
-          <h2 className="text-xl font-bold flex items-center gap-2.5 text-foreground">
-            <span>✅ Recently Activated Stays</span>
-            <span className="rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-bold text-green-600 dark:bg-green-900/30 dark:text-green-400">
-              {activeStays.length}
-            </span>
-          </h2>
-        </div>
-        {activeStays.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm bg-card/25 shadow-sm">
-            No recently activated stays to show.
-          </div>
-        ) : (
-          <div className="border rounded-xl bg-card divide-y overflow-hidden shadow-sm">
-            {activeStays.map((item) => (
-              <Link
-                key={item.id}
-                href={`/warden/onboards/${item.id}`}
-                className="group relative flex items-center justify-between gap-4 p-5 hover:bg-muted/20 transition-all duration-150"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-base text-foreground group-hover:text-primary transition-colors">
-                    {item.tenant.fullName}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Bed: {item.bed.roomNumber} - {item.bed.label} &middot; Term: {formatDate(item.joiningDate)} to {formatDate(item.endDate)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4 shrink-0">
-                  {getStatusBadge(item.status)}
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Password Reveal Modal */}
-      {passwordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="max-w-sm w-full rounded-xl border bg-card shadow-2xl overflow-hidden transform scale-100 transition-all duration-200">
-            <div className="flex items-center justify-between border-b px-6 py-4">
-              <h3 className="font-extrabold text-sm flex items-center gap-2.5">
-                <Key className="h-4 w-4 text-amber-500" />
-                Access Password
-              </h3>
-              <button
-                onClick={() => {
-                  setPasswordModal(null);
-                  setRevealedPassword("");
-                }}
-                className="rounded-full p-1 text-muted-foreground hover:bg-muted transition-colors"
-              >
-                <XCircle className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="px-6 py-5 space-y-4">
-              <p className="text-xs text-muted-foreground">
-                Phone Number: <span className="font-mono text-foreground font-semibold">{passwordModal.phone}</span>
-              </p>
-
-              {passwordLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : revealedPassword ? (
-                <>
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-900/30 p-5 text-center">
-                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">
-                      One-time Portal Password
-                    </p>
-                    <p className="text-3xl font-extrabold font-mono tracking-wider text-amber-900 dark:text-amber-200 select-all">
-                      {revealedPassword}
-                    </p>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-normal">
-                    This password was generated fresh. Old passwords are invalidated. Provide it to the prospect to log in.
-                  </p>
-                  <Button
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(revealedPassword);
-                        setPasswordCopied(true);
-                        setTimeout(() => setPasswordCopied(false), 3000);
-                      } catch {
-                        const el = document.createElement("textarea");
-                        el.value = revealedPassword;
-                        document.body.appendChild(el);
-                        el.select();
-                        document.execCommand("copy");
-                        document.body.removeChild(el);
-                        setPasswordCopied(true);
-                        setTimeout(() => setPasswordCopied(false), 3000);
-                      }
-                    }}
-                    variant="outline"
-                    className="w-full flex items-center justify-center gap-2 border-amber-300 dark:border-amber-900 text-amber-800 dark:text-amber-300 font-semibold"
-                  >
-                    {passwordCopied ? (
-                      <>
-                        <Check className="h-4 w-4" /> Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" /> Copy Password
-                      </>
-                    )}
-                  </Button>
-                </>
-              ) : null}
-            </div>
-            {revealedPassword && (
-              <div className="flex justify-end border-t px-6 py-3.5 bg-muted/20">
-                <Button
-                  onClick={() => {
-                    setPasswordModal(null);
-                    setRevealedPassword("");
-                  }}
-                  size="sm"
-                >
-                  Done
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      <AlertDialog open={!!confirmCancelId} onOpenChange={(open) => !open && setConfirmCancelId(null)}>
+      <AlertDialog open={!!confirmCancelId} onOpenChange={() => setConfirmCancelId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel Onboarding Request?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel this onboarding request? The bed will be freed back to the available pool.
+              This will mark the application as cancelled and immediately free up the reserved bed. The tenant will no longer be able to log in or complete this form.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={executeCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Confirm Cancellation
+            <AlertDialogCancel>Keep Request</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={(e) => {
+                e.preventDefault();
+                executeCancel();
+              }}
+              disabled={!!cancellingId}
+            >
+              {cancellingId ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Cancel Request
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      </div>
+
+      <AlertDialog open={!!passwordModal} onOpenChange={() => setPasswordModal(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tenant Login Details</AlertDialogTitle>
+            <AlertDialogDescription>
+              Provide this temporary password to the tenant so they can log in via their phone number and complete the registration form.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <span className="font-medium text-muted-foreground">Phone:</span>
+              <span className="font-mono font-bold">{passwordModal?.phone}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+              <span className="font-medium text-muted-foreground">Password:</span>
+              <div className="flex items-center gap-2">
+                {passwordLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <span className="font-mono text-lg font-bold tracking-widest bg-background px-2 py-1 rounded border">
+                      {revealedPassword}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        if (revealedPassword) {
+                          navigator.clipboard.writeText(revealedPassword).catch((err) => {
+                            // Fallback
+                            const textArea = document.createElement("textarea");
+                            textArea.value = revealedPassword;
+                            document.body.appendChild(textArea);
+                            textArea.select();
+                            try {
+                              document.execCommand('copy');
+                            } catch (err) {}
+                            document.body.removeChild(textArea);
+                          });
+                          setPasswordCopied(true);
+                          setTimeout(() => setPasswordCopied(false), 2000);
+                        }
+                      }}
+                      title="Copy to clipboard"
+                    >
+                      {passwordCopied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <Button onClick={() => setPasswordModal(null)}>Done</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

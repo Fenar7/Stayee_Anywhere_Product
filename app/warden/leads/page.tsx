@@ -4,9 +4,21 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { notify } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
-import { Plus, X } from "lucide-react";
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Plus, X, Loader2, FileText, MessageCircle } from "lucide-react";
+import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, LEAD_SOURCE_COLORS } from "@/lib/labels";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { TableSkeleton } from "@/components/shared/TableSkeleton";
 
 interface LeadNote {
   note: string;
@@ -26,32 +38,10 @@ interface Lead {
 
 type StatusFilter = "ALL" | "NEW" | "CONTACTED" | "FOLLOW_UP" | "CONVERTED" | "DROPPED";
 
-const STATUS_COLORS: Record<string, string> = {
-  NEW: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  CONTACTED: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  FOLLOW_UP: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  CONVERTED: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  DROPPED: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-};
-
-const SOURCE_COLORS: Record<string, string> = {
-  WHATSAPP_BOT: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200",
-  MANUAL: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  NEW: "New",
-  CONTACTED: "Contacted",
-  FOLLOW_UP: "Follow-up",
-  CONVERTED: "Converted",
-  DROPPED: "Dropped",
-};
-
 export default function WardenLeadsPage() {
   const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<StatusFilter>("ALL");
   const [showLogModal, setShowLogModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -78,7 +68,7 @@ export default function WardenLeadsPage() {
       const data = await res.json();
       setLeads(data.leads);
     } catch (err: any) {
-      console.error("Failed to fetch leads:", err);
+      notify.error(err.message || "Failed to fetch leads");
     } finally {
       setLoading(false);
     }
@@ -88,333 +78,345 @@ export default function WardenLeadsPage() {
     fetchLeads();
   }, [fetchLeads]);
 
-  const filteredLeads =
-    activeFilter === "ALL"
-      ? leads
-      : leads.filter((l) => l.status === activeFilter);
-
   const handleLogEnquiry = async () => {
     if (!logPhone.trim()) {
       notify.error("Phone number is required");
       return;
     }
-    setLogLoading(true);
     try {
+      setLogLoading(true);
       const res = await fetch("/api/warden/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: logPhone,
+          phone: logPhone.trim(),
           source: logSource,
-          notes: logNotes.trim() || undefined,
+          initialNote: logNotes.trim(),
         }),
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to create lead");
+        throw new Error(data.error || "Failed to log enquiry");
       }
+      notify.success("Enquiry logged successfully");
       setShowLogModal(false);
       setLogPhone("");
-      setLogSource("MANUAL");
       setLogNotes("");
-      await fetchLeads();
+      setLogSource("MANUAL");
+      fetchLeads();
     } catch (err: any) {
-      notify.error(err.message);
+      notify.error(err.message || "Error logging enquiry");
     } finally {
       setLogLoading(false);
     }
   };
 
-  const openDetailModal = (lead: Lead) => {
+  const handleUpdateLead = async () => {
+    if (!selectedLead) return;
+    try {
+      setDetailLoading(true);
+      const res = await fetch(`/api/warden/leads/${selectedLead.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: detailStatus,
+          note: detailNote.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update lead");
+      }
+      notify.success("Lead updated successfully");
+      setShowDetailModal(false);
+      fetchLeads();
+    } catch (err: any) {
+      notify.error(err.message || "Error updating lead");
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const openLeadDetails = (lead: Lead) => {
     setSelectedLead(lead);
     setDetailStatus(lead.status);
     setDetailNote("");
     setShowDetailModal(true);
   };
 
-  const handleUpdateLead = async () => {
-    if (!selectedLead) return;
-    setDetailLoading(true);
-    try {
-      const body: any = {};
-      if (detailStatus !== selectedLead.status) {
-        body.status = detailStatus;
-      }
-      if (detailNote.trim()) {
-        body.note = detailNote.trim();
-      }
-      if (Object.keys(body).length === 0) {
-        setShowDetailModal(false);
-        return;
-      }
-      const res = await fetch(`/api/warden/leads/${selectedLead.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to update lead");
-      }
-      setShowDetailModal(false);
-      await fetchLeads();
-    } catch (err: any) {
-      notify.error(err.message);
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-
-  const formatISTDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-IN", {
-      timeZone: "Asia/Kolkata",
-      day: "numeric",
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-IN", {
+      day: "2-digit",
       month: "short",
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-      hour12: true,
     });
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Lead Management</h1>
-          <p className="text-muted-foreground">Manage prospect enquiries and leads</p>
-        </div>
-        <Button onClick={() => setShowLogModal(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Log Enquiry
-        </Button>
-      </div>
+  const renderTable = (items: Lead[], emptyMessage: string) => {
+    if (items.length === 0) {
+      return (
+        <EmptyState
+          icon={FileText}
+          title="No Leads Found"
+          description={emptyMessage}
+          action={{
+            label: "+ Log Enquiry",
+            onClick: () => setShowLogModal(true)
+          }}
+        />
+      );
+    }
 
-      {/* Status Filter Tabs */}
-      <div className="flex flex-wrap gap-2">
-        {(["ALL", "NEW", "CONTACTED", "FOLLOW_UP", "CONVERTED", "DROPPED"] as StatusFilter[]).map(
-          (filter) => (
-            <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                activeFilter === filter
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              {filter === "ALL" ? "All" : STATUS_LABELS[filter]}
-              <span className="ml-1">
-                ({filter === "ALL" ? leads.length : leads.filter((l) => l.status === filter).length})
-              </span>
-            </button>
-          )
+    return (
+      <div className="rounded-md border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Phone / Contact</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Source</TableHead>
+              <TableHead>Latest Note</TableHead>
+              <TableHead>Created</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((lead) => {
+              const latestNote = lead.notes[0];
+              const noteText = latestNote ? latestNote.note : "No notes";
+              return (
+                <TableRow 
+                  key={lead.id} 
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => openLeadDetails(lead)}
+                >
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono">{lead.phone}</span>
+                      <a 
+                        href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="text-emerald-600 hover:text-emerald-700 p-1"
+                        onClick={(e) => e.stopPropagation()}
+                        title="WhatsApp"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </a>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={LEAD_STATUS_COLORS[lead.status] || ""}>
+                      {LEAD_STATUS_LABELS[lead.status] || lead.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={`text-[10px] uppercase tracking-wider ${LEAD_SOURCE_COLORS[lead.status] || "bg-muted"}`}>
+                      {lead.source.replace("_", " ")}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
+                    {noteText}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDate(lead.createdAt)}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
+
+  const newLeads = leads.filter(l => l.status === "NEW");
+  const contactedLeads = leads.filter(l => l.status === "CONTACTED");
+  const followUpLeads = leads.filter(l => l.status === "FOLLOW_UP");
+  const convertedLeads = leads.filter(l => l.status === "CONVERTED");
+  const droppedLeads = leads.filter(l => l.status === "DROPPED");
+
+  return (
+    <div className="flex flex-col min-h-full">
+      <PageHeader
+        title="Hostel Leads"
+        description="Track and manage prospective tenants."
+        actions={
+          <Button size="sm" onClick={() => setShowLogModal(true)}>
+            <Plus className="mr-1 h-4 w-4" /> Log Enquiry
+          </Button>
+        }
+      />
+      <div className="p-6">
+        {loading ? (
+          <TableSkeleton />
+        ) : (
+          <Tabs defaultValue="ALL" className="w-full">
+            <TabsList className="mb-6 overflow-x-auto flex-nowrap w-full justify-start h-auto p-1 bg-muted/50">
+              <TabsTrigger value="ALL">All Leads ({leads.length})</TabsTrigger>
+              <TabsTrigger value="NEW">New ({newLeads.length})</TabsTrigger>
+              <TabsTrigger value="CONTACTED">Contacted ({contactedLeads.length})</TabsTrigger>
+              <TabsTrigger value="FOLLOW_UP">Follow Up ({followUpLeads.length})</TabsTrigger>
+              <TabsTrigger value="CONVERTED">Converted ({convertedLeads.length})</TabsTrigger>
+              <TabsTrigger value="DROPPED">Dropped ({droppedLeads.length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="ALL" className="m-0">
+              {renderTable(leads, "No leads have been captured yet.")}
+            </TabsContent>
+            <TabsContent value="NEW" className="m-0">
+              {renderTable(newLeads, "No new leads.")}
+            </TabsContent>
+            <TabsContent value="CONTACTED" className="m-0">
+              {renderTable(contactedLeads, "No contacted leads.")}
+            </TabsContent>
+            <TabsContent value="FOLLOW_UP" className="m-0">
+              {renderTable(followUpLeads, "No leads require follow-up.")}
+            </TabsContent>
+            <TabsContent value="CONVERTED" className="m-0">
+              {renderTable(convertedLeads, "No leads converted yet.")}
+            </TabsContent>
+            <TabsContent value="DROPPED" className="m-0">
+              {renderTable(droppedLeads, "No dropped leads.")}
+            </TabsContent>
+          </Tabs>
         )}
       </div>
 
-      {/* Leads List */}
-      {loading ? (
-        <div className="py-12 text-center text-muted-foreground">Loading leads...</div>
-      ) : filteredLeads.length === 0 ? (
-        <div className="py-12 text-center text-muted-foreground">
-          {leads.length === 0
-            ? "No leads yet. Click 'Log Enquiry' to add one."
-            : "No leads match the selected filter."}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filteredLeads.map((lead) => {
-            const initialNote = lead.notes && lead.notes.length > 0 ? lead.notes[0].note : null;
-
-            return (
-              <div
-                key={lead.id}
-                className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium font-mono">{lead.phone}</p>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${SOURCE_COLORS[lead.source] || ""}`}
-                    >
-                      {lead.source === "WHATSAPP_BOT" ? "WhatsApp Bot" : "Manual"}
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[lead.status] || ""}`}
-                    >
-                      {STATUS_LABELS[lead.status] || lead.status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Logged: {formatISTDate(lead.createdAt)}
-                  </p>
-                  {initialNote && (
-                    <p className="max-w-md truncate text-xs text-muted-foreground">
-                      Note: {initialNote}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => openDetailModal(lead)}>
-                    View Details
-                  </Button>
-                  {lead.status !== "CONVERTED" && (
-                    <Button
-                      size="sm"
-                      onClick={() =>
-                        router.push(
-                          `/warden/onboard?phone=${encodeURIComponent(lead.phone)}`
-                        )
-                      }
-                    >
-                      Convert to Stay
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Log Enquiry Modal */}
       {showLogModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Log Enquiry</h2>
-              <button onClick={() => setShowLogModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-background p-6 shadow-xl border">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold">Log New Enquiry</h3>
+              <button
+                onClick={() => setShowLogModal(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Phone Number</label>
-              <input
-                type="tel"
-                placeholder="+91XXXXXXXXXX"
-                value={logPhone}
-                onChange={(e) => setLogPhone(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Source</label>
-              <select
-                value={logSource}
-                onChange={(e) => setLogSource(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                <option value="MANUAL">Manual</option>
-                <option value="WHATSAPP_BOT">WhatsApp Bot</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Initial Notes (Optional)</label>
-              <textarea
-                rows={3}
-                placeholder="Any initial notes about this enquiry..."
-                value={logNotes}
-                onChange={(e) => setLogNotes(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowLogModal(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleLogEnquiry} disabled={logLoading}>
-                {logLoading ? "Saving..." : "Save Enquiry"}
-              </Button>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Phone Number</label>
+                <input
+                  type="text"
+                  placeholder="+91..."
+                  className="w-full rounded-md border p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  value={logPhone}
+                  onChange={(e) => setLogPhone(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Source</label>
+                <select
+                  className="w-full rounded-md border p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  value={logSource}
+                  onChange={(e) => setLogSource(e.target.value)}
+                >
+                  <option value="MANUAL">Manual / Walk-in</option>
+                  <option value="WHATSAPP_BOT">WhatsApp Bot</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Notes (Optional)</label>
+                <textarea
+                  placeholder="Visitor asked about..."
+                  className="w-full rounded-md border p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  rows={3}
+                  value={logNotes}
+                  onChange={(e) => setLogNotes(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button variant="outline" onClick={() => setShowLogModal(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleLogEnquiry} disabled={logLoading}>
+                  {logLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Save Enquiry
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Lead Detail Modal */}
       {showDetailModal && selectedLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-lg rounded-lg bg-background p-6 shadow-lg space-y-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Lead Details</h2>
-              <button onClick={() => setShowDetailModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl rounded-2xl bg-background shadow-xl border my-auto">
+            <div className="flex items-center justify-between p-6 border-b">
+              <div>
+                <h3 className="text-xl font-bold flex items-center gap-3">
+                  <span className="font-mono">{selectedLead.phone}</span>
+                  <Badge variant="outline" className={LEAD_STATUS_COLORS[selectedLead.status] || ""}>
+                    {LEAD_STATUS_LABELS[selectedLead.status] || selectedLead.status}
+                  </Badge>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Added on {formatDate(selectedLead.createdAt)}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="text-muted-foreground hover:text-foreground p-2 bg-muted/50 rounded-full"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="font-mono font-medium">{selectedLead.phone}</span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${SOURCE_COLORS[selectedLead.source] || ""}`}
-                >
-                  {selectedLead.source === "WHATSAPP_BOT" ? "WhatsApp Bot" : "Manual"}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Logged: {formatISTDate(selectedLead.createdAt)}
-              </p>
-            </div>
-
-            {/* Timeline */}
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold">Notes Thread</h3>
-              {!selectedLead.notes || selectedLead.notes.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No notes yet.</p>
-              ) : (
-                <div className="space-y-2">
-                  {selectedLead.notes.map((entry, i) => (
-                    <div key={i} className="rounded-md border p-3 text-sm">
-                      <p>{entry.note}</p>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="rounded bg-muted px-1.5 py-0.5 font-medium">
-                          {entry.author?.phone || "Unknown User"}
-                        </span>
-                        {entry.createdAt && <span>{formatISTDate(entry.createdAt)}</span>}
-                      </div>
-                    </div>
-                  ))}
+            
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Update Status</h4>
+                  <select
+                    className="w-full rounded-md border p-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    value={detailStatus}
+                    onChange={(e) => setDetailStatus(e.target.value)}
+                  >
+                    <option value="NEW">New</option>
+                    <option value="CONTACTED">Contacted</option>
+                    <option value="FOLLOW_UP">Follow Up</option>
+                    <option value="CONVERTED">Converted</option>
+                    <option value="DROPPED">Dropped</option>
+                  </select>
                 </div>
-              )}
-            </div>
-
-            {/* Update Status */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Update Status</label>
-              <select
-                value={detailStatus}
-                onChange={(e) => setDetailStatus(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Add Note */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Add Note</label>
-              <textarea
-                rows={2}
-                placeholder="Type a new note..."
-                value={detailNote}
-                onChange={(e) => setDetailNote(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowDetailModal(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleUpdateLead} disabled={detailLoading}>
-                {detailLoading ? "Saving..." : "Save Changes"}
-              </Button>
+                <div>
+                  <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Add Note</h4>
+                  <textarea
+                    placeholder="Had a call regarding..."
+                    className="w-full rounded-md border p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                    rows={4}
+                    value={detailNote}
+                    onChange={(e) => setDetailNote(e.target.value)}
+                  />
+                  <div className="mt-4">
+                    <Button onClick={handleUpdateLead} disabled={detailLoading} className="w-full">
+                      {detailLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      Save Update
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="border-t md:border-t-0 md:border-l md:pl-8 pt-6 md:pt-0">
+                <h4 className="text-sm font-semibold mb-4 uppercase tracking-wider text-muted-foreground">Activity History</h4>
+                {selectedLead.notes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">No history available.</p>
+                ) : (
+                  <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
+                    {selectedLead.notes.map((n, idx) => (
+                      <div key={idx} className="bg-muted/30 p-4 rounded-xl border border-border/50">
+                        <p className="text-sm text-foreground mb-3">{n.note}</p>
+                        <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+                          <span className="font-mono">{n.author.phone}</span>
+                          <span>{formatDate(n.createdAt)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
