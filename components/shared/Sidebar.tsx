@@ -18,6 +18,7 @@ import {
   LogOut,
   X,
   UserPlus,
+  Bed,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -86,6 +87,7 @@ const NAV_CONFIG: Record<Role, NavGroup[]> = {
         { label: "Occupancy", href: "/warden/occupancy", icon: Map },
         { label: "Food Dashboard", href: "/warden/food", icon: Utensils },
         { label: "Worklists", href: "/warden/worklists", icon: List },
+        { label: "Stays", href: "/warden/stays", icon: Bed },
       ],
     },
   ],

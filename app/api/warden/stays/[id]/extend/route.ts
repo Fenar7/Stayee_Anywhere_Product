@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { handleApiError, NotFoundError } from "@/lib/errors";
-import { UserRole, PaymentMode } from "@prisma/client";
+import { UserRole } from "@prisma/client";
 import { extendStay } from "@/services/stays/extend";
 import { prisma } from "@/lib/db";
 import { extendSchema } from "@/lib/validation/stay";
-
-
 
 export async function POST(
   request: NextRequest,
@@ -33,15 +31,14 @@ export async function POST(
     if (!parsed.success) {
       return handleApiError(new Error(parsed.error.issues[0]?.message ?? "Invalid body"));
     }
-    const { newEndDate, additionalRent, additionalFoodCharges, paymentMode } = parsed.data;
 
     await extendStay({
       stayId,
       hostelId,
-      newEndDate,
-      additionalRent,
-      additionalFoodCharges,
-      paymentMode,
+      durationType: parsed.data.durationType,
+      customDays: parsed.data.customDays,
+      discountAddedPaise: parsed.data.discountAddedPaise,
+      paymentMode: parsed.data.paymentMode,
       userId: session.user.id,
     });
 

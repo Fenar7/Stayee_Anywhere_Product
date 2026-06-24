@@ -444,7 +444,7 @@ describe("Sprint 4.2: Registration Form & Refund Invoice", () => {
         stayId: STAY_ID,
         hostelId: "hostel-1",
         checkoutDate: new Date("2025-06-15"),
-        refundAmount: 3000,
+        refundAmountPaise: 3000 * 100,
         notes: "Leaving early",
         userId: "user-warden-1",
       });

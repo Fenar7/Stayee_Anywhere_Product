@@ -5,27 +5,24 @@ import {
   ForbiddenError,
   ConflictError,
 } from "@/lib/errors";
-import { rupeesToPaise } from "@/lib/money";
 import { StayStatus, PaymentMode, PaymentStatus } from "@prisma/client";
+import { addMonths, addWeeks, addDays } from "date-fns";
 
 export interface ExtendStayParams {
   stayId: string;
   hostelId: string;
-  newEndDate: Date;
-  additionalRent: number;
-  additionalFoodCharges: number;
+  durationType: "MONTHLY" | "WEEKLY" | "CUSTOM";
+  customDays?: number;
+  discountAddedPaise: number;
   paymentMode: PaymentMode;
   userId: string;
 }
 
 export async function extendStay(params: ExtendStayParams) {
-  const { stayId, hostelId, newEndDate, additionalRent, additionalFoodCharges, paymentMode, userId } = params;
+  const { stayId, hostelId, durationType, customDays, discountAddedPaise, paymentMode, userId } = params;
 
-  if (additionalRent > 100000) {
-    throw new ValidationError("Additional rent exceeds maximum transaction limit of ₹1,00,000");
-  }
-  if (additionalFoodCharges > 100000) {
-    throw new ValidationError("Additional food charges exceed maximum transaction limit of ₹1,00,000");
+  if (discountAddedPaise > 10000000) {
+    throw new ValidationError("Discount exceeds maximum limit");
   }
 
   const stay = await prisma.stay.findUnique({ where: { id: stayId } });
@@ -42,9 +39,26 @@ export async function extendStay(params: ExtendStayParams) {
     throw new ValidationError("Stay must be ACTIVE or EXTENDED to be extended");
   }
 
-  if (newEndDate.getTime() <= stay.endDate.getTime()) {
-    throw new ValidationError("New end date must be after the current end date");
+  let newEndDate = new Date(stay.endDate);
+  let additionalRentPaise = 0;
+  let additionalFoodChargesPaise = 0;
+
+  if (durationType === "MONTHLY") {
+    newEndDate = addMonths(newEndDate, 1);
+    additionalRentPaise = stay.monthlyRentPaise;
+    additionalFoodChargesPaise = stay.foodPlan !== "NOT_INCLUDED" ? stay.foodChargesPaise : 0;
+  } else if (durationType === "WEEKLY") {
+    newEndDate = addWeeks(newEndDate, 1);
+    additionalRentPaise = Math.round(stay.monthlyRentPaise / 4);
+    additionalFoodChargesPaise = stay.foodPlan !== "NOT_INCLUDED" ? Math.round(stay.foodChargesPaise / 4) : 0;
+  } else if (durationType === "CUSTOM") {
+    if (!customDays || customDays <= 0) throw new ValidationError("customDays is required for CUSTOM duration");
+    newEndDate = addDays(newEndDate, customDays);
+    additionalRentPaise = Math.round((stay.monthlyRentPaise / 30) * customDays);
+    additionalFoodChargesPaise = stay.foodPlan !== "NOT_INCLUDED" ? Math.round((stay.foodChargesPaise / 30) * customDays) : 0;
   }
+
+  const totalAdditionalPaise = Math.max(0, additionalRentPaise + additionalFoodChargesPaise - discountAddedPaise);
 
   const overlappingStay = await prisma.stay.findFirst({
     where: {
@@ -59,10 +73,6 @@ export async function extendStay(params: ExtendStayParams) {
   if (overlappingStay) {
     throw new ConflictError("The bed is already reserved or occupied by another active stay during the extension period");
   }
-
-  const additionalRentPaise = rupeesToPaise(additionalRent);
-  const additionalFoodChargesPaise = rupeesToPaise(additionalFoodCharges);
-  const totalAdditionalPaise = additionalRentPaise + additionalFoodChargesPaise;
 
   await prisma.$transaction(async (tx) => {
     await tx.stay.update({
@@ -80,7 +90,7 @@ export async function extendStay(params: ExtendStayParams) {
         fromStatus: stay.status,
         toStatus: StayStatus.EXTENDED,
         changedByUserId: userId,
-        note: `Stay extended to ${newEndDate.toISOString().split("T")[0]}. Additional Rent: ₹${additionalRent}, Food: ₹${additionalFoodCharges}`,
+        note: `Stay extended to ${newEndDate.toISOString().split("T")[0]}. Added: ₹${(totalAdditionalPaise / 100).toFixed(2)} (Rent: ₹${(additionalRentPaise / 100).toFixed(2)}, Food: ₹${(additionalFoodChargesPaise / 100).toFixed(2)}, Discount: ₹${(discountAddedPaise / 100).toFixed(2)})`,
       },
     });
 
