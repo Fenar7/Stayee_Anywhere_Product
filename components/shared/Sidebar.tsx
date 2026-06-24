@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
+import useSWR from "swr";
 import {
   Home,
   Building2,
@@ -119,10 +120,12 @@ function SidebarNavItem({
   item,
   collapsed,
   pathname,
+  badge,
 }: {
   item: NavItem;
   collapsed: boolean;
   pathname: string;
+  badge?: number;
 }) {
   const Icon = item.icon;
   /**
@@ -153,7 +156,12 @@ function SidebarNavItem({
         )}
       />
       {!collapsed && (
-        <span className="truncate leading-none">{item.label}</span>
+        <span className="flex-1 truncate leading-none">{item.label}</span>
+      )}
+      {!collapsed && (badge ?? 0) > 0 && (
+        <span className="flex h-5 items-center justify-center rounded-full bg-rose-500 px-2 text-[10px] font-bold text-white">
+          {badge}
+        </span>
       )}
     </Link>
   );
@@ -177,6 +185,13 @@ function SidebarContent({
   const pathname = usePathname();
   const router = useRouter();
   const groups = NAV_CONFIG[role] ?? [];
+  const { data: counts = { pendingReviews: 0, pendingPayments: 0, rentDueSoon: 0 } } = useSWR(
+    role === "WARDEN" || role === "MAIN_ADMIN" ? "/api/warden/action-counts" : null,
+    (url: string) => fetch(url).then(res => res.json()),
+    { refreshInterval: 60000, dedupingInterval: 10000 }
+  );
+
+
 
   const handleLogout = useCallback(async () => {
     try {
@@ -262,6 +277,10 @@ function SidebarContent({
                   item={item}
                   collapsed={collapsed}
                   pathname={pathname}
+                  badge={
+                    item.label === "Onboards" ? counts.pendingReviews + counts.pendingPayments :
+                    item.label === "Worklists" ? counts.rentDueSoon : 0
+                  }
                 />
               ))}
             </div>

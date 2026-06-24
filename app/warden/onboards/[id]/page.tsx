@@ -132,8 +132,8 @@ export default function OnboardDetailPage() {
       setBed(data.bed);
       setPayments(data.payments);
       setUpiId(data.upiId || null);
-    } catch (err: any) {
-      notify.error(err.message || "An error occurred while loading details");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred while loading details");
     } finally {
       setLoading(false);
     }
@@ -156,8 +156,8 @@ export default function OnboardDetailPage() {
       notify.success("Profile approved. Payment request ready.");
       setShowPaymentRequest(true);
       await fetchDetails();
-    } catch (err: any) {
-      notify.error(err.message || "An error occurred during approval");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred during approval");
     } finally {
       setProcessingApprove(false);
     }
@@ -176,8 +176,8 @@ export default function OnboardDetailPage() {
       }
       notify.success("Registration request rejected successfully.");
       router.push("/warden/onboards");
-    } catch (err: any) {
-      notify.error(err.message || "An error occurred during rejection");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred during rejection");
     } finally {
       setProcessingReject(false);
     }
@@ -225,8 +225,8 @@ export default function OnboardDetailPage() {
       if (fileInputRef.current) fileInputRef.current.value = "";
       
       await fetchDetails();
-    } catch (err: any) {
-      notify.error(err.message || "An error occurred while recording payment");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred while recording payment");
     } finally {
       setProcessingPayment(false);
     }
@@ -254,8 +254,8 @@ export default function OnboardDetailPage() {
       }
 
       await fetchDetails();
-    } catch (err: any) {
-      notify.error(err.message || "An error occurred during verification");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred during verification");
     } finally {
       setProcessingVerify(null);
     }
@@ -332,11 +332,21 @@ export default function OnboardDetailPage() {
           { label: tenant?.fullName ?? "Detail" },
         ]}
         actions={
-          stay?.status === "ACTIVE" ? (
-            <div className="rounded bg-green-500/10 border border-green-500/20 px-3 py-1.5 text-xs text-green-600 font-bold flex items-center gap-1.5">
-              <Check className="h-4 w-4" /> Activated &amp; Occupying Room {bed?.roomNumber}
-            </div>
-          ) : undefined
+          <div className="flex items-center gap-3">
+            {stay && stay.status !== "ONBOARDING_PENDING" && (
+              <a href={`/api/pdf/registration-form/${stay.id}`} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="h-8">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Registration Form
+                </Button>
+              </a>
+            )}
+            {stay?.status === "ACTIVE" && (
+              <div className="rounded bg-green-500/10 border border-green-500/20 px-3 py-1.5 text-xs text-green-600 font-bold flex items-center gap-1.5">
+                <Check className="h-4 w-4" /> Activated &amp; Occupying Room {bed?.roomNumber}
+              </div>
+            )}
+          </div>
         }
       />
       <div className="space-y-6 p-6 pb-12">

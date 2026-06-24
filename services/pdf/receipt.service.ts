@@ -56,7 +56,7 @@ export async function generatePaymentReceipt(
 
   // Build receipt data
   const receiptData: ReceiptData = {
-    receiptNumber: generateReceiptNumber(paymentId),
+    receiptNumber: `NH-${payment.createdAt.getFullYear()}-${payment.receiptNumber.toString().padStart(6, "0")}`,
     generatedAt: new Date().toLocaleString("en-IN", {
       timeZone: "Asia/Kolkata",
       dateStyle: "medium",

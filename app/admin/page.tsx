@@ -7,6 +7,7 @@ import { getAdminPortfolioStats } from "@/services/hostel/dashboard.service";
 import { requireRole } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import { AdminDashboardClient } from "./dashboard-client";
+import { ActionAlertsClient } from "@/components/dashboard/ActionAlertsClient";
 
 export const dynamic = "force-dynamic";
 
@@ -62,32 +63,10 @@ export default async function AdminPage() {
           </Link>
         </div>
       </div>
+      
+      <ActionAlertsClient role="MAIN_ADMIN" />
 
-      {/* Alert Banner */}
-      {stats.totalPendingPayments > 0 && (
-        <div className="group relative overflow-hidden rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 shadow-sm transition-all hover:bg-amber-500/10">
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400">
-                <AlertCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-amber-800 dark:text-amber-300">Action Required: Payment Verification</h3>
-                <p className="text-sm text-amber-700/80 dark:text-amber-400/80">
-                  {stats.totalPendingPayments} onboarding payment(s) are awaiting verification.
-                </p>
-              </div>
-            </div>
-            <Link href="/admin/onboards" className="shrink-0 w-full sm:w-auto">
-              <Button className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white border-none shadow-sm shadow-amber-600/20 transition-all active:scale-95">
-                Review Payments
-              </Button>
-            </Link>
-          </div>
-        </div>
-      )}
-
+      {/* Portfolio Stats */}
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border-b-4 border-b-primary shadow-sm hover:shadow-md transition-shadow">

@@ -9,10 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Loader2, LogOut, Clock, CalendarDays, Building2, BedSingle,
-  AlertCircle, CheckCircle, Upload, UtensilsCrossed, Calendar, CreditCard
-} from "lucide-react";
+import { Loader2, LogOut, Clock, CalendarDays, Building2, BedSingle, AlertCircle, CheckCircle, Upload, UtensilsCrossed, Calendar, CreditCard, Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { notify } from "@/lib/toast";
@@ -143,8 +140,8 @@ export default function TenantDashboardPage() {
           }
         } catch { /* non-critical */ }
       }
-    } catch (err: any) {
-      notify.error(err.message || "An unexpected error occurred");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -193,8 +190,8 @@ export default function TenantDashboardPage() {
       setUploadAmount("");
       setUploadRef("");
       fetchStayDetails();
-    } catch (err: any) {
-      notify.error(err.message);
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg);
     } finally {
       setUploading(false);
     }
@@ -469,6 +466,7 @@ export default function TenantDashboardPage() {
                                 <TableHead>Amount</TableHead>
                                 <TableHead>Ref No</TableHead>
                                 <TableHead className="text-right">Status</TableHead>
+                                <TableHead className="text-right"></TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -484,6 +482,19 @@ export default function TenantDashboardPage() {
                                       <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Verifying</Badge>
                                     ) : (
                                       <Badge variant="outline">{p.paymentStatus}</Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {p.paymentStatus === "PAID" && (
+                                      <a 
+                                        href={`/api/pdf/receipt/${p.id}`} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="text-xs font-medium text-primary hover:underline flex items-center justify-end gap-1"
+                                      >
+                                        <Download className="h-3 w-3" />
+                                        Receipt
+                                      </a>
                                     )}
                                   </TableCell>
                                 </TableRow>

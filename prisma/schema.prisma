@@ -340,6 +340,8 @@ model Payment {
   screenshotDocumentId  String?       @unique
   screenshotDocument    Document?     @relation("PaymentScreenshot", fields: [screenshotDocumentId], references: [id])
   createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  receiptNumber         Int           @unique @default(autoincrement())
 
   @@index([stayId])
 }
