@@ -159,8 +159,23 @@ export async function GET(request: NextRequest) {
         ? calculateNextDueDate(stay.joiningDate, stay.durationType as DurationType, stay.payments, stay)
         : null;
 
+
+    let tenantPhotoUrl: string | null = null;
+    if (tenant.photoUrl) {
+      try {
+        tenantPhotoUrl = await getSignedUrl(tenant.photoUrl);
+      } catch {
+        tenantPhotoUrl = null;
+      }
+    }
+
     return NextResponse.json({
+      tenant: {
+        fullName: tenant.fullName,
+        photoUrl: tenantPhotoUrl,
+      },
       stay: {
+
         id: stay.id,
         status: stay.status,
         durationType: stay.durationType,
