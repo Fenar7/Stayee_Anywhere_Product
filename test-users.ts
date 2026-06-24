@@ -1,8 +1,7 @@
-import 'dotenv/config';
-import { prisma } from './lib/db/index';
+import { prisma } from './lib/db';
 async function main() {
   const users = await prisma.user.findMany();
-  console.log("Users in DB:", users);
-  process.exit(0);
+  console.log('Users in DB:', users.length);
+  console.log(users.map(u => u.email));
 }
-main();
+main().catch(console.error).finally(() => prisma.$disconnect());
