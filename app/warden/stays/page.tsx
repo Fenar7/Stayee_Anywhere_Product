@@ -105,7 +105,7 @@ export default async function StaysPage({
                   ? "text-amber-600 font-medium"
                   : "text-emerald-600";
 
-                const totalPayments = stay.payments.reduce((acc: number, p: any) => {
+                const totalPayments = stay.payments.reduce((acc, p) => {
                   if (p.paymentStatus === "PAID") return acc + p.amountPaidPaise;
                   return acc;
                 }, 0);

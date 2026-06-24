@@ -33,13 +33,13 @@ export async function POST(
     if (!parsed.success) {
       return handleApiError(new Error(parsed.error.issues[0]?.message ?? "Invalid body"));
     }
-    const { checkoutDate, refundAmount, notes } = parsed.data;
+    const { checkoutDate, refundAmountPaise, notes } = parsed.data;
 
     const result = await processEarlyCheckout({
       stayId,
       hostelId,
       checkoutDate,
-      refundAmount,
+      refundAmountPaise,
       notes,
       userId: session.user.id,
     });

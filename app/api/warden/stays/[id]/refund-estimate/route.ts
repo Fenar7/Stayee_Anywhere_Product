@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
+import { differenceInCalendarDays, isBefore, isAfter } from "date-fns";
 
 export async function GET(
   request: NextRequest,
@@ -39,11 +40,16 @@ export async function GET(
     const joiningDate = new Date(stay.joiningDate);
     const endDate = new Date(stay.endDate);
     
-    const usedDurationMs = exitDate.getTime() - joiningDate.getTime();
-    const daysUsed = Math.max(0, Math.ceil(usedDurationMs / (1000 * 60 * 60 * 24)));
+    if (isBefore(exitDate, joiningDate)) {
+      return NextResponse.json({ error: "Exit date cannot be before joining date" }, { status: 400 });
+    }
     
-    const remainingDurationMs = endDate.getTime() - exitDate.getTime();
-    const daysRemaining = Math.max(0, Math.ceil(remainingDurationMs / (1000 * 60 * 60 * 24)));
+    if (isAfter(exitDate, endDate)) {
+      return NextResponse.json({ error: "Exit date cannot be after current end date" }, { status: 400 });
+    }
+
+    const daysUsed = differenceInCalendarDays(exitDate, joiningDate);
+    const daysRemaining = differenceInCalendarDays(endDate, exitDate);
 
     // Prorate monthly rent per day
     const rentPerDay = stay.monthlyRentPaise / 30;

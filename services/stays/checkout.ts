@@ -13,7 +13,7 @@ export interface EarlyCheckoutParams {
   stayId: string;
   hostelId: string;
   checkoutDate: Date;
-  refundAmount: number;
+  refundAmountPaise: number;
   notes: string | undefined;
   userId: string;
 }
@@ -23,13 +23,16 @@ export interface EarlyCheckoutResult {
 }
 
 export async function processEarlyCheckout(params: EarlyCheckoutParams): Promise<EarlyCheckoutResult> {
-  const { stayId, hostelId, checkoutDate, refundAmount, notes, userId } = params;
+  const { stayId, hostelId, checkoutDate, refundAmountPaise, notes, userId } = params;
 
-  if (refundAmount > 100000) {
+  if (refundAmountPaise > 10000000) {
     throw new ValidationError("Refund amount exceeds maximum transaction limit of ₹1,00,000");
   }
 
-  const stay = await prisma.stay.findUnique({ where: { id: stayId } });
+  const stay = await prisma.stay.findUnique({ 
+    where: { id: stayId },
+    include: { payments: true }
+  });
 
   if (!stay) {
     throw new NotFoundError("Stay record not found");
@@ -55,7 +58,10 @@ export async function processEarlyCheckout(params: EarlyCheckoutParams): Promise
   const daysUsed = Math.max(0, diffInDays(stay.joiningDate, checkoutDate));
   const daysRemaining = Math.max(0, totalDays - daysUsed);
 
-  const refundAmountPaise = rupeesToPaise(refundAmount);
+  const totalPayments = stay.payments.reduce((acc, p) => p.paymentStatus === "PAID" ? acc + p.amountPaidPaise : acc, 0);
+  if (refundAmountPaise > totalPayments) {
+    throw new ValidationError(`Refund amount cannot exceed total payments received (₹${totalPayments / 100})`);
+  }
 
   const result = await prisma.$transaction(async (tx) => {
     const doc = await tx.document.create({
@@ -108,7 +114,7 @@ export async function processEarlyCheckout(params: EarlyCheckoutParams): Promise
         fromStatus: stay.status,
         toStatus: StayStatus.EARLY_EXIT,
         changedByUserId: userId,
-        note: `Early checkout processed. Checkout date: ${checkoutDate.toISOString().split("T")[0]}. Refund: ₹${refundAmount}`,
+        note: `Early checkout processed. Checkout date: ${checkoutDate.toISOString().split("T")[0]}. Refund: ₹${refundAmountPaise / 100}`,
       },
     });
 

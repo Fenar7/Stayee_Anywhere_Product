@@ -70,7 +70,7 @@ export default function EarlyExitSheet({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          exitDate,
+          checkoutDate: exitDate,
           refundAmountPaise: Math.round(parseFloat(refundAmount || "0") * 100),
         }),
       });
