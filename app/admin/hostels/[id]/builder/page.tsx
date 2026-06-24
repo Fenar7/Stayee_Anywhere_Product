@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 type AccommodationType = "MENS" | "WOMENS";
 
@@ -283,26 +284,34 @@ export default function BuilderPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{data.name}</h1>
-          <p className="text-sm text-muted-foreground">{data.address} &middot; {data.accommodationType}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/admin/hostels/${hostelId}/occupancy`)}
-          >
-            View Occupancy
-          </Button>
-          <Button
-            onClick={() => setShowAddFloor(true)}
-          >
-            + Add Floor
-          </Button>
-        </div>
-      </div>
+    <div className="flex flex-col min-h-full">
+      <PageHeader
+        title={data.name}
+        description={`${data.address} · ${data.accommodationType}`}
+        breadcrumbs={[
+          { label: "Admin", href: "/admin" },
+          { label: "Hostels", href: "/admin/hostels" },
+          { label: data.name },
+          { label: "Building Structure" }
+        ]}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/admin/hostels/${hostelId}/occupancy`)}
+            >
+              View Occupancy
+            </Button>
+            <Button
+              onClick={() => setShowAddFloor(true)}
+            >
+              + Add Floor
+            </Button>
+          </>
+        }
+      />
+      <div className="space-y-6 p-6">
+
 
       {data.floors.length === 0 ? (
         <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground">
@@ -528,6 +537,7 @@ export default function BuilderPage() {
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      </div>
     </div>
   );
 }

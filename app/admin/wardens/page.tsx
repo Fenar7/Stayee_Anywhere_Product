@@ -7,6 +7,8 @@ import {
   Key, Pencil, X, CheckCircle, ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
+import { TableSkeleton } from "@/components/shared/TableSkeleton";
+import { notify } from "@/lib/toast";
 
 interface WardenItem {
   id: string;
@@ -26,25 +28,20 @@ interface WardenItem {
 export default function WardensPage() {
   const [wardens, setWardens] = useState<WardenItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
   // Edit modal state
   const [editTarget, setEditTarget] = useState<WardenItem | null>(null);
   const [editEmail, setEditEmail] = useState("");
   const [editSaving, setEditSaving] = useState(false);
-  const [editError, setEditError] = useState("");
 
   // Reset password modal state
   const [resetTarget, setResetTarget] = useState<WardenItem | null>(null);
   const [resetPassword, setResetPassword] = useState("");
   const [resetSaving, setResetSaving] = useState(false);
-  const [resetError, setResetError] = useState("");
-  const [resetSuccess, setResetSuccess] = useState(false);
 
   const fetchWardens = async () => {
     setLoading(true);
-    setError("");
     try {
       const res = await fetch("/api/admin/wardens");
       if (!res.ok) {
@@ -54,7 +51,7 @@ export default function WardensPage() {
       const data = await res.json();
       setWardens(data.wardens);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      notify.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -67,7 +64,6 @@ export default function WardensPage() {
   const handleEdit = async () => {
     if (!editTarget) return;
     setEditSaving(true);
-    setEditError("");
     try {
       const res = await fetch(`/api/admin/wardens/${editTarget.id}`, {
         method: "PATCH",
@@ -76,10 +72,11 @@ export default function WardensPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update");
+      notify.success("Email updated successfully");
       setEditTarget(null);
       await fetchWardens();
     } catch (err: unknown) {
-      setEditError(err instanceof Error ? err.message : "An error occurred");
+      notify.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setEditSaving(false);
     }
@@ -88,8 +85,6 @@ export default function WardensPage() {
   const handleResetPassword = async () => {
     if (!resetTarget) return;
     setResetSaving(true);
-    setResetError("");
-    setResetSuccess(false);
     try {
       const res = await fetch(`/api/admin/wardens/${resetTarget.id}/reset-password`, {
         method: "POST",
@@ -98,14 +93,11 @@ export default function WardensPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to reset password");
-      setResetSuccess(true);
-      setTimeout(() => {
-        setResetTarget(null);
-        setResetPassword("");
-        setResetSuccess(false);
-      }, 2000);
+      notify.success("Password reset successfully!");
+      setResetTarget(null);
+      setResetPassword("");
     } catch (err: unknown) {
-      setResetError(err instanceof Error ? err.message : "An error occurred");
+      notify.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setResetSaving(false);
     }
@@ -124,8 +116,14 @@ export default function WardensPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-8 w-64 bg-muted rounded animate-pulse mb-2" />
+            <div className="h-4 w-96 bg-muted rounded animate-pulse" />
+          </div>
+        </div>
+        <TableSkeleton />
       </div>
     );
   }
@@ -151,14 +149,7 @@ export default function WardensPage() {
         </div>
       </div>
 
-      {error && (
-        <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
-          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-          <div>{error}</div>
-        </div>
-      )}
-
-      {filteredWardens.length === 0 && !error && (
+      {filteredWardens.length === 0 && (
         <div className="rounded-lg border border-dashed p-12 text-center">
           <Shield className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
           <h3 className="font-semibold text-lg mb-1">No Wardens Found</h3>
@@ -239,7 +230,6 @@ export default function WardensPage() {
                           onClick={() => {
                             setEditTarget(warden);
                             setEditEmail(warden.email || "");
-                            setEditError("");
                           }}
                           className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
                           title="Edit email"
@@ -251,8 +241,6 @@ export default function WardensPage() {
                           onClick={() => {
                             setResetTarget(warden);
                             setResetPassword("");
-                            setResetError("");
-                            setResetSuccess(false);
                           }}
                           className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
                           title="Reset password"
@@ -290,17 +278,12 @@ export default function WardensPage() {
               <p className="text-xs text-muted-foreground">
                 {editTarget.hostel.name} &middot; {editTarget.phone}
               </p>
-              {editError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-200">
-                  {editError}
-                </div>
-              )}
               <div>
                 <label className="text-xs font-medium">Email</label>
                 <input
                   type="email"
                   value={editEmail}
-                  onChange={(e) => { setEditEmail(e.target.value); setEditError(""); }}
+                  onChange={(e) => { setEditEmail(e.target.value); }}
                   placeholder="warden@example.com"
                   className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                 />
@@ -329,7 +312,7 @@ export default function WardensPage() {
                 Reset Password
               </h3>
               <button
-                onClick={() => { setResetTarget(null); setResetSuccess(false); }}
+                onClick={() => { setResetTarget(null); }}
                 className="rounded-full p-1 text-muted-foreground hover:bg-muted"
               >
                 <X className="h-4 w-4" />
@@ -340,26 +323,12 @@ export default function WardensPage() {
                 {resetTarget.hostel.name} &middot; {resetTarget.phone}
               </p>
 
-              {resetSuccess ? (
-                <div className="flex flex-col items-center gap-2 py-4">
-                  <div className="h-10 w-10 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center">
-                    <CheckCircle className="h-5 w-5" />
-                  </div>
-                  <p className="text-sm font-semibold text-green-700 dark:text-green-400">Password reset successfully!</p>
-                </div>
-              ) : (
-                <>
-                  {resetError && (
-                    <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-200">
-                      {resetError}
-                    </div>
-                  )}
                   <div>
                     <label className="text-xs font-medium">New Password</label>
                     <input
                       type="password"
                       value={resetPassword}
-                      onChange={(e) => { setResetPassword(e.target.value); setResetError(""); }}
+                      onChange={(e) => { setResetPassword(e.target.value); }}
                       placeholder="Minimum 8 characters"
                       className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                     />
@@ -367,14 +336,10 @@ export default function WardensPage() {
                   <p className="text-[10px] text-muted-foreground">
                     The warden will need to log in with this new password.
                   </p>
-                </>
-              )}
             </div>
             <div className="flex justify-end gap-2 border-t px-5 py-3">
-              {!resetSuccess && (
-                <>
                   <Button
-                    onClick={() => { setResetTarget(null); setResetSuccess(false); }}
+                    onClick={() => { setResetTarget(null); }}
                     variant="outline"
                     size="sm"
                   >
@@ -388,8 +353,6 @@ export default function WardensPage() {
                     {resetSaving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
                     Reset Password
                   </Button>
-                </>
-              )}
             </div>
           </div>
         </div>

@@ -3,10 +3,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
+import { notify } from "@/lib/toast";
 import { Loader2, MessageSquare, ShieldCheck, FileText, Clock, CreditCard, ClipboardList } from "lucide-react";
 import { rentDueReminder, applicationApprovedPaymentRequest } from "@/lib/whatsapp/templates";
 import { buildWaMeLink, normalizePhoneNumber } from "@/lib/whatsapp/utils";
 import { getStartOfDayIST, addDays, diffInDays } from "@/lib/dates";
+import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +81,6 @@ export default function WardenWorklistsPage() {
   const searchParams = useSearchParams();
   const hostelId = searchParams.get("hostelId");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<TabKey>("rent");
   const [rentFilter, setRentFilter] = useState<3 | 7 | 14>(14);
 
@@ -101,7 +102,7 @@ export default function WardenWorklistsPage() {
       setPaymentsPending(data.paymentsPending);
       setApplicationsPending(data.applicationsPending);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      notify.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -139,11 +140,7 @@ export default function WardenWorklistsPage() {
   ];
 
   if (loading) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -152,12 +149,6 @@ export default function WardenWorklistsPage() {
         <h1 className="text-2xl font-bold">Warden Worklists</h1>
         <p className="text-muted-foreground">Action items requiring your attention</p>
       </div>
-
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-200">
-          {error}
-        </div>
-      )}
 
       {/* Tab Navigation */}
       <div className="flex flex-wrap gap-2">

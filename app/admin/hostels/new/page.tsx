@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, Loader2, ArrowLeft, Plus, Check, X } from "lucide-react";
 import Link from "next/link";
 import { createHostelSchema } from "@/lib/validation/hostel";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 const AccommodationType = {
   MENS: "MENS",
@@ -112,22 +113,17 @@ export default function NewHostelPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 py-6">
-      <div className="flex items-center space-x-2">
-        <Link href="/admin">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </Link>
-      </div>
-
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Create New Hostel</h1>
-        <p className="text-muted-foreground">
-          Register a new hostel property and provision a warden user account for it.
-        </p>
-      </div>
+    <div className="flex flex-col min-h-full">
+      <PageHeader
+        title="Create New Hostel"
+        description="Register a new hostel property and provision a warden user account for it."
+        breadcrumbs={[
+          { label: "Admin", href: "/admin" },
+          { label: "Hostels", href: "/admin/hostels" },
+          { label: "New" }
+        ]}
+      />
+      <div className="max-w-2xl mx-auto w-full space-y-6 p-6">
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 bg-card border rounded-lg p-6 shadow-sm">
         {serverError && (
@@ -355,6 +351,7 @@ export default function NewHostelPage() {
           </Button>
         </div>
       </form>
+      </div>
     </div>
   );
 }

@@ -2,6 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
+const toLocalISODate = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 import {
   X,
   Clock,
@@ -77,9 +87,9 @@ export function StayLifecycleModal({
       const currentEnd = new Date(data.stay.endDate);
       const nextMonthEnd = new Date(currentEnd);
       nextMonthEnd.setMonth(nextMonthEnd.getMonth() + 1);
-      setNewEndDate(nextMonthEnd.toISOString().split("T")[0]);
+      setNewEndDate(toLocalISODate(nextMonthEnd));
 
-      const todayStr = new Date().toISOString().split("T")[0];
+      const todayStr = toLocalISODate(new Date());
       setCheckoutDate(todayStr);
     } catch (e: any) {
       setError(e.message || "An unexpected error occurred");
@@ -424,36 +434,35 @@ export function StayLifecycleModal({
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-1">New Checkout End Date</label>
-                    <input
+                    <Label className="text-xs font-semibold text-muted-foreground block mb-2">New Checkout End Date</Label>
+                    <Input
                       type="date"
                       value={newEndDate}
                       onChange={(e) => setNewEndDate(e.target.value)}
-                      className="flex h-9 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"
                       required
                     />
                   </div>
 
                   <div className="grid gap-4 grid-cols-2">
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Additional Rent (₹)</label>
-                      <input
+                      <Label className="text-xs font-semibold text-muted-foreground block mb-2">Additional Rent (₹)</Label>
+                      <Input
                         type="number"
+                        min="0"
                         step="0.01"
                         value={additionalRent}
                         onChange={(e) => setAdditionalRent(e.target.value)}
-                        className="flex h-9 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"
                         required
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Additional Food Charges (₹)</label>
-                      <input
+                      <Label className="text-xs font-semibold text-muted-foreground block mb-2">Additional Food Charges (₹)</Label>
+                      <Input
                         type="number"
+                        min="0"
                         step="0.01"
                         value={additionalFoodCharges}
                         onChange={(e) => setAdditionalFoodCharges(e.target.value)}
-                        className="flex h-9 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"
                         required
                       />
                     </div>
@@ -476,13 +485,12 @@ export function StayLifecycleModal({
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Early Checkout Date</label>
-                    <input
+                    <Label className="text-xs font-semibold text-muted-foreground block mb-2">Early Checkout Date</Label>
+                    <Input
                       type="date"
-                      max={new Date().toISOString().split("T")[0]}
+                      max={toLocalISODate(new Date())}
                       value={checkoutDate}
                       onChange={(e) => setCheckoutDate(e.target.value)}
-                      className="flex h-9 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"
                       required
                     />
                   </div>
@@ -506,15 +514,15 @@ export function StayLifecycleModal({
 
                   <div className="grid gap-4 grid-cols-3 items-end">
                     <div className="col-span-2">
-                      <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                      <Label className="text-xs font-semibold text-muted-foreground block mb-2">
                         Refund Amount (₹) {daysInfo && <span className="text-[10px] text-muted-foreground">(Suggested: ₹{daysInfo.suggestedRefund})</span>}
-                      </label>
-                      <input
+                      </Label>
+                      <Input
                         type="number"
+                        min="0"
                         step="0.01"
                         value={refundAmount}
                         onChange={(e) => setRefundAmount(e.target.value)}
-                        className="flex h-9 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"
                         required
                       />
                     </div>
@@ -529,12 +537,11 @@ export function StayLifecycleModal({
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Refund Processing Notes / Reasons</label>
-                    <textarea
+                    <Label className="text-xs font-semibold text-muted-foreground block mb-2">Refund Processing Notes / Reasons</Label>
+                    <Textarea
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Reason for early checkout or refund particulars..."
-                      className="flex min-h-16 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"
                     />
                   </div>
 

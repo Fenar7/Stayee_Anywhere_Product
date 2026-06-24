@@ -2,10 +2,23 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { notify } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft, Check, X, CreditCard, ShieldCheck, AlertCircle, FileText, ExternalLink, MessageSquare, Clipboard, Upload } from "lucide-react";
 import { applicationApprovedPaymentRequest } from "@/lib/whatsapp/templates";
 import { normalizePhoneNumber, buildWaMeLink } from "@/lib/whatsapp/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
 
 interface DocumentItem {
   id: string;
@@ -79,8 +92,6 @@ export default function OnboardDetailPage() {
   const stayId = params.id as string;
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
   
   // Data state
   const [stay, setStay] = useState<StayDetails | null>(null);
@@ -107,6 +118,7 @@ export default function OnboardDetailPage() {
   const [showPaymentRequest, setShowPaymentRequest] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
+  const [showRejectConfirm, setShowRejectConfirm] = useState(false);
 
   const fetchDetails = async () => {
     try {
@@ -121,7 +133,7 @@ export default function OnboardDetailPage() {
       setPayments(data.payments);
       setUpiId(data.upiId || null);
     } catch (err: any) {
-      setError(err.message || "An error occurred while loading details");
+      notify.error(err.message || "An error occurred while loading details");
     } finally {
       setLoading(false);
     }
@@ -133,7 +145,6 @@ export default function OnboardDetailPage() {
 
   const handleApprove = async () => {
     setProcessingApprove(true);
-    setError("");
     try {
       const response = await fetch(`/api/warden/onboards/${stayId}/approve`, {
         method: "POST",
@@ -142,20 +153,19 @@ export default function OnboardDetailPage() {
         const err = await response.json();
         throw new Error(err.error || "Approval failed");
       }
-      setSuccessMsg("Profile approved. Payment request ready.");
+      notify.success("Profile approved. Payment request ready.");
       setShowPaymentRequest(true);
       await fetchDetails();
     } catch (err: any) {
-      setError(err.message || "An error occurred during approval");
+      notify.error(err.message || "An error occurred during approval");
     } finally {
       setProcessingApprove(false);
     }
   };
 
   const handleReject = async () => {
-    if (!confirm("Are you sure you want to reject this registration request?")) return;
+    setShowRejectConfirm(false);
     setProcessingReject(true);
-    setError("");
     try {
       const response = await fetch(`/api/warden/onboards/${stayId}/reject`, {
         method: "POST",
@@ -164,10 +174,10 @@ export default function OnboardDetailPage() {
         const err = await response.json();
         throw new Error(err.error || "Rejection failed");
       }
-      setSuccessMsg("Registration request rejected successfully.");
+      notify.success("Registration request rejected successfully.");
       router.push("/warden/onboards");
     } catch (err: any) {
-      setError(err.message || "An error occurred during rejection");
+      notify.error(err.message || "An error occurred during rejection");
     } finally {
       setProcessingReject(false);
     }
@@ -176,17 +186,15 @@ export default function OnboardDetailPage() {
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amountPaid || parseFloat(amountPaid) <= 0) {
-      setError("Please provide a valid payment amount");
+      notify.error("Please provide a valid payment amount");
       return;
     }
     if (paymentMode !== "CASH" && !transactionRefNo.trim()) {
-      setError("Transaction reference number is required for bank or UPI transfer");
+      notify.error("Transaction reference number is required for bank or UPI transfer");
       return;
     }
 
     setProcessingPayment(true);
-    setError("");
-    setSuccessMsg("");
 
     try {
       const formData = new FormData();
@@ -208,7 +216,7 @@ export default function OnboardDetailPage() {
         throw new Error(err.error || "Failed to record payment");
       }
 
-      setSuccessMsg("Payment recorded successfully, awaiting verification");
+      notify.success("Payment recorded successfully, awaiting verification");
       // Reset form
       setAmountPaid("");
       setTransactionRefNo("");
@@ -218,7 +226,7 @@ export default function OnboardDetailPage() {
       
       await fetchDetails();
     } catch (err: any) {
-      setError(err.message || "An error occurred while recording payment");
+      notify.error(err.message || "An error occurred while recording payment");
     } finally {
       setProcessingPayment(false);
     }
@@ -226,8 +234,6 @@ export default function OnboardDetailPage() {
 
   const handleVerifyPayment = async (paymentId: string) => {
     setProcessingVerify(paymentId);
-    setError("");
-    setSuccessMsg("");
     try {
       const response = await fetch(`/api/warden/onboards/${stayId}/verify`, {
         method: "POST",
@@ -242,14 +248,14 @@ export default function OnboardDetailPage() {
       }
 
       if (data.activated) {
-        setSuccessMsg("Payment verified! Stay has been activated and Bed status updated to OCCUPIED.");
+        notify.success("Payment verified! Stay has been activated and Bed status updated to OCCUPIED.");
       } else {
-        setSuccessMsg("Partial payment verified. Awaiting balance payments to activate stay.");
+        notify.success("Partial payment verified. Awaiting balance payments to activate stay.");
       }
 
       await fetchDetails();
     } catch (err: any) {
-      setError(err.message || "An error occurred during verification");
+      notify.error(err.message || "An error occurred during verification");
     } finally {
       setProcessingVerify(null);
     }
@@ -301,8 +307,8 @@ export default function OnboardDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="p-6">
+        <DashboardSkeleton />
       </div>
     );
   }
@@ -317,35 +323,23 @@ export default function OnboardDetailPage() {
   const balanceAmount = stay ? stay.totalPayable - totalPaid : 0;
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <button
-          onClick={() => router.push("/warden/onboards")}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-semibold"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to Onboard Management
-        </button>
-
-        {stay?.status === "ACTIVE" && (
-          <div className="rounded bg-green-500/10 border border-green-500/20 px-3 py-1.5 text-xs text-green-600 font-bold flex items-center gap-1.5">
-            <Check className="h-4 w-4" /> Activated &amp; Occupying Room {bed?.roomNumber}
-          </div>
-        )}
-      </div>
-
-      {error && (
-        <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive max-w-2xl">
-          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-          <div>{error}</div>
-        </div>
-      )}
-
-      {successMsg && (
-        <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-500/10 p-4 text-sm text-green-600 max-w-2xl dark:border-green-900/30">
-          <Check className="h-5 w-5 shrink-0 mt-0.5" />
-          <div>{successMsg}</div>
-        </div>
-      )}
+    <div className="flex flex-col min-h-full">
+      <PageHeader
+        title={tenant?.fullName ?? "Onboarding Detail"}
+        description={tenant ? `${tenant.phone} · Bed ${bed?.roomNumber}-${bed?.label}` : undefined}
+        breadcrumbs={[
+          { label: "Onboards", href: "/warden/onboards" },
+          { label: tenant?.fullName ?? "Detail" },
+        ]}
+        actions={
+          stay?.status === "ACTIVE" ? (
+            <div className="rounded bg-green-500/10 border border-green-500/20 px-3 py-1.5 text-xs text-green-600 font-bold flex items-center gap-1.5">
+              <Check className="h-4 w-4" /> Activated &amp; Occupying Room {bed?.roomNumber}
+            </div>
+          ) : undefined
+        }
+      />
+      <div className="space-y-6 p-6 pb-12">
 
       {/* WHATSAPP PAYMENT REQUEST MODAL/ALERT */}
       {showPaymentRequest && (
@@ -603,7 +597,7 @@ export default function OnboardDetailPage() {
                   Approve Profile
                 </Button>
                 <Button
-                  onClick={handleReject}
+                  onClick={() => setShowRejectConfirm(true)}
                   disabled={processingApprove || processingReject}
                   variant="outline"
                   className="border-destructive hover:bg-destructive/5 text-destructive"
@@ -801,6 +795,33 @@ export default function OnboardDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Reject Confirm Dialog */}
+      <AlertDialog open={showRejectConfirm} onOpenChange={setShowRejectConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reject Registration Request</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to reject this registration request? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={processingReject}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleReject();
+              }}
+              disabled={processingReject}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {processingReject ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Reject
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      </div>
     </div>
   );
 }
