@@ -48,7 +48,7 @@ export default function EarlyExitSheet({
   const fetchEstimate = async (dateStr: string) => {
     setEstimating(true);
     try {
-      const res = await fetch(\`/api/warden/stays/\${stayId}/refund-estimate?exitDate=\${dateStr}\`);
+      const res = await fetch(`/api/warden/stays/${stayId}/refund-estimate?exitDate=${dateStr}`);
       if (res.ok) {
         const data = await res.json();
         setEstimateData(data);
@@ -66,7 +66,7 @@ export default function EarlyExitSheet({
     setLoading(true);
 
     try {
-      const response = await fetch(\`/api/warden/stays/\${stayId}/early-checkout\`, {
+      const response = await fetch(`/api/warden/stays/${stayId}/early-checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -89,11 +89,9 @@ export default function EarlyExitSheet({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50">
+      <SheetTrigger render={<Button variant="outline" size="sm" className="gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50" />}>
           <LogOut className="h-4 w-4" />
           Early Exit
-        </Button>
       </SheetTrigger>
       <SheetContent className="overflow-y-auto">
         <SheetHeader>

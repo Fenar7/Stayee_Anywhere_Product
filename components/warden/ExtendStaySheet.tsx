@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Loader2 } from "lucide-react";
+import { CalendarDays, Loader2, CalendarPlus } from "lucide-react";
 
 interface ExtendStaySheetProps {
   stayId: string;
@@ -60,7 +60,7 @@ export default function ExtendStaySheet({
     setLoading(true);
 
     try {
-      const response = await fetch(\`/api/warden/stays/\${stayId}/extend\`, {
+      const res = await fetch(`/api/warden/stays/${stayId}/extend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -73,7 +73,7 @@ export default function ExtendStaySheet({
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to extend stay");
+      if (!res.ok) throw new Error("Failed to extend stay");
       
       setOpen(false);
       router.refresh();
@@ -87,11 +87,9 @@ export default function ExtendStaySheet({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1">
-          <CalendarDays className="h-4 w-4" />
+      <SheetTrigger render={<Button variant="outline" size="sm" className="gap-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" />}>
+          <CalendarPlus className="h-4 w-4" />
           Extend
-        </Button>
       </SheetTrigger>
       <SheetContent className="overflow-y-auto">
         <SheetHeader>

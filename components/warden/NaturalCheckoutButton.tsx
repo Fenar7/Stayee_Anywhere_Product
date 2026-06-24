@@ -45,11 +45,9 @@ export default function NaturalCheckoutButton({ stayId }: NaturalCheckoutButtonP
 
   return (
     <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button variant="default" size="sm" className="gap-1 bg-emerald-600 hover:bg-emerald-700">
+      <AlertDialogTrigger render={<Button variant="default" size="sm" className="gap-1 bg-emerald-600 hover:bg-emerald-700" />}>
           <CheckCircle className="h-4 w-4" />
           Checkout
-        </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>

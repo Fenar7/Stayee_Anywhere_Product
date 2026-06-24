@@ -52,14 +52,12 @@ export default async function StaysPage({
       hostelId,
     },
     include: {
-      tenant: true,
-      room: {
+      tenant: { include: { user: true } },
+      bed: {
         include: {
-          flat: { include: { floor: true } },
-          floor: true,
+          room: true,
         },
       },
-      bed: true,
       payments: true,
     },
     orderBy: { endDate: "asc" },
@@ -107,22 +105,22 @@ export default async function StaysPage({
                   ? "text-amber-600 font-medium"
                   : "text-emerald-600";
 
-                const totalPayments = stay.payments.reduce((acc, p) => {
+                const totalPayments = stay.payments.reduce((acc: number, p: any) => {
                   if (p.paymentStatus === "PAID") return acc + p.amountPaidPaise;
                   return acc;
                 }, 0);
                 const balancePaise = stay.totalPayablePaise - totalPayments;
-                const balanceLabel = balancePaise > 0 ? \`₹\${(balancePaise / 100).toFixed(2)}\` : "Cleared";
+                const balanceLabel = balancePaise > 0 ? `₹${(balancePaise / 100).toFixed(2)}` : "Cleared";
                 const balanceColor = balancePaise > 0 ? "text-amber-600 font-medium" : "text-emerald-600";
 
-                const roomName = stay.room?.roomNumber || "N/A";
+                const roomName = stay.bed?.room?.roomNumber || "N/A";
                 const bedLabel = stay.bed?.label || "N/A";
 
                 return (
                   <TableRow key={stay.id}>
                     <TableCell>
                       <p className="font-medium">{stay.tenant?.fullName || "Unknown"}</p>
-                      <p className="text-xs text-muted-foreground">{stay.tenant?.phone}</p>
+                      <p className="text-xs text-muted-foreground">{stay.tenant?.user?.phone}</p>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -136,7 +134,7 @@ export default async function StaysPage({
                     </TableCell>
                     <TableCell>
                       <span className={daysColor}>
-                        {daysRemaining < 0 ? \`Overdue by \${Math.abs(daysRemaining)} days\` : \`\${daysRemaining} days\`}
+                        {daysRemaining < 0 ? `Overdue by ${Math.abs(daysRemaining)} days` : `${daysRemaining} days`}
                       </span>
                     </TableCell>
                     <TableCell>
