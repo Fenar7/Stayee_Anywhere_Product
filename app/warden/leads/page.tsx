@@ -8,6 +8,10 @@ import { Plus, X, Loader2, FileText, MessageCircle } from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, LEAD_SOURCE_COLORS } from "@/lib/labels";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -297,32 +301,33 @@ export default function WardenLeadsPage() {
               </button>
             </div>
             <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-1 block">Phone Number</label>
-                <input
+              <div className="space-y-1">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
                   type="text"
                   placeholder="+91..."
-                  className="w-full rounded-md border p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   value={logPhone}
                   onChange={(e) => setLogPhone(e.target.value)}
                 />
               </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">Source</label>
-                <select
-                  className="w-full rounded-md border p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={logSource}
-                  onChange={(e) => setLogSource(e.target.value)}
-                >
-                  <option value="MANUAL">Manual / Walk-in</option>
-                  <option value="WHATSAPP_BOT">WhatsApp Bot</option>
-                </select>
+              <div className="space-y-1">
+                <Label htmlFor="source">Source</Label>
+                <Select value={logSource} onValueChange={(val) => setLogSource(val || "")}>
+                  <SelectTrigger id="source">
+                    <SelectValue placeholder="Select a source" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MANUAL">Manual / Walk-in</SelectItem>
+                    <SelectItem value="WHATSAPP_BOT">WhatsApp Bot</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">Notes (Optional)</label>
-                <textarea
+              <div className="space-y-1">
+                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Textarea
+                  id="notes"
                   placeholder="Visitor asked about..."
-                  className="w-full rounded-md border p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   rows={3}
                   value={logNotes}
                   onChange={(e) => setLogNotes(e.target.value)}
@@ -367,25 +372,25 @@ export default function WardenLeadsPage() {
             
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-6">
-                <div>
-                  <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Update Status</h4>
-                  <select
-                    className="w-full rounded-md border p-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                    value={detailStatus}
-                    onChange={(e) => setDetailStatus(e.target.value)}
-                  >
-                    <option value="NEW">New</option>
-                    <option value="CONTACTED">Contacted</option>
-                    <option value="FOLLOW_UP">Follow Up</option>
-                    <option value="CONVERTED">Converted</option>
-                    <option value="DROPPED">Dropped</option>
-                  </select>
+                <div className="space-y-2">
+                  <Label>Update Status</Label>
+                  <Select value={detailStatus} onValueChange={(val) => setDetailStatus(val || "")}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NEW">New</SelectItem>
+                      <SelectItem value="CONTACTED">Contacted</SelectItem>
+                      <SelectItem value="FOLLOW_UP">Follow Up</SelectItem>
+                      <SelectItem value="CONVERTED">Converted</SelectItem>
+                      <SelectItem value="DROPPED">Dropped</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div>
-                  <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Add Note</h4>
-                  <textarea
+                <div className="space-y-2">
+                  <Label>Add Note</Label>
+                  <Textarea
                     placeholder="Had a call regarding..."
-                    className="w-full rounded-md border p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                     rows={4}
                     value={detailNote}
                     onChange={(e) => setDetailNote(e.target.value)}

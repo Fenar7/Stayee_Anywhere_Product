@@ -7,6 +7,9 @@ import { X, Loader2, FileText, MessageCircle } from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, LEAD_SOURCE_COLORS } from "@/lib/labels";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -226,18 +229,19 @@ export default function AdminLeadsPage() {
         description="Track and manage prospective tenants across all properties."
         actions={
           <div className="flex items-center gap-2">
-            <select
-              className="h-8 rounded-md border bg-background px-3 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary w-[200px]"
-              value={selectedHostelId}
-              onChange={(e) => setSelectedHostelId(e.target.value)}
-            >
-              <option value="ALL">All Hostels</option>
-              {hostels.map((h) => (
-                <option key={h.id} value={h.id}>
-                  {h.name}
-                </option>
-              ))}
-            </select>
+            <Select value={selectedHostelId} onValueChange={(val) => setSelectedHostelId(val || "")}>
+              <SelectTrigger className="w-[200px] h-8 text-xs">
+                <SelectValue placeholder="All Hostels" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Hostels</SelectItem>
+                {hostels.map((h) => (
+                  <SelectItem key={h.id} value={h.id}>
+                    {h.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         }
       />
@@ -305,25 +309,25 @@ export default function AdminLeadsPage() {
             
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-6">
-                <div>
-                  <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Update Status</h4>
-                  <select
-                    className="w-full rounded-md border p-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                    value={detailStatus}
-                    onChange={(e) => setDetailStatus(e.target.value)}
-                  >
-                    <option value="NEW">New</option>
-                    <option value="CONTACTED">Contacted</option>
-                    <option value="FOLLOW_UP">Follow Up</option>
-                    <option value="CONVERTED">Converted</option>
-                    <option value="DROPPED">Dropped</option>
-                  </select>
+                <div className="space-y-2">
+                  <Label>Update Status</Label>
+                  <Select value={detailStatus} onValueChange={(val) => setDetailStatus(val || "")}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NEW">New</SelectItem>
+                      <SelectItem value="CONTACTED">Contacted</SelectItem>
+                      <SelectItem value="FOLLOW_UP">Follow Up</SelectItem>
+                      <SelectItem value="CONVERTED">Converted</SelectItem>
+                      <SelectItem value="DROPPED">Dropped</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div>
-                  <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Add Note</h4>
-                  <textarea
+                <div className="space-y-2">
+                  <Label>Add Note</Label>
+                  <Textarea
                     placeholder="Had a call regarding..."
-                    className="w-full rounded-md border p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                     rows={4}
                     value={detailNote}
                     onChange={(e) => setDetailNote(e.target.value)}
