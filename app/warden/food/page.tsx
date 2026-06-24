@@ -73,8 +73,8 @@ export default function WardenFoodPage() {
       }
       const json = await res.json();
       setData(json);
-    } catch (e: any) {
-      notify.error(e.message || "An unexpected error occurred");
+    } catch (e: unknown) { const eMsg = e instanceof Error ? e.message : String(e);
+      notify.error(eMsg || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }

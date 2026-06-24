@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getAdminPortfolioStats, getWardenHostelStats } from "../services/hostel/dashboard.service";
 import { prisma } from "../lib/db";

@@ -124,7 +124,7 @@ export async function getFoodOrdersInRange(stayId: string, startDate: Date, endD
   const orderMap = new Map(existingOrders.map((o) => [o.forDate.toISOString(), o]));
   const days = [];
 
-  let current = new Date(startDate);
+  const current = new Date(startDate);
   while (current <= endDate) {
     const isoDate = current.toISOString();
     const existing = orderMap.get(isoDate);

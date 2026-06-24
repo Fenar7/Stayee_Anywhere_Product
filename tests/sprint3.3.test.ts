@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   addDays,
@@ -200,7 +201,7 @@ describe("Natural Checkout Service", () => {
     pastDate.setDate(pastDate.getDate() - 5);
 
     mockPrisma.stay.findMany.mockResolvedValue([
-      { id: "stay-expired-1", bedId: "bed-1", endDate: pastDate, status: "ACTIVE" },
+      { id: "stay-expired-1", bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }], endDate: pastDate, status: "ACTIVE" },
     ]);
 
     const { processNaturalCheckouts } = await import("@/services/stays/natural-checkout");
@@ -231,8 +232,8 @@ describe("Natural Checkout Service", () => {
     pastDate.setDate(pastDate.getDate() - 3);
 
     mockPrisma.stay.findMany.mockResolvedValue([
-      { id: "stay-1", bedId: "bed-1", endDate: pastDate, status: "ACTIVE" },
-      { id: "stay-2", bedId: "bed-2", endDate: pastDate, status: "EXTENDED" },
+      { id: "stay-1", bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }], endDate: pastDate, status: "ACTIVE" },
+      { id: "stay-2", bedId: "bed-2", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }], endDate: pastDate, status: "EXTENDED" },
     ]);
 
     const { processNaturalCheckouts } = await import("@/services/stays/natural-checkout");

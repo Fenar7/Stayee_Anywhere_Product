@@ -119,8 +119,8 @@ export default function AdminUsersPage() {
       if (!res.ok) throw new Error("Failed to fetch users");
       const data = await res.json();
       setUsers(data.users || []);
-    } catch (err: any) {
-      notify.error(err.message || "Failed to fetch users");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "Failed to fetch users");
     } finally {
       setLoading(false);
     }
@@ -145,8 +145,8 @@ export default function AdminUsersPage() {
       setNewPassword(data.tempPassword);
       fetchUsers(); // refresh list to show plainTextPassword if any
       notify.success("Password reset successfully");
-    } catch (err: any) {
-      notify.error(err.message || "Failed to reset password");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "Failed to reset password");
     } finally {
       setResetLoading(false);
     }

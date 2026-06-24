@@ -155,7 +155,7 @@ function createPaymentMock(overrides: Record<string, any> = {}) {
       id: STAY_ID,
       hostelId: "hostel-1",
       tenantId: "tenant-1",
-      bedId: "bed-1",
+      bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
       durationType: DurationType.MONTHLY,
       joiningDate: new Date("2025-06-01"),
       endDate: new Date("2025-07-01"),
@@ -191,7 +191,7 @@ describe("Sprint 4.1: PDF Infrastructure & Payment Receipts", () => {
       const mockStay = {
         id: STAY_ID,
         hostelId: "hostel-1",
-        bedId: "bed-1",
+        bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
         status: StayStatus.ONBOARDING_PENDING,
         joiningDate: new Date("2025-06-01"),
         endDate: new Date("2025-07-01"),
@@ -238,7 +238,7 @@ describe("Sprint 4.1: PDF Infrastructure & Payment Receipts", () => {
       const mockStay = {
         id: STAY_ID,
         hostelId: "hostel-1",
-        bedId: "bed-1",
+        bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
         status: StayStatus.ONBOARDING_PENDING,
         joiningDate: new Date("2025-06-01"),
         endDate: new Date("2025-07-01"),
@@ -698,7 +698,7 @@ describe("Sprint 4.1: PDF Infrastructure & Payment Receipts", () => {
       const mockStay = {
         id: STAY_ID,
         hostelId: "hostel-1",
-        bedId: "bed-1",
+        bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
         status: StayStatus.ONBOARDING_PENDING,
         joiningDate: new Date("2025-06-01"),
         endDate: new Date("2025-07-01"),

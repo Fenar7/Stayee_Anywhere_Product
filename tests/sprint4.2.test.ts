@@ -433,7 +433,7 @@ describe("Sprint 4.2: Registration Form & Refund Invoice", () => {
         status: StayStatus.ACTIVE,
         joiningDate: new Date("2025-06-01"),
         endDate: new Date("2025-06-30"),
-        bedId: "bed-1",
+        bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
         totalPayablePaise: 600000,
       });
       mockPrisma.refundInvoice.create.mockResolvedValue({ id: REFUND_ID });
@@ -605,7 +605,7 @@ describe("Sprint 4.2: Registration Form & Refund Invoice", () => {
         mockPrisma.stay.findUnique.mockResolvedValue({
           ...createStayMock(),
           tenant: { ...createStayMock().tenant, documents: [], user: { phone: "+919876543210" } },
-          payments: [],
+          payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
           refundInvoices: [],
         });
 

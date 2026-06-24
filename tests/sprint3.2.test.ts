@@ -86,7 +86,7 @@ describe("Sprint 3.2: Warden Stay Lifecycle Controls", () => {
         durationType: DurationType.MONTHLY,
         joiningDate: new Date("2025-06-01T00:00:00.000Z"),
         endDate: new Date("2025-07-01T00:00:00.000Z"),
-        bedId: "bed-1",
+        bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
         admissionFeePaise: 100000,
         monthlyRentPaise: 500000,
         securityDepositPaise: 500000,
@@ -161,7 +161,7 @@ describe("Sprint 3.2: Warden Stay Lifecycle Controls", () => {
         hostelId: "hostel-1",
         status: StayStatus.ACTIVE,
         endDate: new Date("2025-07-01T00:00:00.000Z"),
-        bedId: "bed-1",
+        bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
         totalPayablePaise: 100000,
       });
 
@@ -261,7 +261,7 @@ describe("Sprint 3.2: Warden Stay Lifecycle Controls", () => {
         hostelId: "hostel-1",
         status: StayStatus.ACTIVE,
         endDate: new Date("2025-07-01T00:00:00.000Z"),
-        bedId: "bed-1",
+        bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
       });
 
       mockPrisma.stay.findFirst.mockResolvedValue({ id: "stay-overlapping" }); // Conflict exists
@@ -292,7 +292,7 @@ describe("Sprint 3.2: Warden Stay Lifecycle Controls", () => {
         status: StayStatus.ACTIVE,
         joiningDate: new Date("2025-06-01T00:00:00.000Z"),
         endDate: new Date("2025-06-30T00:00:00.000Z"),
-        bedId: "bed-1",
+        bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
         totalPayablePaise: 600000,
       });
 
@@ -361,7 +361,7 @@ describe("Sprint 3.2: Warden Stay Lifecycle Controls", () => {
         status: StayStatus.ACTIVE,
         joiningDate: new Date("2025-06-01T00:00:00.000Z"),
         endDate: new Date("2025-06-30T00:00:00.000Z"),
-        bedId: "bed-1",
+        bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
       });
 
       const res = await earlyCheckoutPOST(
@@ -387,7 +387,7 @@ describe("Sprint 3.2: Warden Stay Lifecycle Controls", () => {
         status: StayStatus.ACTIVE,
         joiningDate: new Date("2025-06-01T00:00:00.000Z"),
         endDate: new Date("2025-06-30T00:00:00.000Z"),
-        bedId: "bed-1",
+        bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
       });
 
       // Set date to 10 days in the future
@@ -418,7 +418,7 @@ describe("Sprint 3.2: Warden Stay Lifecycle Controls", () => {
         status: StayStatus.ACTIVE,
         joiningDate: new Date("2025-06-01T00:00:00.000Z"),
         endDate: new Date("2025-06-30T00:00:00.000Z"),
-        bedId: "bed-1",
+        bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
       });
 
       const res = await earlyCheckoutPOST(

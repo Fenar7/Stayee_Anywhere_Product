@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -91,8 +92,8 @@ export function StayLifecycleModal({
 
       const todayStr = toLocalISODate(new Date());
       setCheckoutDate(todayStr);
-    } catch (e: any) {
-      setError(e.message || "An unexpected error occurred");
+    } catch (e: unknown) { const eMsg = e instanceof Error ? e.message : String(e);
+      setError(eMsg || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -156,8 +157,8 @@ export function StayLifecycleModal({
         onSuccess();
         onClose();
       }, 1500);
-    } catch (err: any) {
-      setActionError(err.message || "Failed to process extension");
+    } catch (err: unknown) { const errMsg = err instanceof Error ? err.message : String(err);
+      setActionError(errMsg || "Failed to process extension");
     } finally {
       setSubmitting(false);
     }
@@ -188,8 +189,8 @@ export function StayLifecycleModal({
         onSuccess();
         onClose();
       }, 1500);
-    } catch (err: any) {
-      setActionError(err.message || "Failed to process checkout");
+    } catch (err: unknown) { const errMsg = err instanceof Error ? err.message : String(err);
+      setActionError(errMsg || "Failed to process checkout");
     } finally {
       setSubmitting(false);
     }
@@ -209,8 +210,8 @@ export function StayLifecycleModal({
       if (!dlRes.ok) throw new Error("Failed to get download link");
       const { signedUrl } = await dlRes.json();
       window.open(signedUrl, "_blank");
-    } catch (err: any) {
-      setPrintError(err.message || "Failed to print registration form");
+    } catch (err: unknown) { const errMsg = err instanceof Error ? err.message : String(err);
+      setPrintError(errMsg || "Failed to print registration form");
     } finally {
       setPrinting(false);
     }
@@ -233,8 +234,8 @@ export function StayLifecycleModal({
       if (!dlRes.ok) throw new Error("Failed to get download link");
       const { signedUrl } = await dlRes.json();
       window.open(signedUrl, "_blank");
-    } catch (err: any) {
-      setPrintError(err.message || "Failed to download refund invoice");
+    } catch (err: unknown) { const errMsg = err instanceof Error ? err.message : String(err);
+      setPrintError(errMsg || "Failed to download refund invoice");
     } finally {
       setPrinting(false);
     }

@@ -86,7 +86,7 @@ describe("Sprint 3.1: Tenant Portal & Stay Renewal", () => {
         durationType: DurationType.MONTHLY,
         joiningDate: new Date("2025-06-01T00:00:00.000Z"),
         endDate: new Date("2025-07-01T00:00:00.000Z"),
-        bedId: "bed-1",
+        bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
         admissionFeePaise: 100000,
         monthlyRentPaise: 500000,
         securityDepositPaise: 500000,
@@ -185,7 +185,7 @@ describe("Sprint 3.1: Tenant Portal & Stay Renewal", () => {
           durationType: DurationType.MONTHLY,
           joiningDate: new Date("2025-06-01"),
           endDate: new Date("2025-07-01"),
-          bedId: "bed-2",
+          bedId: "bed-2", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
           admissionFeePaise: 100000,
           monthlyRentPaise: 500000,
           securityDepositPaise: 500000,
@@ -203,7 +203,7 @@ describe("Sprint 3.1: Tenant Portal & Stay Renewal", () => {
               sharingType: SharingType.DOUBLE,
             },
           },
-          payments: [],
+          payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
         });
       mockPrisma.hostel.findUnique.mockResolvedValue({
         id: "hostel-1",
@@ -249,7 +249,7 @@ describe("Sprint 3.1: Tenant Portal & Stay Renewal", () => {
         durationType: DurationType.MONTHLY,
         joiningDate: new Date("2025-06-01"),
         endDate: new Date("2025-07-01"),
-        bedId: "bed-1",
+        bedId: "bed-1", payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
         admissionFeePaise: 100000,
         monthlyRentPaise: 500000,
         securityDepositPaise: 500000,
@@ -263,7 +263,7 @@ describe("Sprint 3.1: Tenant Portal & Stay Renewal", () => {
           label: "A1",
           room: { id: "room-1", roomNumber: "101", sharingType: SharingType.DOUBLE },
         },
-        payments: [],
+        payments: [{ amountPaise: 10000000, paymentStatus: "SUCCESS", receiptNumber: 123, receiptNumber: 123 }],
       });
       mockPrisma.hostel.findUnique.mockResolvedValue({
         id: "hostel-1",

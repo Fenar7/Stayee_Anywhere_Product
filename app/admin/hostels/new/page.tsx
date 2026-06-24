@@ -107,7 +107,7 @@ export default function NewHostelPage() {
 
       router.push("/admin");
       router.refresh();
-    } catch (err: any) {
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
       setServerError("An unexpected error occurred. Please try again.");
     }
   }

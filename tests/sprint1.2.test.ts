@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { UserRole, AccommodationType, SharingType, BedStatus } from "@prisma/client";
 import { ValidationError, NotFoundError, ConflictError } from "../lib/errors";

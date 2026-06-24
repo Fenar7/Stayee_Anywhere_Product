@@ -114,8 +114,8 @@ function OnboardContent() {
             if (t.purposeOfStay) setPurposeOfStay(t.purposeOfStay);
           }
         }
-      } catch (err: any) {
-        setError(err.message || "An unexpected error occurred");
+      } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+        setError(errorMsg || "An unexpected error occurred");
       } finally {
         setLoading(false);
       }
@@ -143,7 +143,7 @@ function OnboardContent() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-    } catch (err: any) {
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
       console.error("Camera access failed:", err);
       setCameraError("Could not access camera. Please upload a file instead.");
       setIsCameraActive(false);
@@ -367,8 +367,8 @@ function OnboardContent() {
       }
 
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || "An error occurred during submission. Please try again.");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      setError(errorMsg || "An error occurred during submission. Please try again.");
     } finally {
       setSubmitting(false);
     }

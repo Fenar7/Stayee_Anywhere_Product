@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -45,7 +46,7 @@ export default function EarlyExitSheet({
     }
   }, [open, exitDate]);
 
-  const fetchEstimate = async (dateStr: string) => {
+  async function fetchEstimate(dateStr: string) {
     setEstimating(true);
     try {
       const res = await fetch(`/api/warden/stays/${stayId}/refund-estimate?exitDate=${dateStr}`);

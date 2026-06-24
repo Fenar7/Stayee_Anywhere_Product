@@ -83,8 +83,8 @@ export default function WardenOnboardsPage() {
       }
       const data = await response.json();
       setOnboards(data.onboards);
-    } catch (err: any) {
-      notify.error(err.message || "An error occurred while loading lists");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred while loading lists");
     } finally {
       setLoading(false);
     }
@@ -105,8 +105,8 @@ export default function WardenOnboardsPage() {
       }
       await fetchOnboards();
       notify.success("Request cancelled successfully");
-    } catch (err: any) {
-      notify.error(err.message || "Failed to cancel onboarding request");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "Failed to cancel onboarding request");
     } finally {
       setCancellingId(null);
     }
@@ -125,8 +125,8 @@ export default function WardenOnboardsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to get password");
       setRevealedPassword(data.tempPassword);
-    } catch (err: any) {
-      notify.error(err.message || "An error occurred");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred");
     } finally {
       setPasswordLoading(false);
     }

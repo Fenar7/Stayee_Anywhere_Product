@@ -72,8 +72,8 @@ export default function AdminLeadsPage() {
       }
       const data = await res.json();
       setLeads(data.leads);
-    } catch (err: any) {
-      notify.error(err.message || "Failed to fetch leads");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "Failed to fetch leads");
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ export default function AdminLeadsPage() {
         const data = await res.json();
         setHostels(data.hostels || []);
       }
-    } catch (err: any) {
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
       console.error("Failed to fetch hostels:", err);
     }
   }, []);
@@ -115,8 +115,8 @@ export default function AdminLeadsPage() {
       notify.success("Lead updated successfully");
       setShowDetailModal(false);
       fetchLeads();
-    } catch (err: any) {
-      notify.error(err.message || "Error updating lead");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "Error updating lead");
     } finally {
       setDetailLoading(false);
     }

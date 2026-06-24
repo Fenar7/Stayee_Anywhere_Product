@@ -76,8 +76,8 @@ export function InitialPaymentForm({
       setScreenshotFile(null);
       setPreviewUrl(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-    } catch (err: any) {
-      onError(err.message || "An error occurred while submitting payment");
+    } catch (err: unknown) { const errMsg = err instanceof Error ? err.message : String(err);
+      onError(errMsg || "An error occurred while submitting payment");
     } finally {
       setSubmitting(false);
     }

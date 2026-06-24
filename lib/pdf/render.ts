@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
 import { PaymentReceiptDocument, ReceiptData } from "./templates/payment-receipt";

@@ -1,89 +1,83 @@
-# Next Home — Hostel Management Platform
+# NextHome Hostel Management Platform
 
-Next Home is a stay-centric Hostel Management Platform built with Next.js 16 (App Router), TypeScript, PostgreSQL (via self-hosted Supabase), and Prisma ORM.
+A premium Next.js SaaS platform for modern hostel management.
 
----
+## Tech Stack
+- **Framework:** Next.js 14 (App Router)
+- **Database:** PostgreSQL (via Supabase)
+- **ORM:** Prisma
+- **Auth:** Supabase Auth (Server-Side + Middleware)
+- **Styling:** Tailwind CSS + shadcn/ui
+- **Data Fetching:** SWR (Client) + Server Actions
+- **Forms:** React Hook Form + Zod
 
-## 🛠️ Prerequisites
+## Local Development Setup
 
-Ensure you have the following installed locally:
-- **Node.js 20+** and npm
-- **Docker Desktop** (running, to support local Supabase containers)
-- **Supabase CLI** (installed via npm or brew)
-- **Git**
+Follow these steps to set up the project locally from scratch. It should take ~15 minutes.
 
----
+### 1. Prerequisites
+- Node.js >= 18
+- npm or pnpm
+- A Supabase account (for database and auth)
 
-## 🚀 Local Development Setup
+### 2. Supabase Setup
+1. Create a new project in Supabase.
+2. In the Supabase SQL editor, run the auth triggers and schema required for this project (see `prisma/schema.prisma` comments if any).
+3. Under **Authentication -> Providers**, enable **Email/Password**.
+4. Disable **Confirm email** for local development (optional but recommended for speed).
+5. Create a new Storage Bucket named `nexthome-documents` and set it to **Public**.
 
-Follow these steps to set up your local development environment:
-
-### 1. Clone the repository and install dependencies
-```bash
-git clone <repository-url>
-cd NextHome_Hostel_Management_Platform
-npm install
-```
-
-### 2. Start the local Supabase stack
-Ensure Docker Desktop is running, then start the Supabase containers (Postgres, Auth, Storage, Studio, etc.):
-```bash
-supabase start
-```
-This command will spin up local services and print out development credentials, URLs, and API keys.
-
-### 3. Configure environment variables
-Copy the environment variables template and configure the variables:
+### 3. Environment Variables
+Copy the example environment file:
 ```bash
 cp .env.example .env
 ```
-Ensure the `DATABASE_URL` matches the database URL printed by `supabase start` (default is `postgresql://postgres:postgres@127.0.0.1:54322/postgres?schema=public`).
-Also, copy over the Supabase Anon Key and Service Role Key printed by the CLI.
+Fill in the values in `.env`:
+- `DATABASE_URL`: Transaction pooling connection string from Supabase (port 6543)
+- `DIRECT_URL`: Direct connection string from Supabase (port 5432)
+- `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase Project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase Anon Key
+- `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase Service Role Key (used for admin-level auth tasks)
+- `SUPABASE_STORAGE_BUCKET`: `nexthome-documents`
 
-### 4. Run Prisma migrations
-Apply the database migrations to provision your local Postgres schemas:
+### 4. Database Migration & Seeding
+Install dependencies:
 ```bash
-npx prisma migrate dev
+npm install
 ```
 
-### 5. Seed the database (Optional)
-Once seed scripts are defined, seed initial data (Admin, Wardens, hostels, floors, beds):
+Push the schema to your Supabase database:
 ```bash
-npx prisma db seed
+npx prisma db push
+# or npx prisma migrate dev
 ```
 
-### 6. Run tests
-Execute unit tests using Vitest to verify core logic:
+Generate the Prisma Client:
 ```bash
-npx vitest run
+npx prisma generate
 ```
 
-### 7. Start the Next.js development server
-Start the web app:
+Seed the database with test data (Admin, Hostels, Wardens, Rooms, Beds):
+```bash
+npm run db:seed
+```
+*Note: The seed script will output the login credentials for the test accounts.*
+
+### 5. Run the Application
+Start the development server:
 ```bash
 npm run dev
 ```
-The application will be accessible at [http://localhost:3000](http://localhost:3000).
-Your local Supabase Studio dashboard will be accessible at [http://127.0.0.1:54323](http://127.0.0.1:54323).
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
----
+## Code Quality Standards
+- **Strict Types**: The codebase operates with zero `any` types. All caught errors are strictly `unknown`.
+- **Monetary Values**: All monetary values are processed and stored in **Paise** (integers). No floats.
+- **API Architecture**: Route handlers are kept under 40 lines. Business logic lives in `services/`.
+- **UI UX**: Always use `shadcn/ui` components. Destructive actions require an `AlertDialog`. All forms emit a Sonner toast on success or error.
 
-## 📂 Project Structure
-
-- `app/` — Dashboard layouts and API routes.
-- `components/` — Composable UI elements and shadcn/ui primitives.
-- `lib/` — Configuration, utilities, and helper models:
-  - `lib/db/` — Prisma Client singleton.
-  - `lib/auth/` — Session helpers, `requireRole()`, `requireHostelAccess()`.
-  - `lib/errors.ts` — Standard application errors and boundary handlers.
-- `services/` — Core business logic functions (bed assignment conflict checks, billing calculus).
-- `prisma/` — Prisma schemas and migrations.
-- `tests/` — Test suites for testing business logic and access control rules.
-
----
-
-## 🛡️ Git Branching Model
-We use a three-tier branch hierarchy:
-1. `main` — Release-ready branch. No direct commits allowed.
-2. `phase-*` — Long-lived feature phase branches (e.g., `phase-1-core-platform`).
-3. `phase-*-sprint-*` — Short-lived sprint branches (e.g., `phase-0-foundation-sprint-0.1-project-setup`). Open a PR against your phase branch when done.
+## Running Tests
+Run the automated test suite to ensure no regressions:
+```bash
+npm test
+```

@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from "@/lib/db";
 import { getEndOfDayIST } from "@/lib/dates";
-import { StayStatus, BedStatus } from "@prisma/client";
+import { StayStatus, BedStatus, Prisma } from "@prisma/client";
 
 export interface NaturalCheckoutResult {
   checkedOutCount: number;
@@ -19,7 +20,7 @@ export interface NaturalCheckoutParams {
 export async function processNaturalCheckouts(params?: NaturalCheckoutParams): Promise<NaturalCheckoutResult> {
   const endOfTodayIST = getEndOfDayIST();
 
-  const whereClause: any = {
+  const whereClause: Prisma.StayWhereInput = {
     status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
     endDate: { lte: endOfTodayIST },
   };

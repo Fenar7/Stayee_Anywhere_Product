@@ -79,8 +79,8 @@ export default function AdminOnboardsPage() {
       if (!response.ok) throw new Error("Failed to fetch onboarding list");
       const data = await response.json();
       setOnboards(data.onboards);
-    } catch (err: any) {
-      notify.error(err.message || "An error occurred");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -111,8 +111,8 @@ export default function AdminOnboardsPage() {
 
       fetchOnboards();
       notify.success("Request cancelled successfully");
-    } catch (err: any) {
-      notify.error(err.message || "Failed to cancel onboarding request");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "Failed to cancel onboarding request");
     } finally {
       setCancelling(null);
     }
@@ -131,8 +131,8 @@ export default function AdminOnboardsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to get password");
       setRevealedPassword(data.tempPassword);
-    } catch (err: any) {
-      notify.error(err.message || "An error occurred");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred");
     } finally {
       setPasswordLoading(false);
     }

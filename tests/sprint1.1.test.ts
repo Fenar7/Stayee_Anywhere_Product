@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { UnauthorizedError, ForbiddenError, NotFoundError } from "../lib/errors";
 import { UserRole } from "@prisma/client";

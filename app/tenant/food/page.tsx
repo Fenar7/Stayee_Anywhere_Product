@@ -75,8 +75,8 @@ export default function TenantFoodPage() {
       }
       const json = await res.json();
       setData(json);
-    } catch (e: any) {
-      notify.error(e.message || "An unexpected error occurred");
+    } catch (e: unknown) { const eMsg = e instanceof Error ? e.message : String(e);
+      notify.error(eMsg || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -121,8 +121,8 @@ export default function TenantFoodPage() {
       });
 
       notify.success("Saved!");
-    } catch (e: any) {
-      notify.error(e.message || "Failed to update");
+    } catch (e: unknown) { const eMsg = e instanceof Error ? e.message : String(e);
+      notify.error(eMsg || "Failed to update");
     } finally {
       setSaving(null);
     }

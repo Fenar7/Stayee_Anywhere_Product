@@ -71,8 +71,8 @@ export default function WardenLeadsPage() {
       }
       const data = await res.json();
       setLeads(data.leads);
-    } catch (err: any) {
-      notify.error(err.message || "Failed to fetch leads");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "Failed to fetch leads");
     } finally {
       setLoading(false);
     }
@@ -113,8 +113,8 @@ export default function WardenLeadsPage() {
       setLogNotes("");
       setLogSource("MANUAL");
       fetchLeads();
-    } catch (err: any) {
-      notify.error(err.message || "Error logging enquiry");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "Error logging enquiry");
     } finally {
       setLogLoading(false);
     }
@@ -139,8 +139,8 @@ export default function WardenLeadsPage() {
       notify.success("Lead updated successfully");
       setShowDetailModal(false);
       fetchLeads();
-    } catch (err: any) {
-      notify.error(err.message || "Error updating lead");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "Error updating lead");
     } finally {
       setDetailLoading(false);
     }
