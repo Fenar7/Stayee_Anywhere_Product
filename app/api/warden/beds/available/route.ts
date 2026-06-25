@@ -35,20 +35,16 @@ export async function GET(request: NextRequest) {
 
     const availableBeds = await getAvailableBeds(hostelId, start, end);
 
-    const bedsByRoom = availableBeds.reduce((acc, bed) => {
-      const flatName = bed.room.flat ? `${bed.room.flat.name} - ` : "";
-      const roomKey = `${flatName}Room ${bed.room.roomNumber} (${bed.room.sharingType})`;
-      if (!acc[roomKey]) {
-        acc[roomKey] = [];
-      }
-      acc[roomKey].push({
-        id: bed.id,
-        label: bed.label,
-      });
-      return acc;
-    }, {} as Record<string, unknown[]>);
+    const beds = availableBeds.map(bed => ({
+      id: bed.id,
+      label: bed.label,
+      roomNumber: bed.room.roomNumber,
+      sharingType: bed.room.sharingType,
+      flatName: bed.room.flat?.name || null,
+      floorName: bed.room.floor?.name || bed.room.flat?.floor.name || "Unknown Floor",
+    }));
 
-    return NextResponse.json(bedsByRoom);
+    return NextResponse.json({ availableBeds: beds });
   } catch (error) {
     return handleApiError(error);
   }
