@@ -30,6 +30,9 @@ function updateSession(request: NextRequest) {
     },
   });
 
+  const rememberMeCookie = request.cookies.get("remember_me");
+  const maxAge = rememberMeCookie ? 30 * 24 * 60 * 60 : undefined;
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -44,7 +47,10 @@ function updateSession(request: NextRequest) {
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              ...(maxAge !== undefined ? { maxAge } : {}),
+            })
           );
         },
       },
