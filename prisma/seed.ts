@@ -1,4 +1,4 @@
-import { UserRole, OccupationType, AccommodationType, SharingType, BedStatus } from '@prisma/client';
+import { UserRole, OccupationType, AccommodationType, SharingType, BedStatus, StayStatus, DurationType } from '@prisma/client';
 import { prisma } from '../lib/db';
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
@@ -7,13 +7,17 @@ import * as path from 'path';
 // Load environment variables from .env
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error("Missing Supabase credentials in .env");
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function main() {
-  console.log('Seeding database...');
+  console.log('Seeding database with Next Home dummy data...');
 
   // Clean the database in reverse order of relations
   await prisma.stayStatusEvent.deleteMany();
@@ -23,6 +27,7 @@ async function main() {
   await prisma.document.deleteMany();
   await prisma.stay.deleteMany();
   await prisma.onboardingRequest.deleteMany();
+  await prisma.leadNote.deleteMany();
   await prisma.lead.deleteMany();
   await prisma.bed.deleteMany();
   await prisma.room.deleteMany();
@@ -30,15 +35,21 @@ async function main() {
   await prisma.floor.deleteMany();
   await prisma.warden.deleteMany();
   await prisma.tenant.deleteMany();
+  await prisma.hostelPaymentConfig.deleteMany();
   await prisma.hostel.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.location.deleteMany();
   await prisma.organization.deleteMany();
 
   // Clean Supabase Auth users to start fresh
   console.log('Cleaning auth.users...');
-  await prisma.$executeRawUnsafe(`TRUNCATE auth.users CASCADE;`);
+  try {
+    await prisma.$executeRawUnsafe(`TRUNCATE auth.users CASCADE;`);
+  } catch (e) {
+    console.log("Could not truncate auth.users automatically. If auth issues occur, you may need to clear them via the Supabase dashboard.");
+  }
 
-  // Helper function to create user in Supabase Auth using admin API
+  // Helper function to create user in Supabase Auth
   async function createAuthUser(email: string, password: string): Promise<string> {
     const { data, error } = await supabase.auth.admin.createUser({
       email,
@@ -47,6 +58,12 @@ async function main() {
     });
 
     if (error || !data.user) {
+      if (error?.message.includes("already registered")) {
+        console.log(`Auth user ${email} already exists in Supabase. Using existing.`);
+        const { data: list } = await supabase.auth.admin.listUsers();
+        const user = list?.users?.find(u => u.email === email);
+        if (user) return user.id;
+      }
       throw new Error(`Failed to create Supabase auth user ${email}: ${error?.message}`);
     }
 
@@ -54,136 +71,263 @@ async function main() {
   }
 
   // 1. Create Organization
-  console.log('Creating organization...');
+  console.log('Creating organization "Next Home"...');
   const org = await prisma.organization.create({
     data: {
-      name: 'Anywhere Node HQ',
-      domain: 'anywherenode.com',
-      brandColor: '#0F172A',
+      name: 'Next Home',
+      domain: 'nexthome.io',
+      brandColor: '#2563EB',
     },
   });
 
-  // 2. Create Hostel
-  console.log('Creating hostel...');
-  const hostel = await prisma.hostel.create({
+  // 1.5 Create Location
+  const location = await prisma.location.create({
     data: {
-      name: 'Hostel Alpha',
-      address: '123 Main Road, Mumbai',
-      accommodationType: AccommodationType.MENS,
-      organizationId: org.id,
-    },
+      name: 'Bangalore, Koramangala'
+    }
   });
 
-  // 2. Create Floors, Rooms, and Beds
-  console.log('Creating floors, rooms, beds...');
-  const floor = await prisma.floor.create({
-    data: {
-      hostelId: hostel.id,
-      name: 'First Floor',
-      sortOrder: 1,
-    },
-  });
-
-  const room = await prisma.room.create({
-    data: {
-      floorId: floor.id,
-      roomNumber: '101',
-      sharingType: SharingType.DOUBLE,
-    },
-  });
-
-  await prisma.bed.create({
-    data: {
-      roomId: room.id,
-      label: '101-A',
-      status: BedStatus.AVAILABLE,
-    },
-  });
-
-  await prisma.bed.create({
-    data: {
-      roomId: room.id,
-      label: '101-B',
-      status: BedStatus.AVAILABLE,
-    },
-  });
-
-  // 3. Create Main Admin User
-  console.log('Seeding Admin Auth...');
-  const adminAuthId = await createAuthUser('admin@anywherenode.com', 'password123');
-
-  await prisma.user.create({
+  // 2. Create Admin
+  const adminEmail = 'admin@nexthome.io';
+  const adminPassword = 'Password@123';
+  console.log('Creating Admin User...');
+  const adminAuthId = await createAuthUser(adminEmail, adminPassword);
+  const admin = await prisma.user.create({
     data: {
       supabaseAuthId: adminAuthId,
-      phone: '+919999999999',
-      email: 'admin@anywherenode.com',
-      passwordSetAt: new Date(),
+      email: adminEmail,
+      phone: '9999999990',
       role: UserRole.MAIN_ADMIN,
+      passwordSetAt: new Date(),
       organizationId: org.id,
     },
   });
 
-  // 4. Create Warden User
-  console.log('Seeding Warden Auth...');
-  const wardenAuthId = await createAuthUser('warden@anywherenode.com', 'password123');
+  // 3. Create Hostels & Structure
+  const hostelsInfo = [
+    { name: 'NextHome Paradise', type: AccommodationType.MENS, wardenName: 'John', prefix: 'NHP' },
+    { name: 'NextHome Oasis', type: AccommodationType.WOMENS, wardenName: 'Sarah', prefix: 'NHO' },
+    { name: 'NextHome Central', type: AccommodationType.MENS, wardenName: 'Mike', prefix: 'NHC' },
+  ];
 
-  const wardenUser = await prisma.user.create({
-    data: {
-      supabaseAuthId: wardenAuthId,
-      phone: '+918888888888',
-      email: 'warden@anywherenode.com',
-      passwordSetAt: null, // Test first-login flow
-      role: UserRole.WARDEN,
-      organizationId: org.id,
-    },
+  const createdHostels = [];
+
+  for (let i = 0; i < hostelsInfo.length; i++) {
+    const info = hostelsInfo[i];
+    console.log(`Creating Hostel: ${info.name}...`);
+    
+    const hostel = await prisma.hostel.create({
+      data: {
+        name: info.name,
+        address: `Block ${i + 1}, ${location.name}`,
+        accommodationType: info.type,
+        locationId: location.id,
+        organizationId: org.id,
+      },
+    });
+    createdHostels.push(hostel);
+
+    // Warden
+    const wardenEmail = `warden.${info.prefix.toLowerCase()}@nexthome.io`;
+    const wardenPassword = 'Password@123';
+    const wardenAuthId = await createAuthUser(wardenEmail, wardenPassword);
+    
+    await prisma.user.create({
+      data: {
+        supabaseAuthId: wardenAuthId,
+        email: wardenEmail,
+        phone: `888888888${i}`,
+        role: UserRole.WARDEN,
+        passwordSetAt: new Date(),
+        organizationId: org.id,
+        warden: {
+          create: {
+            hostelId: hostel.id,
+          }
+        }
+      },
+    });
+
+    // Structure (1 Floor, 2 Rooms, 4 Beds)
+    const floor = await prisma.floor.create({
+      data: { hostelId: hostel.id, name: 'Ground Floor', sortOrder: 1 }
+    });
+
+    for (let r = 1; r <= 2; r++) {
+      const room = await prisma.room.create({
+        data: { floorId: floor.id, roomNumber: `G0${r}`, sharingType: SharingType.DOUBLE }
+      });
+
+      await prisma.bed.create({
+        data: { roomId: room.id, label: `G0${r}-A`, status: BedStatus.AVAILABLE }
+      });
+      await prisma.bed.create({
+        data: { roomId: room.id, label: `G0${r}-B`, status: BedStatus.AVAILABLE }
+      });
+    }
+
+    // Payment config
+    await prisma.hostelPaymentConfig.create({
+      data: {
+        hostelId: hostel.id,
+        upiId: `nexthome${info.prefix.toLowerCase()}@hdfc`,
+      }
+    });
+
+    // Add some leads
+    await prisma.lead.create({
+      data: {
+        hostelId: hostel.id,
+        organizationId: org.id,
+        phone: `777777777${i}`,
+        source: 'MANUAL',
+        status: 'NEW',
+        notes: {
+          create: {
+            note: 'Inquired about double sharing.',
+            authorId: admin.id
+          }
+        }
+      }
+    });
+  }
+
+  // 4. Create Active Tenants for the first hostel (NextHome Paradise)
+  const mainHostel = createdHostels[0];
+  const firstRoom = await prisma.room.findFirst({
+    where: { floor: { hostelId: mainHostel.id } },
+    include: { beds: true }
   });
 
-  await prisma.warden.create({
-    data: {
-      userId: wardenUser.id,
-      hostelId: hostel.id,
-    },
-  });
+  if (firstRoom && firstRoom.beds.length >= 2) {
+    console.log('Creating Tenants and Active Stays...');
 
-  // 5. Create Tenant User
-  console.log('Seeding Tenant Auth...');
-  const tenantAuthId = await createAuthUser('tenant@anywherenode.com', 'password123');
+    // Tenant 1
+    const t1Email = 'tenant1@nexthome.io';
+    const t1Password = 'Password@123';
+    const t1AuthId = await createAuthUser(t1Email, t1Password);
+    
+    const t1User = await prisma.user.create({
+      data: {
+        supabaseAuthId: t1AuthId,
+        email: t1Email,
+        phone: '9111111111',
+        role: UserRole.TENANT,
+        passwordSetAt: new Date(),
+        organizationId: org.id,
+      }
+    });
 
-  const tenantUser = await prisma.user.create({
-    data: {
-      supabaseAuthId: tenantAuthId,
-      phone: '+917777777777',
-      email: 'tenant@anywherenode.com',
-      passwordSetAt: null, // Test first-login flow
-      role: UserRole.TENANT,
-      organizationId: org.id,
-    },
-  });
+    const tenant1 = await prisma.tenant.create({
+      data: {
+        userId: t1User.id,
+        fullName: 'Rahul Sharma',
+        gender: 'MALE',
+        dateOfBirth: new Date('1998-05-15'),
+        permanentAddress: 'Delhi',
+        emergencyContactNumber: '9111111112',
+      }
+    });
 
-  await prisma.tenant.create({
-    data: {
-      userId: tenantUser.id,
-      fullName: 'John Tenant',
-      dateOfBirth: new Date('2000-01-01'),
-      gender: 'MALE',
-      placeOfBirth: 'Mumbai',
-      permanentAddress: '456 Garden St, Pune',
-      emergencyContactName: 'Jane Parent',
-      relationship: 'MOTHER',
-      emergencyContactNumber: '+917777777778',
-      parentGuardianName: 'Bob Parent',
-      parentGuardianContact: '+917777777779',
-      occupationType: OccupationType.STUDENT,
-      collegeName: 'IIT Bombay',
-      courseOrBranch: 'Computer Science',
-      purposeOfStay: 'Higher Studies',
-    },
-  });
+    // Mark bed occupied
+    await prisma.bed.update({
+      where: { id: firstRoom.beds[0].id },
+      data: { status: BedStatus.OCCUPIED }
+    });
 
-  console.log('Seeding complete! Log in with:');
-  console.log('Admin:   admin@anywherenode.com   / password123');
-  console.log('Warden:  warden@anywherenode.com  / password123');
-  console.log('Tenant:  tenant@anywherenode.com  / password123');
+    // Active Stay
+    await prisma.stay.create({
+      data: {
+        tenantId: tenant1.id,
+        bedId: firstRoom.beds[0].id,
+        hostelId: mainHostel.id,
+        status: StayStatus.ACTIVE,
+        durationType: DurationType.MONTHLY,
+        joiningDate: new Date(),
+        endDate: new Date('2027-01-01'),
+        isNewAdmission: true,
+        admissionFeePaise: 100000,
+        monthlyRentPaise: 1500000, // 15,000 INR
+        securityDepositPaise: 3000000, // 30,000 INR
+        foodChargesPaise: 0,
+        discountPaise: 0,
+        totalPayablePaise: 4500000,
+      }
+    });
+
+    // Tenant 2
+    const t2Email = 'tenant2@nexthome.io';
+    const t2Password = 'Password@123';
+    const t2AuthId = await createAuthUser(t2Email, t2Password);
+    
+    const t2User = await prisma.user.create({
+      data: {
+        supabaseAuthId: t2AuthId,
+        email: t2Email,
+        phone: '9222222222',
+        role: UserRole.TENANT,
+        passwordSetAt: new Date(),
+        organizationId: org.id,
+      }
+    });
+
+    const tenant2 = await prisma.tenant.create({
+      data: {
+        userId: t2User.id,
+        fullName: 'Amit Kumar',
+        gender: 'MALE',
+        dateOfBirth: new Date('1999-08-20'),
+        permanentAddress: 'Mumbai',
+        emergencyContactNumber: '9222222223',
+      }
+    });
+
+    // Mark bed occupied
+    await prisma.bed.update({
+      where: { id: firstRoom.beds[1].id },
+      data: { status: BedStatus.OCCUPIED }
+    });
+
+    // Active Stay
+    await prisma.stay.create({
+      data: {
+        tenantId: tenant2.id,
+        bedId: firstRoom.beds[1].id,
+        hostelId: mainHostel.id,
+        status: StayStatus.ACTIVE,
+        durationType: DurationType.DAILY,
+        joiningDate: new Date(),
+        endDate: new Date(new Date().setDate(new Date().getDate() + 10)),
+        isNewAdmission: false,
+        admissionFeePaise: 0,
+        monthlyRentPaise: 50000, // 500 INR per day
+        securityDepositPaise: 100000,
+        foodChargesPaise: 0,
+        discountPaise: 0,
+        totalPayablePaise: 600000,
+      }
+    });
+  }
+
+  console.log('\n=============================================');
+  console.log('✅ DATABASE SEEDING COMPLETE! 🎉');
+  console.log('=============================================');
+  console.log('You can now log in using the following credentials:');
+  console.log('\n🛡️ MAIN ADMIN');
+  console.log('Email:     admin@nexthome.io');
+  console.log('Password:  Password@123');
+  
+  console.log('\n🏢 WARDENS');
+  console.log('Hostel 1:  warden.nhp@nexthome.io');
+  console.log('Hostel 2:  warden.nho@nexthome.io');
+  console.log('Hostel 3:  warden.nhc@nexthome.io');
+  console.log('Password:  Password@123 (for all)');
+
+  console.log('\n🛏️ TENANTS (Active in Hostel 1)');
+  console.log('Tenant 1:  tenant1@nexthome.io');
+  console.log('Tenant 2:  tenant2@nexthome.io');
+  console.log('Password:  Password@123 (for all)');
+  console.log('=============================================\n');
 }
 
 main()
