@@ -9,9 +9,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await requireRole([UserRole.MAIN_ADMIN]);
+    const session = await requireRole([UserRole.MAIN_ADMIN]);
 
     const users = await prisma.user.findMany({
+      where: { organizationId: session.user.organizationId },
       orderBy: { createdAt: "desc" },
       include: {
         warden: {

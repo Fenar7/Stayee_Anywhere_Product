@@ -33,6 +33,9 @@ export async function POST(
     // 1. Fetch and validate OnboardingRequest
     const onboardingRequest = await prisma.onboardingRequest.findUnique({
       where: { id: requestId },
+      include: {
+        hostel: { select: { organizationId: true } }
+      }
     });
 
     if (!onboardingRequest) {
@@ -278,6 +281,7 @@ export async function POST(
             passwordSetAt: new Date(),
             plainTextPassword: data.password,
             role: UserRole.TENANT,
+            organizationId: onboardingRequest.hostel.organizationId,
           },
         });
 

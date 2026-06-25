@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { requireRole, requireHostelAccess } from "@/lib/auth";
 import { handleApiError, NotFoundError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
@@ -15,11 +15,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireRole([UserRole.MAIN_ADMIN]);
+    const session = await requireRole([UserRole.MAIN_ADMIN]);
     const hostelId = (await params).id;
 
-    const hostel = await prisma.hostel.findUnique({ where: { id: hostelId } });
-    if (!hostel) throw new NotFoundError("Hostel not found");
+    await requireHostelAccess(session, hostelId);
 
     const config = await prisma.hostelPaymentConfig.findUnique({
       where: { hostelId },
@@ -49,11 +48,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireRole([UserRole.MAIN_ADMIN]);
+    const session = await requireRole([UserRole.MAIN_ADMIN]);
     const hostelId = (await params).id;
 
-    const hostel = await prisma.hostel.findUnique({ where: { id: hostelId } });
-    if (!hostel) throw new NotFoundError("Hostel not found");
+    await requireHostelAccess(session, hostelId);
 
     const formData = await request.formData();
     const upiId = formData.get("upiId") as string | null;

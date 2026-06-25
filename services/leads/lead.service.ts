@@ -3,10 +3,10 @@ import { normalizePhoneNumber } from "@/lib/whatsapp/utils";
 import { LeadSource, LeadStatus } from "@prisma/client";
 import { ValidationError, NotFoundError } from "@/lib/errors";
 
-export async function getLeads(hostelId?: string | null) {
+export async function getLeads(organizationId: string, hostelId?: string | null) {
   if (hostelId) {
     return prisma.lead.findMany({
-      where: { hostelId },
+      where: { hostelId, organizationId },
       orderBy: { createdAt: "desc" },
       include: {
         notes: {
@@ -17,6 +17,7 @@ export async function getLeads(hostelId?: string | null) {
     });
   }
   return prisma.lead.findMany({
+    where: { organizationId },
     orderBy: { createdAt: "desc" },
     include: {
       notes: {
@@ -27,7 +28,7 @@ export async function getLeads(hostelId?: string | null) {
   });
 }
 
-export async function getLeadById(id: string) {
+export async function getLeadById(organizationId: string, id: string) {
   const lead = await prisma.lead.findUnique({
     where: { id },
     include: {
@@ -37,8 +38,8 @@ export async function getLeadById(id: string) {
       },
     },
   });
-  if (!lead) {
-    throw new NotFoundError("Lead not found");
+  if (!lead || lead.organizationId !== organizationId) {
+    throw new NotFoundError("Lead not found or access denied");
   }
   return lead;
 }
@@ -49,6 +50,7 @@ export interface CreateLeadInput {
   notes?: string;
   hostelId?: string | null;
   authorId: string;
+  organizationId: string;
 }
 
 export async function createLead(input: CreateLeadInput) {
@@ -78,6 +80,7 @@ export async function createLead(input: CreateLeadInput) {
       phone: normalizedPhone,
       source: input.source,
       hostelId: input.hostelId || null,
+      organizationId: input.organizationId,
       ...(input.notes && input.notes.trim().length > 0
         ? {
             notes: {

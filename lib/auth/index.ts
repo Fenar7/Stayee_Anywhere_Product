@@ -59,9 +59,19 @@ export async function requireHostelAccess(
 ): Promise<void> {
   const { user } = session;
 
+  // 1. Explicit Multi-Tenant Isolation Check (CTO Fix)
+  const targetHostel = await prisma.hostel.findUnique({
+    where: { id: hostelId },
+    select: { organizationId: true },
+  });
+
+  if (!targetHostel || targetHostel.organizationId !== user.organizationId) {
+    throw new ForbiddenError("Hostel not found or access denied in this organization");
+  }
+
   if (user.role === UserRole.MAIN_ADMIN) {
-    // MAIN_ADMIN bypasses hostel scoping by design — log bypass for audit
-    console.info(`[Audit] Main Admin ${user.id} bypassed hostel scoping check for hostel ${hostelId}`);
+    // MAIN_ADMIN bypasses further scoped role checks (since they own the org)
+    console.info(`[Audit] Main Admin ${user.id} bypassed hostel role scoping check for hostel ${hostelId}`);
     return;
   }
 

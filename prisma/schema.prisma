@@ -29,8 +29,8 @@ model User {
   role              UserRole
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  organizationId  String?
-  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   // Inverse relations
   warden          Warden?
@@ -109,8 +109,8 @@ model Hostel {
   affidavitText     String?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
-  organizationId    String?
-  organization      Organization?     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId    String
+  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   // Inverse relations
   warden            Warden?
@@ -454,8 +454,8 @@ model Lead {
   notes     LeadNote[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
 }

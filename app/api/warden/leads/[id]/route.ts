@@ -14,7 +14,7 @@ export async function GET(
     const { user } = session;
     const { id } = await params;
 
-    const lead = await getLeadById(id);
+    const lead = await getLeadById(user.organizationId, id);
 
     if (user.role === UserRole.WARDEN) {
       const hostelId = await resolveHostelId(session);
@@ -38,7 +38,7 @@ export async function PATCH(
     const { user } = session;
     const { id } = await params;
 
-    const lead = await getLeadById(id);
+    const lead = await getLeadById(user.organizationId, id);
 
     if (user.role === UserRole.WARDEN) {
       const hostelId = await resolveHostelId(session);

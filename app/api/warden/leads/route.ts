@@ -16,16 +16,16 @@ export async function GET(request: NextRequest) {
     if (isAdmin) {
       const hostelIdParam = searchParams.get("hostelId");
       if (hostelIdParam) {
-        const leads = await getLeads(hostelIdParam);
+        const leads = await getLeads(user.organizationId, hostelIdParam);
         return NextResponse.json({ leads });
       }
 
-      const leads = await getLeads();
+      const leads = await getLeads(user.organizationId);
       return NextResponse.json({ leads });
     }
 
     const hostelId = await resolveHostelId(session, request);
-    const leads = await getLeads(hostelId);
+    const leads = await getLeads(user.organizationId, hostelId);
     return NextResponse.json({ leads });
   } catch (error) {
     return handleApiError(error);
@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
       notes,
       hostelId: resolvedHostelId,
       authorId,
+      organizationId: user.organizationId,
     });
 
     return NextResponse.json({ lead }, { status: 201 });

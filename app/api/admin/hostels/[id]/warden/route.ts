@@ -13,7 +13,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireRole([UserRole.MAIN_ADMIN]);
+    const session = await requireRole([UserRole.MAIN_ADMIN]);
     const hostelId = (await params).id;
 
     const body = await request.json();
@@ -101,6 +101,7 @@ export async function POST(
             passwordSetAt: null,
             plainTextPassword: data.password,
             role: UserRole.WARDEN,
+            organizationId: session.user.organizationId,
           },
         });
 

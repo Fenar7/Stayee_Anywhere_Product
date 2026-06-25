@@ -10,12 +10,15 @@ import { createHostelSchema } from "@/lib/validation/hostel";
 
 export async function POST(request: NextRequest) {
   try {
-    await requireRole([UserRole.MAIN_ADMIN]);
+    const session = await requireRole([UserRole.MAIN_ADMIN]);
 
     const body = await request.json();
     const data = createHostelSchema.parse(body);
 
-    const result = await createHostelWithWarden(data);
+    const result = await createHostelWithWarden({
+      ...data,
+      organizationId: session.user.organizationId,
+    });
 
     return Response.json(result, { status: 201 });
   } catch (error) {
@@ -23,10 +26,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    await requireRole([UserRole.MAIN_ADMIN]);
+    const session = await requireRole([UserRole.MAIN_ADMIN]);
+    const { searchParams } = new URL(request.url);
+    const locationId = searchParams.get("locationId");
+
     const hostels = await prisma.hostel.findMany({
+      where: {
+        organizationId: session.user.organizationId,
+        ...(locationId ? { locationId } : {}),
+      },
       orderBy: { name: "asc" },
       include: {
         location: true,

@@ -11,6 +11,7 @@ export interface CreateHostelInput {
   wardenPhone: string;
   wardenPassword: string;
   locationId?: string | null;
+  organizationId: string;
 }
 
 export async function createHostelWithWarden(input: CreateHostelInput) {
@@ -20,6 +21,7 @@ export async function createHostelWithWarden(input: CreateHostelInput) {
         { email: input.wardenEmail.toLowerCase() },
         { phone: input.wardenPhone },
       ],
+      organizationId: input.organizationId,
     },
   });
 
@@ -50,6 +52,7 @@ export async function createHostelWithWarden(input: CreateHostelInput) {
           passwordSetAt: null,
           plainTextPassword: input.wardenPassword,
           role: UserRole.WARDEN,
+          organizationId: input.organizationId,
         },
       });
 
@@ -59,6 +62,7 @@ export async function createHostelWithWarden(input: CreateHostelInput) {
           address: input.address,
           accommodationType: input.accommodationType,
           locationId: input.locationId || null,
+          organizationId: input.organizationId,
         },
       });
 

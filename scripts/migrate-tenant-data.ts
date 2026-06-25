@@ -23,21 +23,21 @@ async function main() {
 
   // 2. Assign all existing Hostels to NextHome
   const updatedHostels = await prisma.hostel.updateMany({
-    where: { organizationId: null },
+    where: { organizationId: "" },
     data: { organizationId: nextHomeOrg.id },
   });
   console.log(`Migrated ${updatedHostels.count} Hostels to Organization.`);
 
   // 3. Assign all existing Users to NextHome
   const updatedUsers = await prisma.user.updateMany({
-    where: { organizationId: null },
+    where: { organizationId: "" },
     data: { organizationId: nextHomeOrg.id },
   });
   console.log(`Migrated ${updatedUsers.count} Users to Organization.`);
 
   // 4. Assign all existing Leads to NextHome
   const updatedLeads = await prisma.lead.updateMany({
-    where: { organizationId: null },
+    where: { organizationId: "" },
     data: { organizationId: nextHomeOrg.id },
   });
   console.log(`Migrated ${updatedLeads.count} Leads to Organization.`);
