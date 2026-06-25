@@ -82,7 +82,9 @@ const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
             )}
             tabIndex={-1}
           >
-            <SelectValue placeholder="+91" />
+            <SelectValue placeholder="🇮🇳 +91">
+              {COUNTRY_CODES.find((c) => c.code === countryCode)?.label || countryCode}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {COUNTRY_CODES.map((c) => (
