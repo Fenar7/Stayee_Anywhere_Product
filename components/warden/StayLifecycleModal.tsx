@@ -43,6 +43,23 @@ type StayDetail = {
     fullName: string;
     phone: string;
     user: { email: string | null } | null;
+    dateOfBirth?: string;
+    gender?: string;
+    placeOfBirth?: string;
+    permanentAddress?: string;
+    emergencyContactName?: string;
+    emergencyContactNumber?: string;
+    relationship?: string;
+    parentGuardianName?: string;
+    parentGuardianContact?: string;
+    photoUrl?: string;
+    idDocumentUrl?: string;
+    idDocumentType?: string;
+    occupationType?: string;
+    collegeName?: string;
+    courseOrBranch?: string;
+    companyName?: string;
+    designation?: string;
   };
   bed: {
     label: string;
@@ -75,7 +92,7 @@ export function StayLifecycleModal({
   const [actionError, setActionError] = useState("");
   const [actionSuccess, setActionSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "extend" | "checkout">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "profile" | "extend" | "checkout">("details");
 
   // Extension Form States
   const [newEndDate, setNewEndDate] = useState("");
@@ -330,6 +347,12 @@ useEffect(() => {
                 Stay Details
               </button>
               <button
+                onClick={() => setActiveTab("profile")}
+                className={`flex-1 py-3 text-center border-b-2 transition ${activeTab === "profile" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              >
+                Tenant Profile
+              </button>
+              <button
                 onClick={() => setActiveTab("extend")}
                 className={`flex-1 py-3 text-center border-b-2 transition ${activeTab === "extend" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
               >
@@ -455,6 +478,107 @@ useEffect(() => {
                       </div>
                     ) : (
                       <p className="text-xs text-muted-foreground py-2 text-center bg-muted/10 rounded-lg">No payment ledger records found.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "profile" && (
+                <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex gap-4 items-center mb-4">
+                    {stay.tenant.photoUrl ? (
+                      <img src={stay.tenant.photoUrl} alt="Profile" className="h-20 w-20 rounded-full border shadow-sm object-cover" />
+                    ) : (
+                      <div className="h-20 w-20 rounded-full border shadow-sm flex items-center justify-center bg-muted text-muted-foreground">
+                        <User className="h-8 w-8" />
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="font-bold text-lg">{stay.tenant.fullName}</h3>
+                      <p className="text-sm text-muted-foreground">{stay.tenant.phone} {stay.tenant.user?.email ? `• ${stay.tenant.user.email}` : ""}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-sm border-b pb-1">Personal Details</h4>
+                    <div className="grid gap-3 grid-cols-2 text-sm bg-muted/10 p-4 rounded-lg">
+                      <div>
+                        <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Date of Birth</span>
+                        <span className="font-semibold">{stay.tenant.dateOfBirth ? formatDate(stay.tenant.dateOfBirth) : "—"}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Gender</span>
+                        <span className="font-semibold">{stay.tenant.gender || "—"}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Place of Birth</span>
+                        <span className="font-semibold">{stay.tenant.placeOfBirth || "—"}</span>
+                      </div>
+                      <div className="col-span-2 mt-2">
+                        <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Permanent Address</span>
+                        <span className="font-semibold">{stay.tenant.permanentAddress || "—"}</span>
+                      </div>
+                    </div>
+
+                    <h4 className="font-bold text-sm border-b pb-1 mt-6">Emergency & Guardian Contacts</h4>
+                    <div className="grid gap-3 grid-cols-2 text-sm bg-muted/10 p-4 rounded-lg">
+                      <div>
+                        <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Emergency Contact</span>
+                        <span className="font-semibold block">{stay.tenant.emergencyContactName || "—"}</span>
+                        <span className="text-xs text-muted-foreground">{stay.tenant.emergencyContactNumber} {stay.tenant.relationship ? `(${stay.tenant.relationship})` : ""}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Parent / Guardian</span>
+                        <span className="font-semibold block">{stay.tenant.parentGuardianName || "—"}</span>
+                        <span className="text-xs text-muted-foreground">{stay.tenant.parentGuardianContact}</span>
+                      </div>
+                    </div>
+
+                    <h4 className="font-bold text-sm border-b pb-1 mt-6">Academic / Professional</h4>
+                    <div className="grid gap-3 grid-cols-2 text-sm bg-muted/10 p-4 rounded-lg">
+                      <div className="col-span-2">
+                        <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Occupation Status</span>
+                        <span className="font-semibold">{stay.tenant.occupationType?.replace("_", " ") || "—"}</span>
+                      </div>
+                      {stay.tenant.occupationType === "STUDENT" && (
+                        <>
+                          <div>
+                            <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">College / University</span>
+                            <span className="font-semibold">{stay.tenant.collegeName || "—"}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Course / Branch</span>
+                            <span className="font-semibold">{stay.tenant.courseOrBranch || "—"}</span>
+                          </div>
+                        </>
+                      )}
+                      {stay.tenant.occupationType === "WORKING_PROFESSIONAL" && (
+                        <>
+                          <div>
+                            <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Company Name</span>
+                            <span className="font-semibold">{stay.tenant.companyName || "—"}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">Designation</span>
+                            <span className="font-semibold">{stay.tenant.designation || "—"}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {stay.tenant.idDocumentUrl && (
+                      <>
+                        <h4 className="font-bold text-sm border-b pb-1 mt-6">Identity Document</h4>
+                        <div className="bg-muted/10 p-4 rounded-lg flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-5 w-5 text-muted-foreground" />
+                            <span className="font-semibold text-sm">{stay.tenant.idDocumentType || "ID Document"}</span>
+                          </div>
+                          <Button size="sm" variant="outline" onClick={() => window.open(stay.tenant?.idDocumentUrl, "_blank")}>
+                            View Document
+                          </Button>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>

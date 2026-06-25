@@ -19,12 +19,28 @@ export async function GET(
       include: {
         tenant: {
           select: {
+            id: true,
             fullName: true,
+            user: { select: { email: true, phone: true } },
+            dateOfBirth: true,
+            gender: true,
+            placeOfBirth: true,
+            permanentAddress: true,
+            emergencyContactName: true,
+            emergencyContactNumber: true,
+            relationship: true,
+            parentGuardianName: true,
+            parentGuardianContact: true,
             photoUrl: true,
             occupationType: true,
             collegeName: true,
+            courseOrBranch: true,
             companyName: true,
             designation: true,
+            documents: {
+              where: { documentType: { in: ["AADHAAR", "PASSPORT_PHOTO", "PAN"] } },
+              select: { documentType: true, storagePath: true }
+            }
           },
         },
         bed: {
@@ -65,7 +81,13 @@ export async function GET(
         foodPlan: stay.foodPlan,
         totalPayable: paiseToRupees(stay.totalPayablePaise),
         discount: paiseToRupees(stay.discountPaise),
-        tenant: stay.tenant,
+        tenant: {
+          ...stay.tenant,
+          phone: stay.tenant.user?.phone || "",
+          user: { email: stay.tenant.user?.email || null },
+          idDocumentUrl: stay.tenant.documents?.[0]?.storagePath || null,
+          idDocumentType: stay.tenant.documents?.[0]?.documentType || null,
+        },
         bed: {
           id: stay.bed.id,
           label: stay.bed.label,
