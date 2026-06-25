@@ -25,7 +25,7 @@ Follow these steps to set up the project locally from scratch. It should take ~1
 2. In the Supabase SQL editor, run the auth triggers and schema required for this project (see `prisma/schema.prisma` comments if any).
 3. Under **Authentication -> Providers**, enable **Email/Password**.
 4. Disable **Confirm email** for local development (optional but recommended for speed).
-5. Create a new Storage Bucket named `anywherenode-documents` and set it to **Public**.
+5. Create a new Storage Bucket named `nexthome-documents` and set it to **Public**.
 
 ### 3. Environment Variables
 Copy the example environment file:
@@ -38,7 +38,7 @@ Fill in the values in `.env`:
 - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase Project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase Anon Key
 - `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase Service Role Key (used for admin-level auth tasks)
-- `SUPABASE_STORAGE_BUCKET`: `anywherenode-documents`
+- `SUPABASE_STORAGE_BUCKET`: `nexthome-documents`
 
 ### 4. Database Migration & Seeding
 Install dependencies:

@@ -145,7 +145,7 @@ function NewUserContent() {
                   🏠
                 </div>
               </div>
-              <h1 className="text-2xl font-bold">Welcome to Next Home!</h1>
+              <h1 className="text-2xl font-bold">Welcome to Anywhere Node!</h1>
               <p className="text-muted-foreground">
                 Let&apos;s get your onboarding profile registered.
               </p>

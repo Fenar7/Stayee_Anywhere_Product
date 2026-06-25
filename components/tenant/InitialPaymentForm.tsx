@@ -115,7 +115,7 @@ export function InitialPaymentForm({
             <div className="rounded-lg border p-4 bg-muted/10 grid gap-4 sm:grid-cols-2 text-sm">
               <div>
                 <span className="text-xs text-muted-foreground block uppercase">UPI ID</span>
-                <span className="font-bold text-foreground">{paymentConfig?.upiId || "payment@anywherenode"}</span>
+                <span className="font-bold text-foreground">{paymentConfig?.upiId || "payments@anywherenode.com"}</span>
               </div>
               <div>
                 <span className="text-xs text-muted-foreground block uppercase">Hostel Merchant Name</span>

@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/auth/server";
 
-const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || "anywherenode-documents";
+const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || "nexthome-documents";
 
 /**
  * Ensures that the private storage bucket exists in Supabase.

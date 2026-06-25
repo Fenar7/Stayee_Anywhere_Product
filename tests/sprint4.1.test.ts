@@ -656,11 +656,11 @@ describe("Sprint 4.1: PDF Infrastructure & Payment Receipts", () => {
       const message = buildReceiptWhatsAppMessage({
         tenantName: "Rahul Sharma",
         amountFormatted: "₹ 5,000",
-        downloadLink: "https://anywherenode.app/api/pdf/download/doc-1",
+        downloadLink: "https://anywherenode.com/api/pdf/download/doc-1",
       });
 
       expect(message).toBe(
-        "Hello Rahul Sharma, your payment of ₹ 5,000 has been verified. Download your receipt: https://anywherenode.app/api/pdf/download/doc-1"
+        "Hello Rahul Sharma, your payment of ₹ 5,000 has been verified. Download your receipt: https://anywherenode.com/api/pdf/download/doc-1"
       );
     });
 
@@ -669,7 +669,7 @@ describe("Sprint 4.1: PDF Infrastructure & Payment Receipts", () => {
         phone: "+919876543210",
         tenantName: "Rahul Sharma",
         amountFormatted: "₹ 5,000",
-        downloadLink: "https://anywherenode.app/api/pdf/download/doc-1",
+        downloadLink: "https://anywherenode.com/api/pdf/download/doc-1",
       });
 
       expect(url).toContain("https://wa.me/919876543210?text=");

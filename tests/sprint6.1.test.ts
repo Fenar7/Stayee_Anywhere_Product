@@ -154,7 +154,7 @@ describe("buildWaMeLink", () => {
   });
 
   it("handles complex multi-line message with special chars", () => {
-    const msg = "Hello! 🎉\nAmount: ₹1,000\nLink: https://anywherenode.in";
+    const msg = "Hello! 🎉\nAmount: ₹1,000\nLink: https://anywherenode.com";
     const url = buildWaMeLink("9876543210", msg);
     expect(url).toContain("https://wa.me/919876543210?text=");
     expect(url).toContain("%F0%9F%8E%89");
@@ -169,16 +169,16 @@ describe("buildWaMeLink", () => {
 describe("Message Templates", () => {
   describe("onboardingLink", () => {
     it("returns correct message without name", () => {
-      const msg = onboardingLink("https://anywherenode.in/newuser?id=abc");
+      const msg = onboardingLink("https://anywherenode.com/newuser?id=abc");
       expect(msg).toBe(
-        "Hello, welcome to Anywhere Node. Please complete your registration here: https://anywherenode.in/newuser?id=abc"
+        "Hello, welcome to Anywhere Node. Please complete your registration here: https://anywherenode.com/newuser?id=abc"
       );
     });
 
     it("returns correct message with name", () => {
-      const msg = onboardingLink("https://anywherenode.in/newuser?id=abc", "Rahul");
+      const msg = onboardingLink("https://anywherenode.com/newuser?id=abc", "Rahul");
       expect(msg).toBe(
-        "Hello Rahul, welcome to Anywhere Node. Please complete your registration here: https://anywherenode.in/newuser?id=abc"
+        "Hello Rahul, welcome to Anywhere Node. Please complete your registration here: https://anywherenode.com/newuser?id=abc"
       );
     });
   });
@@ -188,19 +188,19 @@ describe("Message Templates", () => {
       const msg = applicationApprovedPaymentRequest({
         name: "Priya",
         amount: 25000,
-        paymentUrl: "https://anywherenode.in/login",
+        paymentUrl: "https://anywherenode.com/login",
       });
       expect(msg).toContain("Hi Priya");
       expect(msg).toContain("approved");
       expect(msg).toContain("\u20B925,000");
-      expect(msg).toContain("https://anywherenode.in/login");
+      expect(msg).toContain("https://anywherenode.com/login");
     });
 
     it("returns detailed breakdown message when breakdown is provided", () => {
       const msg = applicationApprovedPaymentRequest({
         name: "Amit",
         amount: 30000,
-        paymentUrl: "https://anywherenode.in/login",
+        paymentUrl: "https://anywherenode.com/login",
         breakdown: {
           admissionFee: 5000,
           monthlyRent: 10000,
@@ -218,7 +218,7 @@ describe("Message Templates", () => {
       expect(msg).toContain("Security Deposit: \u20B910,000");
       expect(msg).toContain("Food Charges: \u20B95,000");
       expect(msg).toContain("Discount: \u20B90");
-      expect(msg).toContain("payment@anywherenode");
+      expect(msg).toContain("payments@anywherenode.com");
       expect(msg).toContain("Thank you!");
     });
 
@@ -241,9 +241,9 @@ describe("Message Templates", () => {
 
   describe("paymentReceiptReady", () => {
     it("returns correct receipt message", () => {
-      const msg = paymentReceiptReady("Rahul", 15000, "https://anywherenode.in/receipt/123");
+      const msg = paymentReceiptReady("Rahul", 15000, "https://anywherenode.com/receipt/123");
       expect(msg).toBe(
-        "Hello Rahul, your payment of \u20B9 15,000 has been verified. Download your receipt: https://anywherenode.in/receipt/123"
+        "Hello Rahul, your payment of \u20B9 15,000 has been verified. Download your receipt: https://anywherenode.com/receipt/123"
       );
     });
   });
@@ -262,7 +262,7 @@ describe("Message Templates", () => {
       name: "Amit",
       dueDate: "15 Jul 2026",
       amount: 10000,
-      paymentUrl: "https://anywherenode.in/tenant",
+      paymentUrl: "https://anywherenode.com/tenant",
       daysRemaining: 7,
     };
 

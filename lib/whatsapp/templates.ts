@@ -59,7 +59,7 @@ export function applicationApprovedPaymentRequest(params: {
 }): string {
   const { name, amount, paymentUrl, upiId, breakdown } = params;
   const formattedAmount = amount.toLocaleString("en-IN");
-  const upiDisplay = upiId || "payment@anywherenode";
+  const upiDisplay = upiId || "payments@anywherenode.com";
 
   if (breakdown) {
     const roomLabel = breakdown.roomBedLabel ?? "your room";
