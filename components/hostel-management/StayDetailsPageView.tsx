@@ -8,7 +8,7 @@ import { paiseToRupees } from "@/lib/money";
 
 type StayData = any; // I'll type this properly or rely on any since it's a massive nested object from prisma
 
-export default function StayDetailsPageView({ stay, baseRoute }: { stay: StayData; baseRoute: string }) {
+export default function StayDetailsPageView({ stay, baseRoute, backUrl }: { stay: StayData; baseRoute: string; backUrl?: string }) {
   const t = stay.tenant;
   const docs = t.documents || [];
   const idDoc = docs.find((d: any) => ["AADHAAR", "PASSPORT_PHOTO", "PAN"].includes(d.documentType));
@@ -16,7 +16,7 @@ export default function StayDetailsPageView({ stay, baseRoute }: { stay: StayDat
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center gap-4 mb-8">
-        <Link href={`${baseRoute}/stays`}>
+        <Link href={backUrl || `${baseRoute}/stays`}>
           <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted">
             <ArrowLeft className="h-5 w-5" />
           </Button>
