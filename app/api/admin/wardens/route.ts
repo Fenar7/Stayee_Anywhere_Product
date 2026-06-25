@@ -6,12 +6,14 @@ import { prisma } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
   try {
-    await requireRole([UserRole.MAIN_ADMIN]);
+    const session = await requireRole([UserRole.MAIN_ADMIN]);
 
     const { searchParams } = new URL(request.url);
     const hostelId = searchParams.get("hostelId");
 
-    const where = hostelId ? { hostelId } : {};
+    const where = hostelId 
+      ? { hostelId, user: { organizationId: session.user.organizationId } } 
+      : { user: { organizationId: session.user.organizationId } };
 
     const wardens = await prisma.warden.findMany({
       where,

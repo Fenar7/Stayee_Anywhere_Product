@@ -35,7 +35,11 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    const onboardingRequests = await prisma.onboardingRequest.findMany();
+    const onboardingRequests = await prisma.onboardingRequest.findMany({
+      where: {
+        hostel: { organizationId: session.user.organizationId },
+      },
+    });
 
     const mapped = stays.map((stay) => {
       const matchingReq = onboardingRequests.find(

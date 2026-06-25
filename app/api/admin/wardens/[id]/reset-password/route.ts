@@ -13,7 +13,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireRole([UserRole.MAIN_ADMIN]);
+    const session = await requireRole([UserRole.MAIN_ADMIN]);
     const wardenId = (await params).id;
 
     const body = await request.json();
@@ -23,13 +23,13 @@ export async function POST(
       where: { id: wardenId },
       include: {
         user: {
-          select: { id: true, supabaseAuthId: true, email: true, phone: true },
+          select: { id: true, supabaseAuthId: true, email: true, phone: true, organizationId: true },
         },
       },
     });
 
-    if (!warden) {
-      throw new NotFoundError("Warden not found");
+    if (!warden || warden.user.organizationId !== session.user.organizationId) {
+      throw new NotFoundError("Warden not found or access denied");
     }
 
     if (!warden.user.supabaseAuthId) {

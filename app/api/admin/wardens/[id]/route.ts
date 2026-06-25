@@ -12,7 +12,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireRole([UserRole.MAIN_ADMIN]);
+    const session = await requireRole([UserRole.MAIN_ADMIN]);
     const wardenId = (await params).id;
 
     const body = await request.json();
@@ -23,8 +23,8 @@ export async function PATCH(
       include: { user: true },
     });
 
-    if (!warden) {
-      throw new NotFoundError("Warden not found");
+    if (!warden || warden.user.organizationId !== session.user.organizationId) {
+      throw new NotFoundError("Warden not found or access denied");
     }
 
     // Check email uniqueness if changing to a non-null value
@@ -59,23 +59,21 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireRole([UserRole.MAIN_ADMIN]);
+    const session = await requireRole([UserRole.MAIN_ADMIN]);
     const wardenId = (await params).id;
 
     const warden = await prisma.warden.findUnique({
       where: { id: wardenId },
       include: {
-        user: {
-          select: { id: true, email: true, phone: true },
-        },
+        user: true,
         hostel: {
           select: { id: true, name: true, accommodationType: true },
         },
       },
     });
 
-    if (!warden) {
-      throw new NotFoundError("Warden not found");
+    if (!warden || warden.user.organizationId !== session.user.organizationId) {
+      throw new NotFoundError("Warden not found or access denied");
     }
 
     return NextResponse.json({
