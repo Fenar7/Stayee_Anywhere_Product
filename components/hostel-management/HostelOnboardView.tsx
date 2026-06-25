@@ -129,9 +129,9 @@ export default function HostelOnboardView({ hostelId, baseRoute }: { hostelId: s
       }
 
       const data = await response.json();
-      setAvailableBeds(data.availableBeds);
+      setAvailableBeds(data.availableBeds || []);
 
-      if (data.availableBeds.length === 0) {
+      if (!data.availableBeds || data.availableBeds.length === 0) {
         notify.error("No available beds found for the selected date range.");
       }
     } catch (err: unknown) {
