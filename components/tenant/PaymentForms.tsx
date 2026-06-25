@@ -25,15 +25,15 @@ export function PaymentUploadForm({
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!screenshotFile) {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setScreenshotFile(file);
+    if (file) {
+      setPreviewUrl(URL.createObjectURL(file));
+    } else {
       setPreviewUrl(null);
-      return;
     }
-    const url = URL.createObjectURL(screenshotFile);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [screenshotFile]);
+  };
 
   const handleUploadReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,6 +125,7 @@ export function PaymentUploadForm({
           <div className="border border-dashed rounded-lg p-6 bg-muted/15 flex flex-col items-center justify-center gap-2">
             {screenshotFile && previewUrl ? (
               <div className="text-center space-y-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={previewUrl}
                   alt="Receipt preview"
@@ -143,7 +144,7 @@ export function PaymentUploadForm({
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setScreenshotFile(e.target.files?.[0] || null)}
+                    onChange={handleFileChange}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     required
                   />
@@ -186,17 +187,11 @@ export function RentRenewalForm({
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!screenshotFile) {
-      // eslint-disable-next-line
-      setPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(screenshotFile);
-    // eslint-disable-next-line
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [screenshotFile]);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setScreenshotFile(file);
+    setPreviewUrl(file ? URL.createObjectURL(file) : null);
+  };
 
   const handleUploadReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,6 +287,7 @@ export function RentRenewalForm({
             <span className="text-muted-foreground block">UPI ID</span>
             <span className="font-bold">{paymentConfig.upiId}</span>
             {paymentConfig.qrCodePath && (
+              /* eslint-disable-next-line @next/next/no-img-element */
               <img src={paymentConfig.qrCodePath} alt="QR" className="h-20 w-20 mt-2 object-contain rounded border" />
             )}
           </div>
@@ -342,7 +338,7 @@ export function RentRenewalForm({
                       ref={fileInputRef}
                       type="file"
                       accept="image/*"
-                      onChange={(e) => setScreenshotFile(e.target.files?.[0] || null)}
+                      onChange={handleFileChange}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       required
                     />
