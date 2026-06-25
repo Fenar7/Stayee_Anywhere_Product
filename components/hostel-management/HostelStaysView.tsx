@@ -126,7 +126,7 @@ export default async function HostelStaysView({
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                       <div className="flex justify-end gap-2">
-                        <StayDetailsTrigger stayId={stay.id} />
+                        <StayDetailsTrigger stayId={stay.id} baseRoute={baseRoute} />
                         <ExtendStaySheet stayId={stay.id} currentEndDate={stay.endDate} balancePaise={balancePaise} />
                         <EarlyExitSheet stayId={stay.id} joiningDate={stay.joiningDate} endDate={stay.endDate} />
                         {daysRemaining <= 0 && <NaturalCheckoutButton stayId={stay.id} />}
