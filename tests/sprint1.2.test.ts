@@ -6,7 +6,7 @@ import { UserRole, AccommodationType, SharingType, BedStatus } from "@prisma/cli
 import { ValidationError, NotFoundError, ConflictError } from "../lib/errors";
 
 const mockPrisma = vi.hoisted(() => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   $transaction: vi.fn((fn: any) => fn(mockPrisma as any)),
   hostel: {
     create: vi.fn(),
