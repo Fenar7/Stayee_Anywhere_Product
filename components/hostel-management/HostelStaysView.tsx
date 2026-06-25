@@ -4,6 +4,7 @@ import { Bed } from "lucide-react";
 import ExtendStaySheet from "@/components/warden/ExtendStaySheet";
 import EarlyExitSheet from "@/components/warden/EarlyExitSheet";
 import NaturalCheckoutButton from "@/components/warden/NaturalCheckoutButton";
+import StayDetailsTrigger from "@/components/warden/StayDetailsTrigger";
 import {
   Table,
   TableBody,
@@ -125,6 +126,7 @@ export default async function HostelStaysView({
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                       <div className="flex justify-end gap-2">
+                        <StayDetailsTrigger stayId={stay.id} />
                         <ExtendStaySheet stayId={stay.id} currentEndDate={stay.endDate} balancePaise={balancePaise} />
                         <EarlyExitSheet stayId={stay.id} joiningDate={stay.joiningDate} endDate={stay.endDate} />
                         {daysRemaining <= 0 && <NaturalCheckoutButton stayId={stay.id} />}
