@@ -46,12 +46,13 @@ function updateSession(request: NextRequest) {
           supabaseResponse = NextResponse.next({
             request,
           });
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value, options }) => {
+            const finalMaxAge = options.maxAge === 0 ? 0 : (maxAge !== undefined ? maxAge : options.maxAge);
             supabaseResponse.cookies.set(name, value, {
               ...options,
-              ...(maxAge !== undefined ? { maxAge } : {}),
+              maxAge: finalMaxAge,
             })
-          );
+          });
         },
       },
     }
@@ -64,8 +65,8 @@ function redirectToLogin(request: NextRequest): NextResponse {
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
   const response = NextResponse.redirect(loginUrl);
-  response.cookies.set("sb-auth-token", "", { maxAge: 0, path: "/" });
-  response.cookies.set("supabase-auth-token", "", { maxAge: 0, path: "/" });
+  // Clear the remember_me cookie. We rely on the /login page mounting to call supabase.auth.signOut() to clear the chunked session cookies properly.
+  response.cookies.set("remember_me", "", { maxAge: 0, path: "/" });
   return response;
 }
 

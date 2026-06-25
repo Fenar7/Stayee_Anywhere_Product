@@ -18,12 +18,13 @@ export async function createClient() {
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
+            cookiesToSet.forEach(({ name, value, options }) => {
+              const finalMaxAge = options.maxAge === 0 ? 0 : (maxAge !== undefined ? maxAge : options.maxAge);
               cookieStore.set(name, value, {
                 ...options,
-                ...(maxAge !== undefined ? { maxAge } : {}),
+                maxAge: finalMaxAge,
               })
-            );
+            });
           } catch {
             // The setAll method was called from a Server Component.
             // This can be ignored if you have middleware refreshing user sessions.
