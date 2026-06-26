@@ -550,27 +550,37 @@ export default function TenantDashboardPage() {
 
               {/* TAB: FOOD */}
               <TabsContent value="food" className="focus-visible:outline-none">
-                <Card className="border-0 shadow-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 overflow-hidden relative">
-                  <div className="absolute right-0 top-0 opacity-10 pointer-events-none">
-                    <UtensilsCrossed className="w-64 h-64 -mt-10 -mr-10" />
+                {stay.foodPlan === "NOT_INCLUDED" ? (
+                  <div className="py-16 text-center text-muted-foreground bg-muted/20 rounded-2xl border border-dashed">
+                    <UtensilsCrossed className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                    <p className="text-lg font-medium text-foreground">Food Not Included</p>
+                    <p className="max-w-xs mx-auto text-sm mt-1">
+                      Your stay plan does not include hostel food. Contact your warden to upgrade your plan.
+                    </p>
                   </div>
-                  <CardContent className="p-10 flex flex-col items-center text-center relative z-10 space-y-6">
-                    <div className="p-4 bg-white dark:bg-slate-900 rounded-full shadow-sm mb-2">
-                      <UtensilsCrossed className="h-10 w-10 text-amber-600" />
+                ) : (
+                  <Card className="border-0 shadow-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 overflow-hidden relative">
+                    <div className="absolute right-0 top-0 opacity-10 pointer-events-none">
+                      <UtensilsCrossed className="w-64 h-64 -mt-10 -mr-10" />
                     </div>
-                    <div>
-                      <h3 className="text-3xl font-bold tracking-tight text-amber-900 dark:text-amber-100">Weekly Meal Plan</h3>
-                      <p className="text-amber-700 dark:text-amber-400 max-w-md mx-auto mt-3 text-lg">
-                        Manage your breakfast, lunch, and dinner preferences for the upcoming week.
-                      </p>
-                    </div>
-                    <Link href="/tenant/food" passHref>
-                      <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-white rounded-full px-8 shadow-md mt-4 text-base font-semibold">
-                        Manage Food Orders
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
+                    <CardContent className="p-10 flex flex-col items-center text-center relative z-10 space-y-6">
+                      <div className="p-4 bg-white dark:bg-slate-900 rounded-full shadow-sm mb-2">
+                        <UtensilsCrossed className="h-10 w-10 text-amber-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-3xl font-bold tracking-tight text-amber-900 dark:text-amber-100">Weekly Meal Plan</h3>
+                        <p className="text-amber-700 dark:text-amber-400 max-w-md mx-auto mt-3 text-lg">
+                          Manage your breakfast, lunch, and dinner preferences for the upcoming week.
+                        </p>
+                      </div>
+                      <Link href="/tenant/food" passHref>
+                        <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-white rounded-full px-8 shadow-md mt-4 text-base font-semibold">
+                          Manage Food Orders
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               {/* TAB: ROOMMATES */}

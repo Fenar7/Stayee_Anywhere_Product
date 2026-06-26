@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Loader2, ChevronLeft, ChevronRight,
-  Coffee, Sun, Moon, CalendarDays, Lock
+  Coffee, Sun, Moon, CalendarDays, Lock, UtensilsCrossed
 } from "lucide-react";
+import Link from "next/link";
 import { notify } from "@/lib/toast";
 import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
 
@@ -60,22 +61,29 @@ export default function TenantFoodPage() {
   const [loading, setLoading] = useState(true);
   const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
   const [saving, setSaving] = useState<string | null>(null);
+  const [foodNotIncluded, setFoodNotIncluded] = useState(false);
 
   const weekEnd = addDays(weekStart, 6);
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
+      setFoodNotIncluded(false);
       const startDate = toISODate(weekStart);
       const endDate = toISODate(weekEnd);
       const res = await fetch(`/api/tenant/food-orders?startDate=${startDate}&endDate=${endDate}`);
       if (!res.ok) {
         const err = await res.json();
+        if (res.status === 403 && err.error?.toLowerCase().includes("not available on your stay plan")) {
+          setFoodNotIncluded(true);
+          return;
+        }
         throw new Error(err.error || "Failed to load food orders");
       }
       const json = await res.json();
       setData(json);
-    } catch (e: unknown) { const eMsg = e instanceof Error ? e.message : String(e);
+    } catch (e: unknown) { 
+      const eMsg = e instanceof Error ? e.message : String(e);
       notify.error(eMsg || "An unexpected error occurred");
     } finally {
       setLoading(false);
@@ -165,6 +173,23 @@ export default function TenantFoodPage() {
 
         {loading ? (
           <DashboardSkeleton />
+        ) : foodNotIncluded ? (
+          <div className="max-w-2xl mx-auto mt-12 text-center space-y-6 bg-card border shadow-sm p-10 rounded-2xl">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-950">
+              <UtensilsCrossed className="h-10 w-10 text-amber-500" />
+            </div>
+            <div className="space-y-3">
+              <h2 className="text-2xl font-bold">Food Plan Not Included</h2>
+              <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
+                Your current stay plan does not include hostel food services. If you'd like to subscribe to meals, please contact your warden to upgrade your plan.
+              </p>
+            </div>
+            <div className="pt-4">
+              <Link href="/tenant">
+                <Button variant="outline">Back to Dashboard</Button>
+              </Link>
+            </div>
+          </div>
         ) : data ? (
           <div className="space-y-6">
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
