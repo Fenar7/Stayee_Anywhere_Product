@@ -26,8 +26,16 @@ export async function POST(
       throw new ValidationError("User has no linked authentication account");
     }
 
-    // Generate a secure random password
-    const tempPassword = crypto.randomBytes(4).toString("hex") + "A1!";
+    let customPassword = undefined;
+    try {
+      const body = await request.json();
+      customPassword = body?.customPassword;
+    } catch {
+      // ignore empty body
+    }
+
+    // Use custom password or generate a secure random password
+    const tempPassword = customPassword || (crypto.randomBytes(4).toString("hex") + "A1!");
 
     // Update Supabase Auth password
     const supabase = createAdminClient();

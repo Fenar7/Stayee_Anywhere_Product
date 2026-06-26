@@ -118,6 +118,7 @@ export default function AdminUsersPage() {
   const [resetModal, setResetModal] = useState<{ id: string; phone: string } | null>(null);
   const [resetLoading, setResetLoading] = useState(false);
   const [newPassword, setNewPassword] = useState("");
+  const [customPassword, setCustomPassword] = useState("");
   const [copied, setCopied] = useState(false);
 
   const [showLightboxUrl, setShowLightboxUrl] = useState<string | null>(null);
@@ -145,6 +146,8 @@ export default function AdminUsersPage() {
       setResetLoading(true);
       const res = await fetch(`/api/admin/users/${resetModal.id}/reset-password`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customPassword: customPassword.trim() || undefined }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -340,13 +343,14 @@ export default function AdminUsersPage() {
         if (!resetLoading) {
           setResetModal(null);
           setNewPassword("");
+          setCustomPassword("");
         }
       }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Reset Password</AlertDialogTitle>
             <AlertDialogDescription>
-              This will overwrite the user's current password with a new randomly generated secure password. They will be forced to change it upon next login.
+              You can optionally enter a custom password below. If left blank, a secure random password will be generated automatically.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -373,8 +377,18 @@ export default function AdminUsersPage() {
               </div>
             </div>
           ) : (
-            <div className="py-2">
+            <div className="py-4 space-y-4">
               <p className="text-sm">User Phone: <span className="font-mono font-bold">{resetModal?.phone}</span></p>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Custom Password (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="Leave blank for auto-generated password"
+                  className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={customPassword}
+                  onChange={(e) => setCustomPassword(e.target.value)}
+                />
+              </div>
             </div>
           )}
 
@@ -383,6 +397,7 @@ export default function AdminUsersPage() {
               <Button onClick={() => {
                 setResetModal(null);
                 setNewPassword("");
+                setCustomPassword("");
               }}>Done</Button>
             ) : (
               <>
