@@ -93,7 +93,14 @@ interface UserItem {
     designation: string | null;
     purposeOfStay: string;
     photoUrl: string | null;
-    stays: { hostel: { name: string }, status: string }[];
+    stays: { 
+      hostel: { name: string };
+      status: string;
+      bed?: {
+        label: string;
+        room: { roomNumber: string };
+      } | null;
+    }[];
   } | null;
 }
 
@@ -283,9 +290,23 @@ export default function AdminUsersPage() {
                             {u.role === "WARDEN" && u.warden?.hostel?.name && (
                               <span>Hostel: {u.warden.hostel.name}</span>
                             )}
-                            {u.role === "TENANT" && u.tenant && (
-                              <span>Gender: {u.tenant.gender}</span>
-                            )}
+                            {u.role === "TENANT" && u.tenant && (() => {
+                              const activeStay = u.tenant.stays?.find(s => ['ACTIVE', 'EXTENDED', 'APPROVED_AWAITING_PAYMENT'].includes(s.status)) || u.tenant.stays?.[0];
+                              
+                              if (activeStay) {
+                                return (
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-semibold text-foreground">{activeStay.hostel.name}</span>
+                                    {activeStay.bed ? (
+                                      <span>Room {activeStay.bed.room.roomNumber} &middot; Bed {activeStay.bed.label}</span>
+                                    ) : (
+                                      <span>{activeStay.status}</span>
+                                    )}
+                                  </div>
+                                );
+                              }
+                              return <span>No properties</span>;
+                            })()}
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
