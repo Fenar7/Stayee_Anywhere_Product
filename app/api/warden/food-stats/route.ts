@@ -96,6 +96,7 @@ export async function GET(request: NextRequest) {
         tenantPhotoUrl: stay.tenant.photoUrl,
         roomNumber: stay.bed.room.roomNumber,
         bedLabel: stay.bed.label,
+        foodPlan: stay.foodPlan,
         breakfast,
         lunch,
         dinner,
