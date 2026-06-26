@@ -39,6 +39,10 @@ export async function POST(
     const refNo = formData.get("transactionRefNo") as string;
     const file = formData.get("screenshot") as File;
     
+    if (!file || typeof file === "string") {
+      throw new Error("Invalid file upload payload");
+    }
+    
     if (!refNo || !file) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }

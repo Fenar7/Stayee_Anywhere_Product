@@ -600,10 +600,8 @@ export default function TenantDashboardPage() {
                           Manage your breakfast, lunch, and dinner preferences for the upcoming week.
                         </p>
                       </div>
-                      <Link href="/tenant/food" passHref>
-                        <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-white rounded-full px-8 shadow-md mt-4 text-base font-semibold">
-                          Manage Food Orders
-                        </Button>
+                      <Link href="/tenant/food" className={buttonVariants({ size: "lg", className: "bg-amber-600 hover:bg-amber-700 text-white rounded-full px-8 shadow-md mt-4 text-base font-semibold" })}>
+                        Manage Food Orders
                       </Link>
                     </CardContent>
                   </Card>
