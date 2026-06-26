@@ -41,8 +41,8 @@ export function PaymentForm({ serviceRequestId, amount, typeLabel }: { serviceRe
       notify.success("Payment uploaded successfully. Pending verification.");
       router.push("/tenant");
       router.refresh();
-    } catch (error: any) {
-      notify.error(error.message);
+    } catch (error: unknown) {
+      notify.error(error instanceof Error ? error.message : "Unknown error");
     } finally {
       setLoading(false);
     }

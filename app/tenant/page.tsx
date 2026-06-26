@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -340,10 +340,8 @@ export default function TenantDashboardPage() {
                     <p className="text-sm">You have an unpaid {req.type.replace(/_/g, ' ').toLowerCase()} of ₹{req.amount}. Please clear this immediately.</p>
                   </div>
                 </div>
-                <Link href={`/tenant/service-requests/${req.id}`} passHref>
-                  <Button className="shrink-0 bg-orange-600 hover:bg-orange-700 text-white shadow-sm">
-                    Pay Now
-                  </Button>
+                <Link href={`/tenant/service-requests/${req.id}`} className={buttonVariants({ variant: "default", className: "shrink-0 bg-orange-600 hover:bg-orange-700 text-white shadow-sm" })}>
+                  Pay Now
                 </Link>
               </div>
             ))}

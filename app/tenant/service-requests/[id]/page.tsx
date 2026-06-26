@@ -6,7 +6,7 @@ import { PaymentForm } from "./PaymentForm";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 function formatType(type: string) {
   return type.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
@@ -42,8 +42,8 @@ export default async function ServiceRequestPaymentPage(props: { params: Promise
           </div>
           <h1 className="text-2xl font-bold">Payment Already Uploaded</h1>
           <p className="text-muted-foreground">This service request is no longer pending payment. The warden will verify it soon.</p>
-          <Link href="/tenant" passHref>
-            <Button variant="outline" className="mt-4 w-full">Back to Dashboard</Button>
+          <Link href="/tenant" className={buttonVariants({ variant: "outline", className: "mt-4 w-full" })}>
+            Back to Dashboard
           </Link>
         </div>
       </div>
@@ -57,10 +57,8 @@ export default async function ServiceRequestPaymentPage(props: { params: Promise
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <header className="border-b bg-white/70 dark:bg-slate-900/70 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center">
-          <Link href="/tenant" passHref>
-            <Button variant="ghost" size="sm" className="mr-4">
-              <ArrowLeft className="h-4 w-4 mr-2" /> Back
-            </Button>
+          <Link href="/tenant" className={buttonVariants({ variant: "ghost", size: "sm", className: "mr-4" })}>
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Link>
           <h1 className="text-xl font-bold tracking-tight">Service Request</h1>
         </div>

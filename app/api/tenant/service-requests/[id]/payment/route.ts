@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { uploadToStorage } from "@/lib/storage";
 import { handleApiError } from "@/lib/errors";
 import { UserRole, PaymentMode, PaymentStatus, DocumentOwnerType, DocumentType, ServiceRequestStatus } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 
 export async function POST(
   request: NextRequest,
@@ -45,7 +46,21 @@ export async function POST(
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     
-    const ext = file.name.split(".").pop() || "jpg";
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: "File size must be less than 5MB" }, { status: 400 });
+    }
+
+    const allowedTypes: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'application/pdf': 'pdf'
+    };
+
+    const ext = allowedTypes[file.type];
+    if (!ext) {
+      return NextResponse.json({ error: "Invalid file type. Only JPEG, PNG, and PDF are allowed." }, { status: 400 });
+    }
+    
     const path = `payments/sr_${serviceRequest.id}_${Date.now()}.${ext}`;
     
     const storagePath = await uploadToStorage(buffer, path, file.type);
@@ -75,17 +90,27 @@ export async function POST(
         },
       });
       
-      await tx.serviceRequest.update({
-        where: { id: serviceRequest.id },
+      const updateResult = await tx.serviceRequest.updateMany({
+        where: { id: serviceRequest.id, status: ServiceRequestStatus.PENDING_PAYMENT },
         data: {
           status: ServiceRequestStatus.PAYMENT_UPLOADED,
           paymentId: payment.id,
         },
       });
+
+      if (updateResult.count === 0) {
+        throw new Error("CONFLICT_STATUS");
+      }
     });
     
+    revalidatePath('/tenant');
+    revalidatePath(`/tenant/service-requests/${id}`);
+
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof Error && error.message === "CONFLICT_STATUS") {
+      return NextResponse.json({ error: "Conflict: Service request status changed" }, { status: 409 });
+    }
     return handleApiError(error);
   }
 }
