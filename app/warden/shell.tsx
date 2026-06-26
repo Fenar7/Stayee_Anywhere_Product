@@ -15,7 +15,7 @@ export default function RoleShell({
 }) {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar role="WARDEN" userName={userName} />
+      <Sidebar role={role as any} userName={userName} />
       {/* Offset for mobile hamburger button */}
       <main className="flex-1 overflow-y-auto pt-14 lg:pt-0">
         {children}

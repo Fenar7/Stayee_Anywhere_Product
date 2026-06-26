@@ -108,6 +108,12 @@ const ROLE_LABELS: Record<Role, string> = {
   TENANT: "Tenant",
 };
 
+const ROLE_HOME: Record<Role, string> = {
+  MAIN_ADMIN: "/admin",
+  WARDEN: "/warden",
+  TENANT: "/tenant",
+};
+
 const ROLE_COLORS: Record<Role, string> = {
   MAIN_ADMIN: "bg-rose-500/15 text-rose-700 dark:text-rose-400",
   WARDEN: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
@@ -213,7 +219,7 @@ function SidebarContent({
       >
         {!collapsed && (
           <Link
-            href="/"
+            href={ROLE_HOME[role] || "/login"}
             className="flex items-center gap-2.5 min-w-0"
           >
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary">
@@ -227,7 +233,7 @@ function SidebarContent({
           </Link>
         )}
         {collapsed && (
-          <Link href="/">
+          <Link href={ROLE_HOME[role] || "/login"}>
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
               <span className="text-[11px] font-extrabold text-primary-foreground leading-none">
                 NH
