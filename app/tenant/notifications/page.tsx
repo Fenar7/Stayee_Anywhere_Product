@@ -16,7 +16,6 @@ import {
   CreditCard,
   FileText,
   Calendar,
-  AlertCircle,
   Inbox
 } from "lucide-react";
 import { notify } from "@/lib/toast";
@@ -122,18 +121,10 @@ export default function NotificationsPage() {
 
   const getNotificationIcon = (type: string) => {
     const t = type.toUpperCase();
-    if (t.includes("FOOD")) return <Utensils className="h-5 w-5 text-amber-500" />;
-    if (t.includes("PAY")) return <CreditCard className="h-5 w-5 text-blue-500" />;
-    if (t.includes("ONBOARD")) return <FileText className="h-5 w-5 text-emerald-500" />;
-    return <Bell className="h-5 w-5 text-violet-500" />;
-  };
-
-  const getNotificationBadgeColor = (type: string) => {
-    const t = type.toUpperCase();
-    if (t.includes("FOOD")) return "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20";
-    if (t.includes("PAY")) return "bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20";
-    if (t.includes("ONBOARD")) return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20";
-    return "bg-violet-500/10 text-violet-700 dark:text-violet-400 border border-violet-500/20";
+    if (t.includes("FOOD")) return <Utensils className="h-4 w-4 text-muted-foreground" />;
+    if (t.includes("PAY")) return <CreditCard className="h-4 w-4 text-muted-foreground" />;
+    if (t.includes("ONBOARD")) return <FileText className="h-4 w-4 text-muted-foreground" />;
+    return <Bell className="h-4 w-4 text-muted-foreground" />;
   };
 
   if (loading && notifications.length === 0) {
@@ -141,39 +132,37 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="container max-w-4xl py-8 space-y-6">
-      {/* Premium Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 p-6 md:p-8 text-white shadow-xl">
-        <div className="absolute right-0 top-0 h-32 w-32 -translate-y-4 translate-x-4 rounded-full bg-white/10 blur-xl" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-extrabold tracking-tight">Notifications Hub</h1>
-            <p className="text-indigo-100/90 text-sm font-medium">
-              Real-time updates about your stay, meal subscriptions, and billing transactions.
-            </p>
-          </div>
-          {notifications.some((n) => !n.read) && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleMarkAllAsRead}
-              className="self-start md:self-auto bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md font-semibold transition-all hover:scale-[1.02]"
-            >
-              <Check className="mr-1.5 h-4 w-4" />
-              Mark all read
-            </Button>
-          )}
+    <div className="mx-auto max-w-4xl py-8 px-4 md:px-8 space-y-6">
+      {/* Clean, Non-flashy Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-6">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Notifications</h1>
+          <p className="text-muted-foreground text-sm">
+            Stay updated with your stay, meals, and payments.
+          </p>
         </div>
+        
+        {notifications.some((n) => !n.read) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleMarkAllAsRead}
+            className="self-start md:self-auto transition-all hover:bg-muted"
+          >
+            <Check className="mr-1.5 h-4 w-4" />
+            Mark all read
+          </Button>
+        )}
       </div>
 
       {/* Control Tabs */}
-      <div className="flex items-center justify-between border-b pb-4">
+      <div className="flex items-center justify-between pb-2">
         <Tabs defaultValue="all" className="w-auto" onValueChange={(val) => setActiveTab(val as any)}>
-          <TabsList className="bg-muted/70 backdrop-blur-sm p-1 rounded-xl">
-            <TabsTrigger value="all" className="rounded-lg px-4 py-2 font-medium">
-              All Notifications ({notifications.length})
+          <TabsList className="bg-muted p-1 rounded-lg">
+            <TabsTrigger value="all" className="rounded-md px-3 py-1.5 text-xs font-semibold">
+              All ({notifications.length})
             </TabsTrigger>
-            <TabsTrigger value="unread" className="rounded-lg px-4 py-2 font-medium">
+            <TabsTrigger value="unread" className="rounded-md px-3 py-1.5 text-xs font-semibold">
               Unread ({notifications.filter((n) => !n.read).length})
             </TabsTrigger>
           </TabsList>
@@ -182,19 +171,19 @@ export default function NotificationsPage() {
 
       {/* Main List */}
       {filteredNotifications.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-16 text-center border-dashed rounded-3xl bg-muted/20 backdrop-blur-sm">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-violet-100 to-indigo-100 dark:from-violet-950/40 dark:to-indigo-950/40 mb-6 shadow-sm">
-            <Inbox className="h-8 w-8 text-indigo-600 dark:text-indigo-400 animate-pulse" />
+        <Card className="flex flex-col items-center justify-center p-16 text-center border rounded-2xl bg-card">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-4">
+            <Inbox className="h-5 w-5 text-muted-foreground" />
           </div>
-          <CardTitle className="text-xl font-bold tracking-tight text-foreground">You are all caught up!</CardTitle>
-          <CardDescription className="mt-2 max-w-sm text-muted-foreground/80 font-medium">
+          <CardTitle className="text-lg font-bold tracking-tight">You are all caught up!</CardTitle>
+          <CardDescription className="mt-1.5 max-w-sm text-muted-foreground">
             {activeTab === "unread" 
-              ? "There are no unread notifications right now. Check back later for updates." 
-              : "No notification alerts recorded yet. Stay tuned for future stay activities."}
+              ? "There are no unread notifications right now." 
+              : "No notification alerts recorded yet."}
           </CardDescription>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {filteredNotifications.map((notif) => {
             const dateStr = new Date(notif.createdAt).toLocaleString("en-IN", {
               day: "numeric",
@@ -206,35 +195,35 @@ export default function NotificationsPage() {
             return (
               <Card
                 key={notif.id}
-                className={`transition-all duration-200 rounded-2xl border-muted/80 hover:shadow-md hover:scale-[1.005] ${
+                className={`transition-all duration-150 rounded-xl border border-border hover:border-muted-foreground/30 ${
                   notif.read
-                    ? "bg-card/40 opacity-75"
-                    : "bg-gradient-to-r from-card to-indigo-50/5 dark:to-indigo-950/5 border-l-4 border-l-indigo-600 dark:border-l-indigo-400"
+                    ? "bg-card/70 opacity-80"
+                    : "bg-card border-l-2 border-l-primary"
                 }`}
               >
-                <CardContent className="p-5 md:p-6">
+                <CardContent className="p-4 md:p-5">
                   <div className="flex items-start gap-4">
-                    {/* Color-Coded Icon Block */}
-                    <div className={`p-3 rounded-2xl bg-muted/60 shrink-0`}>
+                    {/* Minimalist Icon Box */}
+                    <div className="p-2.5 rounded-lg bg-muted shrink-0">
                       {getNotificationIcon(notif.type)}
                     </div>
 
                     <div className="space-y-1 flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-foreground text-base tracking-tight leading-none">
+                        <span className="font-semibold text-foreground text-sm">
                           {notif.title}
                         </span>
-                        <Badge className={`text-[10px] py-0.5 px-2 font-semibold capitalize rounded-md ${getNotificationBadgeColor(notif.type)}`}>
+                        <Badge variant="outline" className="text-[10px] py-0 px-2 font-medium capitalize text-muted-foreground bg-muted/40">
                           {notif.type.replace(/_/g, " ").toLowerCase()}
                         </Badge>
                         {!notif.read && (
-                          <span className="h-2 w-2 rounded-full bg-indigo-600 animate-ping" title="Unread" />
+                          <span className="h-2 w-2 rounded-full bg-primary" title="Unread" />
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed pt-1">
+                      <p className="text-xs text-muted-foreground leading-relaxed pt-0.5">
                         {notif.message}
                       </p>
-                      <span className="text-xs text-muted-foreground/60 flex items-center gap-1 pt-1.5 font-medium">
+                      <span className="text-[10px] text-muted-foreground/60 flex items-center gap-1 pt-1 font-medium">
                         <Calendar className="h-3 w-3" />
                         {dateStr}
                       </span>
@@ -245,7 +234,7 @@ export default function NotificationsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="rounded-xl hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+                        className="rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground h-8 w-8"
                         title={notif.read ? "Mark as unread" : "Mark as read"}
                         onClick={() => handleMarkAsRead(notif.id, !notif.read)}
                         disabled={actioningId === notif.id}
@@ -261,7 +250,7 @@ export default function NotificationsPage() {
                         variant="ghost"
                         size="icon"
                         title="Delete Alert"
-                        className="rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        className="rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 w-8"
                         onClick={() => handleDismiss(notif.id)}
                         disabled={actioningId === notif.id}
                       >
