@@ -4,6 +4,7 @@ import { UserRole } from "@prisma/client";
 import { notFound } from "next/navigation";
 import StayDetailsPageView from "@/components/hostel-management/StayDetailsPageView";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { ResetPasswordButton } from "@/components/admin/ResetPasswordButton";
 
 export default async function AdminUserDetailsPage({
   params,
@@ -65,7 +66,10 @@ export default async function AdminUserDetailsPage({
       />
       <div className="p-6">
         <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <h3 className="text-xl font-bold mb-4">User Information</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold">User Information</h3>
+            <ResetPasswordButton userId={user.id} userPhone={user.phone} />
+          </div>
           <div className="space-y-4">
             <div>
               <span className="text-muted-foreground font-medium text-sm">Phone: </span>

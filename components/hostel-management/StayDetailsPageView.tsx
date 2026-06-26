@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { User, ArrowLeft, Download, FileText, CheckCircle2, MapPin, Phone, Mail, Building, Briefcase, Hash, Calendar, Layers, ShieldCheck, Utensils } from "lucide-react";
 import Link from "next/link";
 import { paiseToRupees } from "@/lib/money";
+import { ResetPasswordButton } from "@/components/admin/ResetPasswordButton";
 
 type StayData = any; // I'll type this properly or rely on any since it's a massive nested object from prisma
 
@@ -15,24 +16,29 @@ export default function StayDetailsPageView({ stay, baseRoute, backUrl }: { stay
   
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex items-center gap-4 mb-8">
-        <Link href={backUrl || `${baseRoute}/stays`}>
-          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent flex items-center gap-3">
-            {t.fullName}'s Profile
-            <span className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${stay.status === "ACTIVE" || stay.status === "EXTENDED" ? "bg-green-100 text-green-700 border-green-200" : "bg-muted text-muted-foreground border-border"}`}>
-              {stay.status}
-            </span>
-          </h1>
-          <p className="text-muted-foreground mt-1 flex items-center gap-2">
-            <MapPin className="h-3.5 w-3.5" /> 
-            Room {stay.bed.room.roomNumber} &middot; Bed {stay.bed.label} &middot; {stay.hostel.name}
-          </p>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <Link href={backUrl || `${baseRoute}/stays`}>
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full bg-muted/50 hover:bg-muted">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent flex items-center gap-3">
+              {t.fullName}'s Profile
+              <span className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${stay.status === "ACTIVE" || stay.status === "EXTENDED" ? "bg-green-100 text-green-700 border-green-200" : "bg-muted text-muted-foreground border-border"}`}>
+                {stay.status}
+              </span>
+            </h1>
+            <p className="text-muted-foreground mt-1 flex items-center gap-2">
+              <MapPin className="h-3.5 w-3.5" /> 
+              Room {stay.bed.room.roomNumber} &middot; Bed {stay.bed.label} &middot; {stay.hostel.name}
+            </p>
+          </div>
         </div>
+        {baseRoute === "/admin" && t.user && (
+          <ResetPasswordButton userId={t.user.id} userPhone={t.user.phone} />
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
