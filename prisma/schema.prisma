@@ -283,6 +283,8 @@ model Stay {
   securityDepositPaise Int
   foodChargesPaise     Int
   foodPlan             FoodPlan     @default(NOT_INCLUDED)
+  foodPlanStartDate    DateTime?
+  foodPlanEndDate      DateTime?
   totalPayablePaise    Int
   discountPaise        Int
   marketingExecutive   String?
@@ -343,6 +345,7 @@ model Payment {
   transactionRefNo     String?
   receivedBy           String?
   paymentStatus        PaymentStatus
+  notes                String?
   verifiedByUserId     String?
   verifiedByUser       User?         @relation("VerifiedPayments", fields: [verifiedByUserId], references: [id])
   verifiedAt           DateTime?
@@ -509,6 +512,7 @@ enum ServiceRequestStatus {
   PAYMENT_UPLOADED
   VERIFIED
   REJECTED
+  REVOKED
 }
 
 model ServiceRequest {

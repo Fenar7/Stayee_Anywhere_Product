@@ -7,6 +7,7 @@ import Link from "next/link";
 import { paiseToRupees } from "@/lib/money";
 import { ResetPasswordButton } from "@/components/admin/ResetPasswordButton";
 import { ServiceRequestModal } from "./ServiceRequestModal";
+import { RevokeFoodModal } from "./RevokeFoodModal";
 
 type StayData = any; // I'll type this properly or rely on any since it's a massive nested object from prisma
 
@@ -128,6 +129,9 @@ export default function StayDetailsPageView({ stay, baseRoute, backUrl }: { stay
                 <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Food Plan</p>
                 <p className="font-semibold flex items-center gap-1.5"><Utensils className="h-3.5 w-3.5 text-muted-foreground"/> {stay.foodPlan.replace("_", " ")}</p>
                 <ServiceRequestModal stayId={stay.id} tenantPhone={t.user?.phone} />
+                {stay.foodPlan !== "NOT_INCLUDED" && (
+                  <RevokeFoodModal stayId={stay.id} />
+                )}
               </div>
             </div>
 

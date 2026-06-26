@@ -28,6 +28,7 @@ interface PaymentItem {
   amountPaid: number;
   paymentMode: string;
   transactionRefNo: string | null;
+  notes?: string | null;
   paymentStatus: string;
   createdAt: string;
 }
@@ -81,6 +82,7 @@ interface ServiceRequestItem {
   amount: number;
   status: string;
   createdAt: string;
+  metadata?: any;
 }
 
 interface ApiResponse {
@@ -222,6 +224,9 @@ export default function TenantDashboardPage() {
 
   const remainingBalance = stay ? stay.totalPayable - verifiedPaid : 0;
 
+  const pendingRequests = pendingServiceRequests.filter((r) => r.status === "PENDING_PAYMENT");
+  const revokedRequests = pendingServiceRequests.filter((r) => r.status === "REVOKED");
+
   let daysUntilDue = null;
   if (nextDueDate) {
     const due = new Date(nextDueDate);
@@ -331,7 +336,7 @@ export default function TenantDashboardPage() {
         ) : (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* PENDING SERVICE REQUESTS BANNER */}
-            {pendingServiceRequests.map((req) => (
+            {pendingRequests.map((req) => (
               <div key={req.id} className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
                 <div className="flex items-center gap-3 text-orange-800 dark:text-orange-300">
                   <AlertCircle className="h-6 w-6 shrink-0" />
@@ -343,6 +348,24 @@ export default function TenantDashboardPage() {
                 <Link href={`/tenant/service-requests/${req.id}`} className={buttonVariants({ variant: "default", className: "shrink-0 bg-orange-600 hover:bg-orange-700 text-white shadow-sm" })}>
                   Pay Now
                 </Link>
+              </div>
+            ))}
+
+            {/* REVOKED SERVICE REQUESTS BANNER */}
+            {revokedRequests.map((req) => (
+              <div key={req.id} className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+                <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                <div className="flex-1 text-red-800 dark:text-red-300">
+                  <h4 className="font-semibold">Food Plan Revoked</h4>
+                  <p className="text-sm mt-0.5">
+                    Your request for a food plan upgrade has been revoked. A refund of <strong>₹{req.amount}</strong> was processed.
+                  </p>
+                  {req.metadata?.revocation?.reason && (
+                    <p className="text-xs mt-1.5 opacity-80 italic">
+                      Reason: {req.metadata.revocation.reason}
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
 
@@ -497,35 +520,49 @@ export default function TenantDashboardPage() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {payments.map((p) => (
-                                <TableRow key={p.id}>
-                                  <TableCell className="font-medium text-xs whitespace-nowrap">{formatDate(p.createdAt)}</TableCell>
-                                  <TableCell>₹ {p.amountPaid.toLocaleString("en-IN")}</TableCell>
-                                  <TableCell className="text-xs text-muted-foreground">{p.transactionRefNo || "-"}</TableCell>
-                                  <TableCell className="text-right">
-                                    {p.paymentStatus === "PAID" ? (
-                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Verified</Badge>
-                                    ) : p.paymentStatus === "PENDING" ? (
-                                      <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Verifying</Badge>
-                                    ) : (
-                                      <Badge variant="outline">{p.paymentStatus}</Badge>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    {p.paymentStatus === "PAID" && (
-                                      <a 
-                                        href={`/api/pdf/receipt/${p.id}`} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="text-xs font-medium text-primary hover:underline flex items-center justify-end gap-1"
-                                      >
-                                        <Download className="h-3 w-3" />
-                                        Receipt
-                                      </a>
-                                    )}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                              {payments.map((p) => {
+                                const isNegative = p.amountPaid < 0;
+                                return (
+                                  <TableRow key={p.id}>
+                                    <TableCell className="font-medium text-xs whitespace-nowrap">{formatDate(p.createdAt)}</TableCell>
+                                    <TableCell className={isNegative ? "text-red-600 dark:text-red-400 font-semibold" : ""}>
+                                      {isNegative ? `-₹ ${Math.abs(p.amountPaid).toLocaleString("en-IN")}` : `₹ ${p.amountPaid.toLocaleString("en-IN")}`}
+                                    </TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">
+                                      {p.transactionRefNo || "-"}
+                                      {isNegative && p.notes && (
+                                        <span className="block text-[10px] text-red-500 dark:text-red-400 mt-0.5 font-medium">
+                                          (Refund: {p.notes})
+                                        </span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {p.paymentStatus === "PAID" ? (
+                                        <Badge variant="outline" className={isNegative ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/20 dark:text-red-300 dark:border-red-900" : "bg-green-50 text-green-700 border-green-200"}>
+                                          {isNegative ? "Refunded" : "Verified"}
+                                        </Badge>
+                                      ) : p.paymentStatus === "PENDING" ? (
+                                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Verifying</Badge>
+                                      ) : (
+                                        <Badge variant="outline">{p.paymentStatus}</Badge>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {p.paymentStatus === "PAID" && !isNegative && (
+                                        <a 
+                                          href={`/api/pdf/receipt/${p.id}`} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-xs font-medium text-primary hover:underline flex items-center justify-end gap-1"
+                                        >
+                                          <Download className="h-3 w-3" />
+                                          Receipt
+                                        </a>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
                             </TableBody>
                           </Table>
                         </div>

@@ -10,6 +10,8 @@ const MetadataSchema = z.object({
   foodPlan: z.string().optional(),
   days: z.number().int().positive().optional(),
   addedFoodChargesPaise: z.number().int().nonnegative().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 });
 
 export async function POST(
@@ -74,7 +76,7 @@ export async function POST(
          return NextResponse.json({ error: "Invalid service request metadata" }, { status: 400 });
        }
        metadata = parsed.data;
-    }
+     }
 
     await prisma.$transaction(async (tx) => {
       // 1. Mark ServiceRequest as VERIFIED and check idempotency
@@ -105,11 +107,16 @@ export async function POST(
           ? serviceRequest.stay.foodChargesPaise + metadata.addedFoodChargesPaise
           : serviceRequest.stay.foodChargesPaise; // Fallback
         
+        const start = metadata.startDate ? new Date(metadata.startDate) : new Date();
+        const end = metadata.endDate ? new Date(metadata.endDate) : new Date();
+
         await tx.stay.update({
           where: { id: serviceRequest.stayId },
           data: {
             foodPlan: newFoodPlan,
             foodChargesPaise: newFoodChargesPaise,
+            foodPlanStartDate: start,
+            foodPlanEndDate: end,
             totalPayablePaise: { increment: serviceRequest.amountPaise },
           },
         });
