@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { uploadToStorage } from "@/lib/storage";
-import { handleApiError } from "@/lib/errors";
+import { handleApiError, ValidationError } from "@/lib/errors";
 import { UserRole, PaymentMode, PaymentStatus, DocumentOwnerType, DocumentType, ServiceRequestStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
@@ -36,61 +36,67 @@ export async function POST(
     }
 
     const formData = await request.formData();
-    const refNo = formData.get("transactionRefNo") as string;
-    const file = formData.get("screenshot") as File;
+    const rawMode = formData.get("paymentMode") as string || "UPI";
+    const paymentMode = rawMode === "CASH" ? PaymentMode.CASH : PaymentMode.UPI;
+    const refNo = formData.get("transactionRefNo") as string || null;
+    const file = formData.get("screenshot") as File | null;
     
-    if (!file || typeof file === "string") {
-      throw new Error("Invalid file upload payload");
-    }
-    
-    if (!refNo || !file) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-    
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: "File size must be less than 5MB" }, { status: 400 });
-    }
+    let storagePath: string | null = null;
+    let fileSize: number | null = null;
+    let fileType: string | null = null;
 
-    const allowedTypes: Record<string, string> = {
-      'image/jpeg': 'jpg',
-      'image/png': 'png',
-      'application/pdf': 'pdf'
-    };
+    if (paymentMode === PaymentMode.UPI && file && typeof file !== "string" && file.size > 0) {
+      fileSize = file.size;
+      fileType = file.type;
 
-    const ext = allowedTypes[file.type];
-    if (!ext) {
-      return NextResponse.json({ error: "Invalid file type. Only JPEG, PNG, and PDF are allowed." }, { status: 400 });
+      if (fileSize > 5 * 1024 * 1024) {
+        return NextResponse.json({ error: "File size must be less than 5MB" }, { status: 400 });
+      }
+
+      const allowedTypes: Record<string, string> = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'application/pdf': 'pdf'
+      };
+
+      const ext = allowedTypes[fileType];
+      if (!ext) {
+        return NextResponse.json({ error: "Invalid file type. Only JPEG, PNG, and PDF are allowed." }, { status: 400 });
+      }
+      
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const path = `payments/sr_${serviceRequest.id}_${Date.now()}.${ext}`;
+      storagePath = await uploadToStorage(buffer, path, fileType);
     }
-    
-    const path = `payments/sr_${serviceRequest.id}_${Date.now()}.${ext}`;
-    
-    const storagePath = await uploadToStorage(buffer, path, file.type);
     
     // Create Document, Payment, and update ServiceRequest in a transaction
     await prisma.$transaction(async (tx) => {
-      const document = await tx.document.create({
-        data: {
-          ownerType: DocumentOwnerType.STAY,
-          stayId: serviceRequest.stayId,
-          tenantId: tenant.id,
-          documentType: DocumentType.PAYMENT_SCREENSHOT,
-          storagePath,
-          fileSizeBytes: file.size,
-          uploadedByUserId: session.user.id,
-        },
-      });
+      let documentId: string | null = null;
+
+      if (storagePath && fileSize && fileType) {
+        const document = await tx.document.create({
+          data: {
+            ownerType: DocumentOwnerType.STAY,
+            stayId: serviceRequest.stayId,
+            tenantId: tenant.id,
+            documentType: DocumentType.PAYMENT_SCREENSHOT,
+            storagePath,
+            fileSizeBytes: fileSize,
+            uploadedByUserId: session.user.id,
+          },
+        });
+        documentId = document.id;
+      }
       
       const payment = await tx.payment.create({
         data: {
           stayId: serviceRequest.stayId,
           amountPaidPaise: serviceRequest.amountPaise,
-          paymentMode: PaymentMode.UPI,
-          transactionRefNo: refNo,
+          paymentMode,
+          transactionRefNo: refNo || null,
           paymentStatus: PaymentStatus.PENDING,
-          screenshotDocumentId: document.id,
+          screenshotDocumentId: documentId,
         },
       });
       

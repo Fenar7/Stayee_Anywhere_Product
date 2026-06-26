@@ -99,7 +99,7 @@ export async function POST(
       }
 
       // 3. Update Stay record if applicable
-      if (serviceRequest.type === ServiceRequestType.FOOD_UPGRADE && metadata?.foodPlan) {
+      if (serviceRequest.type === ServiceRequestType.FOOD_PLAN_UPGRADE && metadata?.foodPlan) {
         const newFoodPlan = metadata.foodPlan as FoodPlan;
         const newFoodChargesPaise = metadata.addedFoodChargesPaise 
           ? serviceRequest.stay.foodChargesPaise + metadata.addedFoodChargesPaise

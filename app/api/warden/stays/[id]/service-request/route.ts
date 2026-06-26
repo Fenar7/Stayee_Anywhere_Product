@@ -14,6 +14,8 @@ const createServiceRequestSchema = z.object({
   metadata: z.object({
     foodPlan: z.string(),
     days: z.number().int().positive(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
   }),
 });
 
@@ -76,6 +78,7 @@ export async function POST(
       serviceRequest,
     });
   } catch (error) {
+    console.error("DEBUG - Error in service-request POST:", error);
     return handleApiError(error);
   }
 }

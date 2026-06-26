@@ -17,8 +17,20 @@ export function ServiceRequestModal({ stayId, tenantPhone }: { stayId: string; t
   const [foodType, setFoodType] = useState("BREAKFAST_DINNER");
   const [duration, setDuration] = useState("30");
   const [amount, setAmount] = useState("");
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [generatedLink, setGeneratedLink] = useState("");
   const [paymentLink, setPaymentLink] = useState("");
+
+  const getEndDate = (start: string, daysStr: string) => {
+    if (!start || !daysStr) return "";
+    const days = parseInt(daysStr, 10);
+    if (isNaN(days) || days <= 0) return "";
+    const date = new Date(start);
+    date.setDate(date.getDate() + days);
+    return date.toISOString().split("T")[0];
+  };
+
+  const endDate = getEndDate(startDate, duration);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +46,8 @@ export function ServiceRequestModal({ stayId, tenantPhone }: { stayId: string; t
           metadata: {
             foodPlan: foodType,
             days: parseInt(duration, 10),
+            startDate,
+            endDate,
           },
         }),
       });
@@ -53,7 +67,7 @@ export function ServiceRequestModal({ stayId, tenantPhone }: { stayId: string; t
       const exactPaymentLink = `${siteUrl}/tenant/service-requests/${data.serviceRequest.id}`;
       setPaymentLink(exactPaymentLink);
 
-      const text = `Hi, your request for a Food Plan Upgrade (${foodType.replace("_", " ")}) for ${duration} days has been initiated. Please pay ₹${amount} and upload proof here: ${exactPaymentLink}`;
+      const text = `Hi, your request for a Food Plan Upgrade (${foodType.replace("_", " ")}) for ${duration} days (from ${startDate} to ${endDate}) has been initiated. Please pay ₹${amount} and upload proof here: ${exactPaymentLink}`;
       
       if (tenantPhone) {
         let phoneNum = tenantPhone.replace(/[^0-9]/g, "");
@@ -112,6 +126,27 @@ export function ServiceRequestModal({ stayId, tenantPhone }: { stayId: string; t
                 onChange={(e) => setDuration(e.target.value)} 
                 required 
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <Input 
+                  type="date" 
+                  value={startDate} 
+                  onChange={(e) => setStartDate(e.target.value)} 
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>End Date</Label>
+                <Input 
+                  type="date" 
+                  value={endDate} 
+                  disabled 
+                  className="bg-muted text-muted-foreground cursor-not-allowed"
+                />
+              </div>
             </div>
             
             <div className="space-y-2">

@@ -26,7 +26,17 @@ export default async function ServiceRequestPaymentPage(props: { params: Promise
 
   const serviceRequest = await prisma.serviceRequest.findUnique({
     where: { id },
-    include: { stay: true },
+    include: {
+      stay: {
+        include: {
+          hostel: {
+            include: {
+              paymentConfig: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   if (!serviceRequest || serviceRequest.stay.tenantId !== tenant.id) {
@@ -53,6 +63,15 @@ export default async function ServiceRequestPaymentPage(props: { params: Promise
   const amount = paiseToRupees(serviceRequest.amountPaise);
   const typeLabel = formatType(serviceRequest.type);
 
+  // Parse metadata for ad-hoc details
+  interface ServiceRequestMetadata {
+    foodPlan?: string;
+    days?: number;
+    startDate?: string;
+    endDate?: string;
+  }
+  const metadata = (serviceRequest.metadata as ServiceRequestMetadata) || {};
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <header className="border-b bg-white/70 dark:bg-slate-900/70 backdrop-blur-md sticky top-0 z-50">
@@ -64,7 +83,18 @@ export default async function ServiceRequestPaymentPage(props: { params: Promise
         </div>
       </header>
       <main className="max-w-5xl mx-auto px-4 py-12">
-        <PaymentForm serviceRequestId={id} amount={amount} typeLabel={typeLabel} />
+        <PaymentForm
+          serviceRequestId={id}
+          amount={amount}
+          typeLabel={typeLabel}
+          hostelName={serviceRequest.stay.hostel.name}
+          upiId={serviceRequest.stay.hostel.paymentConfig?.upiId || null}
+          qrCodePath={serviceRequest.stay.hostel.paymentConfig?.qrCodePath || null}
+          foodPlan={metadata.foodPlan || null}
+          durationDays={metadata.days || null}
+          startDate={metadata.startDate || null}
+          endDate={metadata.endDate || null}
+        />
       </main>
     </div>
   );
