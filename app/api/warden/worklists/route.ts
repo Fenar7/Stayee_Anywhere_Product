@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const endOf14Days = addDays(todayStart, 14);
     endOf14Days.setHours(23, 59, 59, 999);
 
-    const [rentDueStays, paymentsPending, applicationsPending] = await Promise.all([
+    const [rentDueStays, paymentsPending, applicationsPending, serviceRequestsPending] = await Promise.all([
       // 1. Active/Extended stays with checkout within 14 days
       prisma.stay.findMany({
         where: {
@@ -99,6 +99,34 @@ export async function GET(request: NextRequest) {
         },
         orderBy: { createdAt: "asc" },
       }),
+
+      // 4. Service requests with uploaded payment screenshots
+      prisma.serviceRequest.findMany({
+        where: {
+          status: "PAYMENT_UPLOADED",
+          stay: {
+            hostelId,
+          },
+        },
+        include: {
+          stay: {
+            include: {
+              tenant: {
+                select: { fullName: true, id: true },
+              },
+              bed: {
+                include: { room: true },
+              },
+            },
+          },
+          payment: {
+            include: {
+              screenshotDocument: true,
+            },
+          },
+        },
+        orderBy: { updatedAt: "asc" },
+      }),
     ]);
 
     // Enrich rent due stays with days remaining and rent amount
@@ -169,10 +197,28 @@ export async function GET(request: NextRequest) {
       },
     }));
 
+    const enrichedServiceRequests = serviceRequestsPending.map((sr) => ({
+      id: sr.id,
+      type: sr.type,
+      amount: sr.amountPaise / 100,
+      metadata: sr.metadata,
+      stay: {
+        id: sr.stay.id,
+        tenantName: sr.stay.tenant.fullName,
+        bedLabel: sr.stay.bed.label,
+        roomNumber: sr.stay.bed.room.roomNumber,
+      },
+      payment: sr.payment ? {
+        id: sr.payment.id,
+        screenshotDocumentId: sr.payment.screenshotDocumentId,
+      } : null,
+    }));
+
     return NextResponse.json({
       rentDueStays: enrichedRentDue,
       paymentsPending: enrichedPayments,
       applicationsPending: enrichedApplications,
+      serviceRequestsPending: enrichedServiceRequests,
     });
   } catch (error) {
     return handleApiError(error);
