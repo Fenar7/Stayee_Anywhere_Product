@@ -64,23 +64,25 @@ export async function POST(request: NextRequest) {
     const supabase = await createSupabaseServerClient();
     
     // 2. Fetch the exact phone/email from Supabase using their Auth ID to ensure we use the exact string Supabase expects
+    // Note: We always prefer EMAIL here, even if they logged in with their phone number, 
+    // because Phone Auth is often disabled in Supabase project settings.
     let authIdentifier = {};
     if (dbUser.supabaseAuthId) {
       const { data: authDataObj } = await createAdminClient().auth.admin.getUserById(dbUser.supabaseAuthId);
       if (authDataObj?.user) {
-        if (isEmail && authDataObj.user.email) {
+        if (authDataObj.user.email) {
           authIdentifier = { email: authDataObj.user.email };
         } else if (authDataObj.user.phone) {
           authIdentifier = { phone: authDataObj.user.phone };
         } else {
           // fallback
-          authIdentifier = isEmail ? { email: dbUser.email! } : { phone: dbUser.phone };
+          authIdentifier = dbUser.email ? { email: dbUser.email } : { phone: dbUser.phone };
         }
       } else {
-        authIdentifier = isEmail ? { email: dbUser.email! } : { phone: dbUser.phone };
+        authIdentifier = dbUser.email ? { email: dbUser.email } : { phone: dbUser.phone };
       }
     } else {
-      authIdentifier = isEmail ? { email: dbUser.email! } : { phone: dbUser.phone };
+      authIdentifier = dbUser.email ? { email: dbUser.email } : { phone: dbUser.phone };
     }
 
     const { data, error } = await supabase.auth.signInWithPassword({
