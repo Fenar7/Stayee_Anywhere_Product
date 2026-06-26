@@ -10,6 +10,7 @@ const ROLE_HIERARCHY: Record<string, UserRole> = {
   "/warden": UserRole.WARDEN,
   "/api/warden": UserRole.WARDEN,
   "/tenant": UserRole.TENANT,
+  "/api/tenant": UserRole.TENANT,
 };
 
 const PUBLIC_ROUTES = ["/login", "/set-password"];

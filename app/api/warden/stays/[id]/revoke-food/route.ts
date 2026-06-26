@@ -6,6 +6,7 @@ import { handleApiError, NotFoundError, ForbiddenError, ValidationError } from "
 import { rupeesToPaise, paiseToRupees } from "@/lib/money";
 import { UserRole, PaymentMode, PaymentStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { createNotification } from "@/lib/notifications/trigger";
 import { differenceInCalendarDays } from "date-fns";
 
 export async function GET(
@@ -117,6 +118,7 @@ export async function POST(
 
     const stay = await prisma.stay.findUnique({
       where: { id: stayId },
+      include: { tenant: true },
     });
 
     if (!stay) {
@@ -208,6 +210,15 @@ export async function POST(
         },
       });
     });
+
+    if (stay.tenant?.userId) {
+      await createNotification({
+        userId: stay.tenant.userId,
+        title: "Food Plan Revoked",
+        message: `Your food plan upgrade has been revoked. Refund processed: ₹${refundAmount}. Reason: ${reason}`,
+        type: "FOOD_PLAN",
+      });
+    }
 
     revalidatePath(`/admin/hostels/${stay.hostelId}/stays/${stay.id}`);
     revalidatePath(`/warden/stays/${stay.id}`);

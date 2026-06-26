@@ -20,6 +20,7 @@ import {
   X,
   UserPlus,
   Bed,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -97,6 +98,7 @@ const NAV_CONFIG: Record<Role, NavGroup[]> = {
       items: [
         { label: "My Stay", href: "/tenant", icon: Home },
         { label: "Food Orders", href: "/tenant/food", icon: Utensils },
+        { label: "Notifications", href: "/tenant/notifications", icon: Bell },
       ],
     },
   ],
@@ -197,6 +199,13 @@ function SidebarContent({
     { refreshInterval: 60000, dedupingInterval: 10000 }
   );
 
+  const { data: tenantNotifications } = useSWR(
+    role === "TENANT" ? "/api/tenant/notifications" : null,
+    (url: string) => fetch(url).then(res => res.json()),
+    { refreshInterval: 15000, dedupingInterval: 5000 }
+  );
+  const unreadCount = tenantNotifications?.notifications?.filter((n: any) => !n.read).length ?? 0;
+
 
 
   const handleLogout = useCallback(async () => {
@@ -285,7 +294,8 @@ function SidebarContent({
                   pathname={pathname}
                   badge={
                     item.label === "Onboards" ? counts.pendingReviews + counts.pendingPayments :
-                    item.label === "Worklists" ? counts.rentDueSoon : 0
+                    item.label === "Worklists" ? counts.rentDueSoon :
+                    item.label === "Notifications" ? unreadCount : 0
                   }
                 />
               ))}
