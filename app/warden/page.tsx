@@ -1,6 +1,7 @@
 import HostelDashboardView from "@/components/hostel-management/HostelDashboardView";
 import { requireRole } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
+import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -12,14 +13,23 @@ export default async function WardenPage({
   const { hostelId: queryHostelId } = await searchParams;
   const { user } = await requireRole([UserRole.WARDEN]);
 
-  // Fallback if warden doesn't have a hostelId (which shouldn't happen if properly provisioned)
-  const hostelId = user.warden?.hostelId ?? null;
+  // Use the query parameter hostelId first, then the Warden's assigned hostelId
+  let hostelId = queryHostelId || user.warden?.hostelId || null;
+
+  // If the user is MAIN_ADMIN and no hostelId is specified, default to the first hostel in their organization
+  if (!hostelId && user.role === UserRole.MAIN_ADMIN) {
+    const firstHostel = await prisma.hostel.findFirst({
+      where: { organizationId: user.organizationId },
+      select: { id: true },
+    });
+    hostelId = firstHostel?.id ?? null;
+  }
 
   return (
     <HostelDashboardView 
       hostelId={hostelId} 
       baseRoute="/warden" 
-      userRole="WARDEN" 
+      userRole={user.role as "MAIN_ADMIN" | "WARDEN"} 
     />
   );
 }
