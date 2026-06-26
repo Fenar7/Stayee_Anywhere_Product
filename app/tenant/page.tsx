@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +75,14 @@ interface HostelPaymentConfig {
   qrCodeUrl: string | null;
 }
 
+interface ServiceRequestItem {
+  id: string;
+  type: string;
+  amount: number;
+  status: string;
+  createdAt: string;
+}
+
 interface ApiResponse {
   tenant: TenantDetails | null;
   stay: StayDetails | null;
@@ -83,6 +91,7 @@ interface ApiResponse {
   payments: PaymentItem[];
   roommates: RoommateDetails[];
   nextDueDate: string | null;
+  pendingServiceRequests?: ServiceRequestItem[];
 }
 
 function formatDate(dateStr: string) {
@@ -108,6 +117,7 @@ export default function TenantDashboardPage() {
   const [payments, setPayments] = useState<PaymentItem[]>([]);
   const [roommates, setRoommates] = useState<RoommateDetails[]>([]);
   const [nextDueDate, setNextDueDate] = useState<string | null>(null);
+  const [pendingServiceRequests, setPendingServiceRequests] = useState<ServiceRequestItem[]>([]);
 
   const [paymentConfig, setHostelPaymentConfig] = useState<import("@prisma/client").HostelPaymentConfig | null>(null);
 
@@ -130,6 +140,7 @@ export default function TenantDashboardPage() {
       setPayments(data.payments || []);
       setRoommates(data.roommates || []);
       setNextDueDate(data.nextDueDate || null);
+      setPendingServiceRequests(data.pendingServiceRequests || []);
 
       if (data.hostel?.id) {
         try {
@@ -319,6 +330,22 @@ export default function TenantDashboardPage() {
           </div>
         ) : (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* PENDING SERVICE REQUESTS BANNER */}
+            {pendingServiceRequests.map((req) => (
+              <div key={req.id} className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                <div className="flex items-center gap-3 text-orange-800 dark:text-orange-300">
+                  <AlertCircle className="h-6 w-6 shrink-0" />
+                  <div>
+                    <h4 className="font-semibold">Pending Payment Required</h4>
+                    <p className="text-sm">You have an unpaid {req.type.replace(/_/g, ' ').toLowerCase()} of ₹{req.amount}. Please clear this immediately.</p>
+                  </div>
+                </div>
+                <Link href={`/tenant/service-requests/${req.id}`} className={buttonVariants({ variant: "default", className: "shrink-0 bg-orange-600 hover:bg-orange-700 text-white shadow-sm" })}>
+                  Pay Now
+                </Link>
+              </div>
+            ))}
+
             {/* HERO CARD */}
             <Card className="overflow-hidden border-0 shadow-xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 ring-1 ring-border/50">
               <div className="h-32 bg-gradient-to-r from-primary/80 to-blue-600/80"></div>
@@ -573,10 +600,8 @@ export default function TenantDashboardPage() {
                           Manage your breakfast, lunch, and dinner preferences for the upcoming week.
                         </p>
                       </div>
-                      <Link href="/tenant/food" passHref>
-                        <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-white rounded-full px-8 shadow-md mt-4 text-base font-semibold">
-                          Manage Food Orders
-                        </Button>
+                      <Link href="/tenant/food" className={buttonVariants({ size: "lg", className: "bg-amber-600 hover:bg-amber-700 text-white rounded-full px-8 shadow-md mt-4 text-base font-semibold" })}>
+                        Manage Food Orders
                       </Link>
                     </CardContent>
                   </Card>

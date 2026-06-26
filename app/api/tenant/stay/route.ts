@@ -5,7 +5,7 @@ import { handleApiError } from "@/lib/errors";
 import { getSignedUrl } from "@/lib/storage";
 import { paiseToRupees } from "@/lib/money";
 import { calculateMonthlyNextDueDate } from "@/lib/dates";
-import { UserRole, StayStatus, DurationType, PaymentStatus } from "@prisma/client";
+import { UserRole, StayStatus, DurationType, PaymentStatus, ServiceRequestStatus } from "@prisma/client";
 
 const STAY_PRIORITY_STATUSES = [StayStatus.ACTIVE, StayStatus.EXTENDED];
 const FALLBACK_STATUSES = [StayStatus.APPROVED_AWAITING_PAYMENT, StayStatus.ONBOARDING_PENDING];
@@ -17,6 +17,11 @@ const stayQueryInclude = {
     },
   },
   payments: true,
+  serviceRequests: {
+    where: {
+      status: ServiceRequestStatus.PENDING_PAYMENT,
+    },
+  },
 } as const;
 
 function calculateNextDueDate(
@@ -212,6 +217,13 @@ export async function GET(request: NextRequest) {
       })),
       roommates,
       nextDueDate,
+      pendingServiceRequests: stay.serviceRequests.map((sr) => ({
+        id: sr.id,
+        type: sr.type,
+        amount: paiseToRupees(sr.amountPaise),
+        status: sr.status,
+        createdAt: sr.createdAt,
+      })),
     });
   } catch (error) {
     return handleApiError(error);
