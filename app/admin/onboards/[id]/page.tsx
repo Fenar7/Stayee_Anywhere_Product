@@ -2,11 +2,11 @@ import OnboardDetailsPageView from "@/components/hostel-management/OnboardDetail
 
 export const dynamic = "force-dynamic";
 
-export default async function WardenOnboardDetailPage({
+export default async function AdminOnboardDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <OnboardDetailsPageView stayId={id} backUrl="/warden/onboards" />;
+  return <OnboardDetailsPageView stayId={id} backUrl="/admin/onboards" />;
 }
