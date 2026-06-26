@@ -4,6 +4,7 @@ import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ForbiddenError, ValidationError } from "@/lib/errors";
 import { UserRole, StayStatus, BedStatus } from "@prisma/client";
+import { createNotification } from "@/lib/notifications/trigger";
 
 export async function POST(
   request: NextRequest,
@@ -15,6 +16,7 @@ export async function POST(
 
     const stay = await prisma.stay.findUnique({
       where: { id },
+      include: { tenant: true },
     });
 
     if (!stay) {
@@ -62,6 +64,15 @@ export async function POST(
         },
       });
     });
+
+    if (stay.tenant?.userId) {
+      await createNotification({
+        userId: stay.tenant.userId,
+        title: "Onboarding Rejected",
+        message: "Your onboarding application has been rejected by the warden.",
+        type: "ONBOARDING",
+      });
+    }
 
     return NextResponse.json({
       success: true,

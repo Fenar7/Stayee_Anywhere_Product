@@ -5,6 +5,7 @@ import { handleApiError } from "@/lib/errors";
 import { UserRole, ServiceRequestStatus, PaymentStatus, FoodPlan, ServiceRequestType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { createNotification } from "@/lib/notifications/trigger";
 
 const MetadataSchema = z.object({
   foodPlan: z.string().optional(),
@@ -32,7 +33,11 @@ export async function POST(
       where: { id },
       include: {
         payment: true,
-        stay: true,
+        stay: {
+          include: {
+            tenant: true,
+          },
+        },
       },
     });
 
@@ -60,6 +65,15 @@ export async function POST(
             paymentStatus: PaymentStatus.PENDING,
             screenshotDocumentId: null, // Clear the rejected screenshot if needed, or leave it
           },
+        });
+      }
+
+      if (serviceRequest.stay.tenant?.userId) {
+        await createNotification({
+          userId: serviceRequest.stay.tenant.userId,
+          title: "Payment Rejected",
+          message: `Your payment for ${serviceRequest.type.replace(/_/g, " ").toLowerCase()} has been rejected by the warden.`,
+          type: "PAYMENT",
         });
       }
 
@@ -130,6 +144,15 @@ export async function POST(
         });
       }
     });
+
+    if (serviceRequest.stay.tenant?.userId) {
+      await createNotification({
+        userId: serviceRequest.stay.tenant.userId,
+        title: "Payment Verified",
+        message: `Your payment for ${serviceRequest.type.replace(/_/g, " ").toLowerCase()} has been verified.`,
+        type: "PAYMENT",
+      });
+    }
 
     revalidatePath("/warden/worklists");
     revalidatePath(`/warden/service-requests/${id}`);

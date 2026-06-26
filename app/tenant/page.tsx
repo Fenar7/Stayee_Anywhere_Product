@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, LogOut, Clock, CalendarDays, Building2, BedSingle, AlertCircle, CheckCircle, Upload, UtensilsCrossed, Calendar, CreditCard, Download } from "lucide-react";
+import { Loader2, LogOut, Clock, CalendarDays, Building2, BedSingle, AlertCircle, CheckCircle, Upload, UtensilsCrossed, Calendar, CreditCard, Download, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { notify } from "@/lib/toast";
@@ -122,6 +122,7 @@ export default function TenantDashboardPage() {
   const [pendingServiceRequests, setPendingServiceRequests] = useState<ServiceRequestItem[]>([]);
 
   const [paymentConfig, setHostelPaymentConfig] = useState<import("@prisma/client").HostelPaymentConfig | null>(null);
+  const [homeNotifications, setHomeNotifications] = useState<any[]>([]);
 
   // Upload Payment State
   const [uploadAmount, setUploadAmount] = useState("");
@@ -160,8 +161,35 @@ export default function TenantDashboardPage() {
     }
   };
 
+  const fetchHomeNotifications = async () => {
+    try {
+      const res = await fetch("/api/tenant/notifications");
+      if (res.ok) {
+        const json = await res.json();
+        const filtered = (json.notifications || []).filter(
+          (n: any) => !n.read && !n.dismissedFromHome
+        );
+        setHomeNotifications(filtered);
+      }
+    } catch { /* non-critical */ }
+  };
+
+  const handleDismissNotification = async (id: string) => {
+    try {
+      setHomeNotifications((prev) => prev.filter((n) => n.id !== id));
+      await fetch(`/api/tenant/notifications/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dismissedFromHome: true }),
+      });
+    } catch (err) {
+      console.error("Failed to dismiss notification", err);
+    }
+  };
+
   useEffect(() => {
     fetchStayDetails();
+    fetchHomeNotifications();
   }, []);
 
   const handleLogout = async () => {
@@ -252,6 +280,33 @@ export default function TenantDashboardPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+        {homeNotifications.length > 0 && (
+          <div className="space-y-3">
+            {homeNotifications.map((notif) => (
+              <div
+                key={notif.id}
+                className="relative flex items-start gap-4 p-4 rounded-xl border bg-card shadow-sm border-l-4 border-l-primary"
+              >
+                <div className="flex-1 pr-8">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-sm">{notif.title}</span>
+                    <Badge variant="secondary" className="text-[9px] py-0 px-1.5 uppercase font-medium">
+                      {notif.type.replace(/_/g, " ").toLowerCase()}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{notif.message}</p>
+                </div>
+                <button
+                  onClick={() => handleDismissNotification(notif.id)}
+                  className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
+                  aria-label="Dismiss"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         {!stay ? (
           <div className="max-w-md mx-auto border rounded-2xl bg-card p-10 shadow-sm text-center space-y-4">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted text-muted-foreground text-3xl">

@@ -7,6 +7,7 @@ import { rupeesToPaise } from "@/lib/money";
 import { UserRole, ServiceRequestType } from "@prisma/client";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { createNotification } from "@/lib/notifications/trigger";
 
 const createServiceRequestSchema = z.object({
   type: z.nativeEnum(ServiceRequestType),
@@ -32,6 +33,7 @@ export async function POST(
 
     const stay = await prisma.stay.findUnique({
       where: { id: stayId },
+      include: { tenant: true },
     });
 
     if (!stay) {
@@ -69,6 +71,15 @@ export async function POST(
         status: "PENDING_PAYMENT",
       },
     });
+
+    if (stay.tenant?.userId) {
+      await createNotification({
+        userId: stay.tenant.userId,
+        title: "Action Required: Payment Pending",
+        message: `A new request for ${validatedData.type.replace(/_/g, " ")} has been created. Amount: ₹${validatedData.amount}. Please complete the payment.`,
+        type: "PAYMENT",
+      });
+    }
 
     revalidatePath(`/admin/hostels/${stay.hostelId}/stays/${stay.id}`);
     revalidatePath(`/warden/stays/${stay.id}`);
