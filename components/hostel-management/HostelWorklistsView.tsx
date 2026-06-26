@@ -74,7 +74,24 @@ interface ApplicationPendingStay {
   };
 }
 
-type TabKey = "rent" | "payments" | "applications";
+interface ServiceRequestPending {
+  id: string;
+  type: string;
+  amount: number;
+  metadata: any;
+  stay: {
+    id: string;
+    tenantName: string;
+    bedLabel: string;
+    roomNumber: string;
+  };
+  payment: {
+    id: string;
+    screenshotDocumentId: string | null;
+  } | null;
+}
+
+type TabKey = "rent" | "payments" | "applications" | "adhoc";
 
 export default function HostelWorklistsView({
   hostelId,
@@ -91,6 +108,7 @@ export default function HostelWorklistsView({
   const [rentDueStays, setRentDueStays] = useState<RentDueStay[]>([]);
   const [paymentsPending, setPaymentsPending] = useState<PaymentPendingStay[]>([]);
   const [applicationsPending, setApplicationsPending] = useState<ApplicationPendingStay[]>([]);
+  const [serviceRequestsPending, setServiceRequestsPending] = useState<ServiceRequestPending[]>([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -105,6 +123,7 @@ export default function HostelWorklistsView({
       setRentDueStays(data.rentDueStays);
       setPaymentsPending(data.paymentsPending);
       setApplicationsPending(data.applicationsPending);
+      setServiceRequestsPending(data.serviceRequestsPending || []);
     } catch (err: unknown) {
       notify.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -141,6 +160,7 @@ export default function HostelWorklistsView({
     { key: "rent", label: "Rent Due Soon", count: rentDueStays.length, icon: <Clock className="h-4 w-4" /> },
     { key: "payments", label: "Pending Verification", count: paymentsPending.length, icon: <CreditCard className="h-4 w-4" /> },
     { key: "applications", label: "Applications", count: applicationsPending.length, icon: <ClipboardList className="h-4 w-4" /> },
+    { key: "adhoc", label: "Pending Ad-Hoc Payments", count: serviceRequestsPending.length, icon: <CreditCard className="h-4 w-4" /> },
   ];
 
   if (loading) {
@@ -337,6 +357,46 @@ export default function HostelWorklistsView({
                     >
                       <FileText className="h-3.5 w-3.5" />
                       Review Application
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Pending Ad-Hoc Payments */}
+        {activeTab === "adhoc" && (
+          <div className="p-6 space-y-4">
+            <h2 className="text-lg font-semibold">Pending Ad-Hoc Payments</h2>
+            {serviceRequestsPending.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">
+                No ad-hoc payments pending verification.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {serviceRequestsPending.map((sr) => (
+                  <div
+                    key={sr.id}
+                    className="flex items-center justify-between rounded-lg border p-4"
+                  >
+                    <div className="space-y-1">
+                      <p className="font-medium">{sr.stay.tenantName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Room {sr.stay.roomNumber} &middot; Bed {sr.stay.bedLabel}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Type: {sr.type.replace(/_/g, " ")} &middot; Amount: ₹{sr.amount.toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => router.push(`${baseRoute}/service-requests/${sr.id}`)}
+                      size="sm"
+                      variant="outline"
+                      className="flex items-center gap-1.5"
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      Verify Ad-Hoc
                     </Button>
                   </div>
                 ))}
