@@ -6,6 +6,7 @@ import { handleApiError, NotFoundError, ForbiddenError, ValidationError } from "
 import { rupeesToPaise, paiseToRupees } from "@/lib/money";
 import { UserRole, PaymentMode, PaymentStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { differenceInCalendarDays } from "date-fns";
 
 export async function GET(
   request: NextRequest,
@@ -63,13 +64,12 @@ export async function GET(
     const end = new Date(stay.foodPlanEndDate);
     const today = new Date();
 
-    // Reset times to compare dates only
+    // Reset times to compare calendar dates safely
     start.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
+    end.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
 
-    const totalMs = end.getTime() - start.getTime();
-    const totalDays = Math.max(1, Math.round(totalMs / (1000 * 60 * 60 * 24)));
+    const totalDays = Math.max(1, differenceInCalendarDays(end, start));
 
     let unusedDays = 0;
     if (today < start) {
@@ -77,8 +77,7 @@ export async function GET(
     } else if (today > end) {
       unusedDays = 0;
     } else {
-      const elapsedMs = today.getTime() - start.getTime();
-      const elapsedDays = Math.floor(elapsedMs / (1000 * 60 * 60 * 24));
+      const elapsedDays = differenceInCalendarDays(today, start);
       unusedDays = Math.max(0, totalDays - elapsedDays);
     }
 
@@ -134,6 +133,8 @@ export async function POST(
       throw new ValidationError("Stay does not have an active food plan upgrade");
     }
 
+    const refundPaise = rupeesToPaise(refundAmount);
+
     await prisma.$transaction(async (tx) => {
       // 1. Find the latest verified ServiceRequest for FOOD_PLAN_UPGRADE on this stay
       const latestUpgradeRequest = await tx.serviceRequest.findFirst({
@@ -145,26 +146,31 @@ export async function POST(
         orderBy: { createdAt: "desc" },
       });
 
-      let foodChargesReduction = 0;
-      if (latestUpgradeRequest && latestUpgradeRequest.metadata) {
-        const meta = latestUpgradeRequest.metadata as any;
-        if (typeof meta.addedFoodChargesPaise === "number") {
-          foodChargesReduction = meta.addedFoodChargesPaise;
-        }
+      if (!latestUpgradeRequest) {
+        throw new ValidationError("No verified food upgrade request found for this stay");
       }
 
-      const newFoodCharges = Math.max(0, stay.foodChargesPaise - foodChargesReduction);
+      // Assert that refundAmount does not exceed the paid amount
+      if (refundPaise > latestUpgradeRequest.amountPaise) {
+        throw new ValidationError(
+          `Refund amount (₹${refundAmount}) cannot exceed the amount paid for the upgrade (₹${paiseToRupees(
+            latestUpgradeRequest.amountPaise
+          )})`
+        );
+      }
 
-      // 2. Revert foodPlan, clear foodPlanStartDate & foodPlanEndDate, reduce foodChargesPaise, and decrement totalPayablePaise
+      // 2. Revert foodPlan, clear validity dates, decrement foodChargesPaise and totalPayablePaise by the refund amount
       await tx.stay.update({
         where: { id: stay.id },
         data: {
           foodPlan: "NOT_INCLUDED",
           foodPlanStartDate: null,
           foodPlanEndDate: null,
-          foodChargesPaise: newFoodCharges,
+          foodChargesPaise: {
+            decrement: refundPaise,
+          },
           totalPayablePaise: {
-            decrement: rupeesToPaise(refundAmount),
+            decrement: refundPaise,
           },
         },
       });
@@ -173,7 +179,7 @@ export async function POST(
       await tx.payment.create({
         data: {
           stayId: stay.id,
-          amountPaidPaise: -rupeesToPaise(refundAmount),
+          amountPaidPaise: -refundPaise,
           paymentMode: PaymentMode.CASH,
           paymentStatus: PaymentStatus.PAID,
           transactionRefNo: "Revocation Refund",
@@ -184,25 +190,23 @@ export async function POST(
       });
 
       // 4. Update service request status and metadata
-      if (latestUpgradeRequest) {
-        const currentMeta = (latestUpgradeRequest.metadata as Record<string, any>) || {};
-        const updatedMeta = {
-          ...currentMeta,
-          revocation: {
-            reason,
-            refundAmount,
-            cancelledAt: new Date().toISOString(),
-          },
-        };
+      const currentMeta = (latestUpgradeRequest.metadata as Record<string, unknown>) || {};
+      const updatedMeta = {
+        ...currentMeta,
+        revocation: {
+          reason,
+          refundAmount,
+          cancelledAt: new Date().toISOString(),
+        },
+      };
 
-        await tx.serviceRequest.update({
-          where: { id: latestUpgradeRequest.id },
-          data: {
-            status: "REVOKED",
-            metadata: updatedMeta,
-          },
-        });
-      }
+      await tx.serviceRequest.update({
+        where: { id: latestUpgradeRequest.id },
+        data: {
+          status: "REVOKED",
+          metadata: updatedMeta,
+        },
+      });
     });
 
     revalidatePath(`/admin/hostels/${stay.hostelId}/stays/${stay.id}`);
@@ -214,7 +218,6 @@ export async function POST(
       message: "Food plan revoked and refund processed successfully.",
     });
   } catch (error) {
-    console.error("DEBUG - Error in revoke-food POST:", error);
     return handleApiError(error);
   }
 }

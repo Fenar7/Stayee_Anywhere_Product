@@ -9,7 +9,26 @@ import { ResetPasswordButton } from "@/components/admin/ResetPasswordButton";
 import { ServiceRequestModal } from "./ServiceRequestModal";
 import { RevokeFoodModal } from "./RevokeFoodModal";
 
-type StayData = any; // I'll type this properly or rely on any since it's a massive nested object from prisma
+import { Prisma } from "@prisma/client";
+
+type StayData = Prisma.StayGetPayload<{
+  include: {
+    hostel: true;
+    tenant: {
+      include: {
+        user: true;
+        documents: true;
+      };
+    };
+    bed: {
+      include: {
+        room: true;
+      };
+    };
+    payments: true;
+    foodOrders: true;
+  };
+}>;
 
 export default function StayDetailsPageView({ stay, baseRoute, backUrl }: { stay: StayData; baseRoute: string; backUrl?: string }) {
   const t = stay.tenant;

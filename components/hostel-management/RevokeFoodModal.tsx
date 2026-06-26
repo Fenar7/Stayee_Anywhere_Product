@@ -47,8 +47,9 @@ export function RevokeFoodModal({ stayId }: RevokeFoodModalProps) {
         setProRataAmount(data.proRataRefund);
         setRefundAmount(data.proRataRefund.toString());
       }
-    } catch (err: any) {
-      toast.error(err.message || "Could not retrieve refund details");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Could not retrieve refund details";
+      toast.error(msg);
     } finally {
       setFetching(false);
     }
@@ -56,6 +57,13 @@ export function RevokeFoodModal({ stayId }: RevokeFoodModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const parsedRefund = parseFloat(refundAmount);
+    if (details && parsedRefund > details.amountPaid) {
+      toast.error(`Refund amount cannot exceed the amount paid (₹${details.amountPaid})`);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -63,7 +71,7 @@ export function RevokeFoodModal({ stayId }: RevokeFoodModalProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          refundAmount: parseFloat(refundAmount),
+          refundAmount: parsedRefund,
           reason,
         }),
       });
@@ -76,8 +84,9 @@ export function RevokeFoodModal({ stayId }: RevokeFoodModalProps) {
       toast.success("Food plan revoked and refund logged successfully!");
       setOpen(false);
       router.refresh();
-    } catch (err: any) {
-      toast.error(err.message || "An error occurred");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "An error occurred";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -129,12 +138,13 @@ export function RevokeFoodModal({ stayId }: RevokeFoodModalProps) {
                 type="number"
                 step="0.01"
                 min="0"
+                max={details ? details.amountPaid : undefined}
                 value={refundAmount}
                 onChange={(e) => setRefundAmount(e.target.value)}
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Modify if a manual override is needed. Otherwise, keep the pro-rata amount.
+                Modify if a manual override is needed. Otherwise, keep the pro-rata amount. Capped at original charge.
               </p>
             </div>
 

@@ -10,8 +10,8 @@ const MetadataSchema = z.object({
   foodPlan: z.string().optional(),
   days: z.number().int().positive().optional(),
   addedFoodChargesPaise: z.number().int().nonnegative().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid start date format (must be YYYY-MM-DD)").optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid end date format (must be YYYY-MM-DD)").optional(),
 });
 
 export async function POST(
