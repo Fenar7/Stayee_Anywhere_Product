@@ -55,7 +55,7 @@ export default async function HostelDashboardView({
   ];
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10 w-full max-w-[1400px] mx-auto p-4 bg-white dark:bg-black min-h-screen">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10 w-full max-w-[1400px] mx-auto p-5 bg-white dark:bg-black min-h-screen">
       <DashboardHeader />
       
       <div className="space-y-4">
@@ -63,10 +63,10 @@ export default async function HostelDashboardView({
       <ActionAlertsClient role={userRole} />
 
       {/* Overview Title */}
-      <h2 className="text-[15px] font-bold text-black dark:text-white">Overview</h2>
+      <h2 className="text-[17px] font-bold text-black dark:text-white">Overview</h2>
 
       {/* Stats Grid */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatCard 
           title="Available Beds" 
           value={stats.availableBeds} 
