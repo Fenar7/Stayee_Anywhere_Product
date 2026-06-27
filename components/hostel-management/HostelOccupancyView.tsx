@@ -70,15 +70,11 @@ const formatSharing = (sharing: string, isPrivate: boolean) => {
 };
 
 const getBedColor = (status: string) => {
-  // AVAILABLE -> Green Outline
-  // BOOKED -> Blue Fill (For NextHome, BOOKED is not a direct status usually, but we have ON_HOLD or we might map derived statuses)
-  // OCCUPIED -> Red Fill
-  // IN_MAINTENANCE / ON_HOLD -> Yellow Fill
-  
   if (status === "OCCUPIED") return "bg-[#ef4444] text-white border-[#ef4444]"; // Red
   if (status === "AVAILABLE") return "bg-white text-[#22c55e] border-[#22c55e]"; // Green Outline
-  if (status === "ON_HOLD") return "bg-[#3b82f6] text-white border-[#3b82f6]"; // Blue Fill (Assuming ON_HOLD = Booked in this UI)
-  if (status === "IN_MAINTENANCE" || status === "NOT_IN_USE") return "bg-[#eab308] text-white border-[#eab308]"; // Yellow Fill
+  if (status === "ON_HOLD") return "bg-[#eab308] text-white border-[#eab308]"; // Yellow Fill
+  if (status === "BOOKED" || status === "RESERVED") return "bg-[#2563eb] text-white border-[#2563eb]"; // Blue Fill
+  if (status === "IN_MAINTENANCE" || status === "NOT_IN_USE") return "bg-[#1a1a1a] text-white border-[#1a1a1a]"; // Black Fill for Blocked
   
   return "bg-gray-100 text-gray-400 border-gray-200";
 };
@@ -318,7 +314,7 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
                                       if (bed.currentStay) router.push(`${baseRoute}/stays/${bed.currentStay.id}`);
                                     }}
                                     className={cn(
-                                      "h-[34px] w-full rounded-[6px] border flex items-center justify-center text-[12px] font-medium cursor-pointer transition-opacity hover:opacity-80",
+                                      "h-[34px] min-w-[42px] px-2 w-fit rounded-[6px] border flex items-center justify-center text-[12px] font-medium cursor-pointer transition-opacity hover:opacity-80",
                                       getBedColor(bed.derivedStatus || bed.status)
                                     )}
                                     title={bed.currentStay ? `Occupied by ${bed.currentStay.tenant.fullName}` : bed.label}
@@ -341,7 +337,7 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
                                       if (bed.currentStay) router.push(`${baseRoute}/stays/${bed.currentStay.id}`);
                                     }}
                                     className={cn(
-                                      "h-[34px] w-full rounded-[6px] border flex items-center justify-center text-[12px] font-medium cursor-pointer transition-opacity hover:opacity-80",
+                                      "h-[34px] min-w-[42px] px-2 w-fit rounded-[6px] border flex items-center justify-center text-[12px] font-medium cursor-pointer transition-opacity hover:opacity-80",
                                       getBedColor(bed.derivedStatus || bed.status)
                                     )}
                                     title={bed.currentStay ? `Occupied by ${bed.currentStay.tenant.fullName}` : bed.label}
@@ -362,7 +358,7 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
                                 if (bed.currentStay) router.push(`${baseRoute}/stays/${bed.currentStay.id}`);
                               }}
                               className={cn(
-                                "size-[42px] rounded-[6px] border flex items-center justify-center text-[13px] font-medium cursor-pointer transition-opacity hover:opacity-80",
+                                "min-w-[42px] px-2 h-[42px] rounded-[6px] border flex items-center justify-center text-[13px] font-medium cursor-pointer transition-opacity hover:opacity-80",
                                 getBedColor(bed.derivedStatus || bed.status)
                               )}
                               title={bed.currentStay ? `Occupied by ${bed.currentStay.tenant.fullName}` : bed.label}
