@@ -193,7 +193,7 @@ export default function HostelFoodView({
       const res = await fetch("/api/warden/food-mark", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stayId, forDate: date, [meal]: newVal }),
+        body: JSON.stringify({ hostelId, stayId, forDate: date, [meal]: newVal }),
       });
       if (!res.ok) throw new Error((await res.json()).error || "Failed to update");
     } catch (e: unknown) {
