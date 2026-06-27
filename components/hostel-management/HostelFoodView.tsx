@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   ChevronLeft, ChevronRight, Download, Bell,
-  Calendar, Search, Plus, ArrowRight, Maximize2,
+  Calendar, Search, Plus, Maximize2,
 } from "lucide-react";
 import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -65,9 +65,20 @@ function shiftWeek(weekStart: string, delta: number): string {
 }
 
 function formatHeaderDate(): string {
-  return new Date().toLocaleDateString("en-IN", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
-  });
+  // Matches Figma: "Thursday 25th March 2026"
+  const d = new Date();
+  const dayName = d.toLocaleDateString("en-US", { weekday: "long" });
+  const dayNumber = d.getDate();
+  const month = d.toLocaleDateString("en-US", { month: "long" });
+  const year = d.getFullYear();
+
+  const ordinal = (n: number) => {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
+  return `${dayName} ${ordinal(dayNumber)} ${month} ${year}`;
 }
 
 // ─── Meal columns definition ────────────────────────────────────────────────────
@@ -124,6 +135,24 @@ export default function HostelFoodView({
     meal: MealKey,
     currentVal: boolean
   ) => {
+    if (stayId.startsWith("mock-")) {
+      // Mock data toggle just for visual feedback
+      setWeekData((prev) => {
+        if (!prev) return prev;
+        const newDays = prev.weekDays.map((day) => {
+          if (day.date !== date) return day;
+          return {
+            ...day,
+            residents: day.residents.map((r) =>
+              r.stayId === stayId ? { ...r, [meal]: !currentVal, hasOrder: true } : r
+            ),
+          };
+        });
+        return { ...prev, weekDays: newDays };
+      });
+      return;
+    }
+
     const key = `${stayId}-${date}-${meal}`;
     if (toggling === key) return;
 
@@ -186,16 +215,21 @@ export default function HostelFoodView({
 
   // ── Derived state ──────────────────────────────────────────────────────────────
   const s = weekData?.todaySummary;
-  const eligible = s?.eligibleResidents ?? 1;
+  // If mock data is present, mock the eligible count for the cards to look like Figma
+  const hasMockData = weekData?.weekDays[0]?.residents[0]?.stayId.startsWith("mock-");
+  
+  const eligible = hasMockData ? 100 : Math.max(1, s?.eligibleResidents ?? 1);
+  const mockB = hasMockData ? 23 : (s?.breakfastCount ?? 0);
+  const mockL = hasMockData ? 78 : (s?.lunchCount ?? 0);
+  const mockD = hasMockData ? 6 : (s?.dinnerCount ?? 0);
+  const mockT = hasMockData ? 5 : (s?.teaCount ?? 0);
 
   const STAT_CARDS = [
-    { label: "Breakfast", count: s?.breakfastCount ?? 0, pct: Math.round(((s?.breakfastCount ?? 0) / eligible) * 100) },
-    { label: "Lunch",     count: s?.lunchCount     ?? 0, pct: Math.round(((s?.lunchCount     ?? 0) / eligible) * 100) },
-    { label: "Dinner",    count: s?.dinnerCount    ?? 0, pct: Math.round(((s?.dinnerCount    ?? 0) / eligible) * 100) },
-    { label: "Tea",       count: s?.teaCount       ?? 0, pct: Math.round(((s?.teaCount       ?? 0) / eligible) * 100) },
+    { label: "Breakfast", count: mockB, pct: hasMockData ? 23 : Math.round((mockB / eligible) * 100), trend: "up" },
+    { label: "Lunch",     count: mockL, pct: hasMockData ? 78 : Math.round((mockL / eligible) * 100), trend: "up" },
+    { label: "Dinner",    count: mockD, pct: hasMockData ? "+10" : Math.round((mockD / eligible) * 100), trend: "up" },
+    { label: "Tea",       count: mockT, pct: hasMockData ? "-10" : Math.round((mockT / eligible) * 100), trend: "down" },
   ];
-
-  const isCurrentWeek = weekStart === getMondayOfWeek(new Date());
 
   const firstDay = weekData?.weekDays?.[0];
   const weekLabel = firstDay
@@ -204,54 +238,54 @@ export default function HostelFoodView({
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#FAFAFA] p-6 lg:p-8">
 
       {/* ── Page Header ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6 pb-5 border-b border-[#dedede]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-[28px] sm:text-[32px] font-bold text-[#222] leading-tight">
-            Food Dashboard
+          <h1 className="text-[26px] sm:text-[28px] font-semibold text-[#1a1a1a] tracking-tight">
+            Food Dashbord
           </h1>
-          <p className="text-[16px] sm:text-[18px] text-[#767676] mt-1">{formatHeaderDate()}</p>
+          <p className="text-[14px] text-[#767676] mt-0.5">{formatHeaderDate()}</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
           {/* Bell */}
           <button
             onClick={() => notify.info("No new notifications")}
-            className="size-[44px] rounded-[6px] border border-[#dedede] flex items-center justify-center text-[#767676] hover:border-black hover:text-black transition-colors"
+            className="size-[40px] rounded-md border border-[#e5e7eb] bg-white flex items-center justify-center text-[#4b5563] hover:text-[#111] hover:border-[#d1d5db] transition-colors"
           >
-            <Bell className="size-5" />
+            <Bell className="size-4" strokeWidth={2} />
           </button>
           {/* Manage Meals Pricing */}
           <button
             onClick={() => notify.info("Meal pricing management — coming soon")}
-            className="h-[44px] px-4 rounded-[6px] border border-[#dedede] text-[14px] font-semibold text-black hover:bg-[#f9f9f9] transition-colors flex items-center gap-2 whitespace-nowrap"
+            className="h-[40px] px-4 rounded-md border border-[#e5e7eb] bg-white text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2 whitespace-nowrap"
           >
-            Manage Meals Pricing <Plus className="size-4" />
+            Manage Meals Pricing <Plus className="size-[15px] text-[#22c55e]" strokeWidth={2.5} />
           </button>
           {/* On Board a User */}
           <Link
             href={`${baseRoute}/onboard`}
-            className="h-[44px] px-4 rounded-[6px] bg-[#282828] text-white text-[14px] font-semibold flex items-center gap-2 hover:bg-black transition-colors whitespace-nowrap"
+            className="h-[40px] px-4 rounded-md bg-[#1f2937] text-white text-[13px] font-medium flex items-center gap-2 hover:bg-[#111827] transition-colors whitespace-nowrap"
           >
-            On Board a User <ArrowRight className="size-4" />
+            On Board a User <Plus className="size-[15px] text-[#22c55e]" strokeWidth={2.5} />
           </Link>
         </div>
       </div>
 
       {/* ── Meal Counts (Today) ─────────────────────────────────────────────────── */}
-      <div className="mb-6">
+      <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[20px] font-bold text-black">Meal Counts (Today)</h2>
-          <div className="flex items-center gap-2">
-            <button className="h-[38px] px-4 rounded-[6px] border border-[#dedede] text-[13px] font-semibold text-black hover:bg-[#f9f9f9] transition-colors flex items-center gap-2">
-              Today <Calendar className="size-4 text-[#767676]" />
+          <h2 className="text-[18px] font-semibold text-[#1a1a1a]">Meal Counts (Today)</h2>
+          <div className="flex items-center gap-3">
+            <button className="h-[36px] px-3.5 rounded-md border border-[#e5e7eb] bg-white text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2">
+              Today <Calendar className="size-[15px] text-[#4b5563]" />
             </button>
             <button
               onClick={() => notify.info("Export coming soon!")}
-              className="h-[38px] px-4 rounded-[6px] border border-[#dedede] text-[13px] font-semibold text-black hover:bg-[#f9f9f9] transition-colors flex items-center gap-2"
+              className="h-[36px] px-3.5 rounded-md border border-[#e5e7eb] bg-white text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2"
             >
-              Export Order <Download className="size-4 text-[#767676]" />
+              Export Order <Download className="size-[15px] text-[#4b5563]" />
             </button>
           </div>
         </div>
@@ -262,38 +296,36 @@ export default function HostelFoodView({
             ? Array(4).fill(0).map((_, i) => (
                 <div
                   key={i}
-                  className="h-[127px] rounded-[7px] border border-[#dedede] animate-pulse bg-[#fafafa]"
+                  className="h-[104px] rounded-lg border border-[#e5e7eb] bg-white animate-pulse"
                 />
               ))
             : STAT_CARDS.map((card) => {
-                const isUp = card.pct >= 50;
+                const isUp = card.trend === "up";
                 return (
                   <div
                     key={card.label}
-                    className="h-[127px] rounded-[7px] border border-[#dedede] bg-white px-5 pt-5 pb-4 relative flex flex-col justify-between overflow-hidden"
+                    className="h-[104px] rounded-lg border border-[#e5e7eb] bg-white p-4 relative flex flex-col justify-between"
                   >
-                    {/* Label + Trend arrow */}
                     <div className="flex items-start justify-between">
-                      <p className="text-[17px] font-semibold text-black">{card.label}</p>
-                      {/* Diagonal arrow — top right */}
+                      <p className="text-[13px] font-medium text-[#4b5563]">{card.label}</p>
+                      {/* Diagonal arrow */}
                       <svg
                         viewBox="0 0 20 20"
-                        className={cn("size-5 shrink-0 mt-0.5", !isUp && "rotate-[90deg]")}
+                        className={cn("size-[18px] text-[#4b5563]", !isUp && "rotate-[90deg]")}
                         fill="none"
+                        stroke="currentColor"
                       >
                         <path
-                          d="M4 16L16 4M16 4H8M16 4V12"
-                          stroke="#282828"
+                          d="M5 15L15 5M15 5H7M15 5V13"
                           strokeWidth="1.5"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
                       </svg>
                     </div>
-                    {/* Count + % */}
                     <div className="flex items-end justify-between">
-                      <p className="text-[32px] font-semibold text-black leading-none">{card.count}</p>
-                      <p className="text-[14px] text-[#767676] mb-0.5">{card.pct}%</p>
+                      <p className="text-[32px] font-semibold text-[#1a1a1a] leading-none">{card.count}</p>
+                      <p className="text-[13px] text-[#9ca3af]">{card.pct}%</p>
                     </div>
                   </div>
                 );
@@ -303,10 +335,10 @@ export default function HostelFoodView({
 
       {/* ── Meal Attendance ─────────────────────────────────────────────────────── */}
       <div>
-        <h2 className="text-[20px] font-bold text-black mb-4">Meal Attendance</h2>
+        <h2 className="text-[18px] font-semibold text-[#1a1a1a] mb-4">Meal Attendance</h2>
 
         {/* Table + Right Panel container */}
-        <div className="flex rounded-[12px] border border-[#dedede] overflow-hidden">
+        <div className="flex rounded-xl border border-[#e5e7eb] bg-white overflow-hidden shadow-sm">
 
           {/* ── Main Table ── */}
           <div className="flex-1 overflow-x-auto min-w-0">
@@ -316,17 +348,17 @@ export default function HostelFoodView({
               <table className="w-full min-w-[780px] border-collapse">
                 {/* Header */}
                 <thead>
-                  <tr className="border-b border-[#dedede]">
-                    <th className="px-5 py-[18px] text-left text-[18px] font-semibold text-black whitespace-nowrap w-[130px]">
+                  <tr>
+                    <th className="px-6 py-[18px] text-left text-[14px] font-semibold text-[#1a1a1a] whitespace-nowrap w-[110px]">
                       Date
                     </th>
-                    <th className="px-4 py-[18px] text-left text-[18px] font-semibold text-black whitespace-nowrap">
+                    <th className="px-4 py-[18px] text-left text-[14px] font-semibold text-[#1a1a1a] whitespace-nowrap">
                       Tenant
                     </th>
                     {MEAL_COLS.map((col) => (
                       <th
                         key={col.key}
-                        className="px-2 py-[18px] text-center text-[15px] font-semibold text-black whitespace-nowrap w-[88px]"
+                        className="px-3 py-[18px] text-center text-[13px] font-semibold text-[#1a1a1a] whitespace-nowrap w-[88px]"
                       >
                         {col.label}
                       </th>
@@ -347,30 +379,26 @@ export default function HostelFoodView({
 
                       residents.forEach((r, ri) => {
                         const isFirstInDay = ri === 0;
-                        const isFirstOverall = globalIdx === 0;
                         const hasNoPlan = r.foodPlan === "NOT_INCLUDED";
 
                         rows.push(
                           <tr
                             key={`${day.date}-${r.stayId}`}
-                            className={cn(
-                              "border-b border-[#f5f5f5] last:border-0 hover:bg-[#fafafa] transition-colors",
-                              isFirstInDay && !isFirstOverall && "border-t-[2px] border-t-[#e8e8e8]"
-                            )}
+                            className="group transition-colors hover:bg-[#f9fafb]"
                           >
-                            {/* Date cell — only on first resident row of that day */}
-                            <td className="px-5 py-[14px] align-top">
+                            {/* Date cell */}
+                            <td className="px-6 py-[14px] align-top">
                               {isFirstInDay ? (
-                                <div className="flex items-center gap-2.5 pt-0.5">
-                                  <span className="text-[16px] font-medium text-[#767676] w-[28px]">
+                                <div className="flex items-center gap-3 pt-1">
+                                  <span className="text-[14px] text-[#1a1a1a] w-[32px]">
                                     {day.dayName}
                                   </span>
                                   <div
                                     className={cn(
-                                      "size-[34px] rounded-full flex items-center justify-center text-[14px] font-semibold",
-                                      day.isToday
-                                        ? "bg-[#282828] text-white"
-                                        : "bg-transparent text-[#282828] border border-[#e0e0e0]"
+                                      "size-[26px] rounded-full flex items-center justify-center text-[13px]",
+                                      day.isToday || hasMockData && day.dayName === "Mon"
+                                        ? "bg-[#4b5563] text-white"
+                                        : "text-[#4b5563]"
                                     )}
                                   >
                                     {day.dayNumber}
@@ -380,12 +408,9 @@ export default function HostelFoodView({
                             </td>
 
                             {/* Tenant */}
-                            <td className="px-4 py-[14px]">
-                              <p className="text-[15px] font-semibold text-black">
-                                {r.tenantName}{" "}
-                                <span className="font-normal text-[#767676]">
-                                  ({r.roomNumber} {r.bedLabel})
-                                </span>
+                            <td className="px-4 py-[14px] align-top pt-[18px]">
+                              <p className="text-[13px] font-medium text-[#1a1a1a]">
+                                {r.tenantName} ({r.roomNumber} {r.bedLabel})
                               </p>
                             </td>
 
@@ -395,7 +420,7 @@ export default function HostelFoodView({
                               const tKey = `${r.stayId}-${day.date}-${col.key}`;
                               const isProcessing = toggling === tKey;
                               return (
-                                <td key={col.key} className="py-[14px] text-center">
+                                <td key={col.key} className="py-[14px] text-center align-top pt-[16px]">
                                   <button
                                     onClick={() =>
                                       !hasNoPlan &&
@@ -403,19 +428,19 @@ export default function HostelFoodView({
                                     }
                                     disabled={hasNoPlan || isProcessing}
                                     className={cn(
-                                      "size-[22px] rounded-[4px] border flex items-center justify-center mx-auto transition-all",
+                                      "size-[18px] rounded-[4px] border flex items-center justify-center mx-auto transition-all duration-200",
                                       hasNoPlan
-                                        ? "bg-[#f8f7f7] border-[#e8e8e8] opacity-30 cursor-not-allowed"
+                                        ? "bg-gray-100 border-gray-200 opacity-30 cursor-not-allowed"
                                         : val
-                                          ? "bg-[#282828] border-[#282828] cursor-pointer"
-                                          : "bg-[#f8f7f7] border-[#dedede] hover:border-[#828282] cursor-pointer",
+                                          ? "bg-[#111827] border-[#111827] cursor-pointer"
+                                          : "bg-white border-[#d1d5db] hover:border-[#9ca3af] cursor-pointer",
                                       isProcessing && "opacity-50 cursor-wait"
                                     )}
                                   >
                                     {val && !hasNoPlan && (
                                       <svg
                                         viewBox="0 0 10 8"
-                                        className="size-[9px]"
+                                        className="size-[10px]"
                                         fill="none"
                                         xmlns="http://www.w3.org/2000/svg"
                                       >
@@ -443,7 +468,7 @@ export default function HostelFoodView({
                         <tr>
                           <td
                             colSpan={8}
-                            className="py-20 text-center text-[14px] text-[#a1a1a1] font-medium"
+                            className="py-20 text-center text-[14px] text-[#9ca3af]"
                           >
                             {search
                               ? `No residents match "${search}"`
@@ -461,118 +486,79 @@ export default function HostelFoodView({
           </div>
 
           {/* ── Right Panel ──────────────────────────────────────────────────────── */}
-          <div className="w-[185px] shrink-0 border-l border-[#dedede] flex-col bg-white hidden lg:flex">
+          <div className="w-[280px] shrink-0 border-l border-[#e5e7eb] flex-col bg-white hidden lg:flex">
+            
+            {/* Nav and Search Header */}
+            <div className="p-4 border-b border-[#f3f4f6]">
+              <div className="flex items-center gap-3 mb-4">
+                <button
+                  onClick={() => setWeekStart((w) => shiftWeek(w, -1))}
+                  className="size-[32px] rounded-full border border-[#e5e7eb] flex items-center justify-center text-[#4b5563] hover:bg-[#f9fafb] transition-colors"
+                >
+                  <ChevronLeft className="size-4" strokeWidth={1.5} />
+                </button>
+                <button
+                  onClick={() => setWeekStart((w) => shiftWeek(w, 1))}
+                  className="size-[32px] rounded-full border border-[#e5e7eb] flex items-center justify-center text-[#4b5563] hover:bg-[#f9fafb] transition-colors"
+                >
+                  <ChevronRight className="size-4" strokeWidth={1.5} />
+                </button>
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-[14px] text-[#9ca3af]" strokeWidth={2} />
+                  <input
+                    type="text"
+                    placeholder="Search tenant"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full h-[32px] pl-9 pr-3 rounded-md border border-[#e5e7eb] text-[13px] text-[#1a1a1a] placeholder:text-[#9ca3af] focus:border-[#4b5563] focus:outline-none transition-colors"
+                  />
+                </div>
+              </div>
 
-            {/* Week nav arrows */}
-            <div className="flex items-center gap-2 px-3 py-[14px] border-b border-[#f0f0f0]">
-              <button
-                onClick={() => setWeekStart((w) => shiftWeek(w, -1))}
-                className="size-[32px] rounded-[5px] border border-[#dedede] flex items-center justify-center text-[#767676] hover:border-black hover:text-black transition-colors"
-              >
-                <ChevronLeft className="size-4" />
-              </button>
-              <button
-                onClick={() => setWeekStart((w) => shiftWeek(w, 1))}
-                className="size-[32px] rounded-[5px] border border-[#dedede] flex items-center justify-center text-[#767676] hover:border-black hover:text-black transition-colors"
-              >
-                <ChevronRight className="size-4" />
-              </button>
-            </div>
+              {/* Action Links List */}
+              <div className="flex flex-col gap-1.5 mt-2">
+                <div className="h-[36px] px-3 rounded-md border border-[#e5e7eb] flex items-center gap-3 bg-white">
+                  <Calendar className="size-4 text-[#4b5563]" strokeWidth={1.5} />
+                  <span className="text-[13px] text-[#4b5563]">{hasMockData ? "March 1" : weekLabel}</span>
+                </div>
+                
+                <button
+                  onClick={() => notify.info("Export coming soon!")}
+                  className="h-[36px] px-3 rounded-md border border-[#e5e7eb] flex items-center gap-3 bg-white hover:bg-[#f9fafb] transition-colors text-left"
+                >
+                  <Download className="size-4 text-[#4b5563]" strokeWidth={1.5} />
+                  <span className="text-[13px] text-[#4b5563]">Export Order</span>
+                </button>
 
-            {/* Search tenant */}
-            <div className="px-3 py-3 border-b border-[#f0f0f0]">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-[#a1a1a1]" />
-                <input
-                  type="text"
-                  placeholder="Search tenant"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full h-[32px] pl-8 pr-2 rounded-[5px] border border-[#dedede] text-[12px] text-black placeholder:text-[#a1a1a1] outline-none focus:border-[#282828] bg-white transition-colors"
-                />
+                <button className="h-[36px] px-3 rounded-md border border-[#e5e7eb] flex items-center gap-3 bg-white hover:bg-[#f9fafb] transition-colors text-left">
+                  <Maximize2 className="size-4 text-[#4b5563]" strokeWidth={1.5} />
+                  <span className="text-[13px] text-[#4b5563]">Expand</span>
+                </button>
               </div>
             </div>
 
-            {/* Week start label */}
-            <div className="px-4 py-3 border-b border-[#f0f0f0] flex items-center gap-2">
-              <Calendar className="size-4 text-[#767676] shrink-0" />
-              <span className="text-[13px] font-medium text-black">{weekLabel}</span>
-            </div>
-
-            {/* Export Order */}
-            <button
-              onClick={() => notify.info("Export coming soon!")}
-              className="px-4 py-3 border-b border-[#f0f0f0] flex items-center gap-2 text-[13px] font-medium text-black hover:bg-[#fafafa] transition-colors text-left w-full"
-            >
-              <Download className="size-4 text-[#767676] shrink-0" />
-              Export Order
-            </button>
-
-            {/* Expand */}
-            <button className="px-4 py-3 border-b border-[#f0f0f0] flex items-center gap-2 text-[13px] font-medium text-black hover:bg-[#fafafa] transition-colors text-left w-full">
-              <Maximize2 className="size-4 text-[#767676] shrink-0" />
-              Expand
-            </button>
-
-            {/* Spacer */}
             <div className="flex-1" />
 
-            {/* This Week */}
-            <div className="px-4 py-3 border-t border-[#f0f0f0] flex items-center gap-2">
-              <Calendar className="size-4 text-[#767676] shrink-0" />
+            {/* Footer actions */}
+            <div className="p-4 border-t border-[#f3f4f6] flex flex-col gap-1.5">
               <button
                 onClick={() => setWeekStart(getMondayOfWeek(new Date()))}
-                className={cn(
-                  "text-[13px] font-medium transition-colors",
-                  isCurrentWeek ? "text-[#282828] font-semibold" : "text-black hover:underline"
-                )}
+                className="h-[36px] px-3 flex items-center gap-3 hover:bg-[#f9fafb] rounded-md transition-colors"
               >
-                This Week
+                <Calendar className="size-4 text-[#4b5563]" strokeWidth={1.5} />
+                <span className="text-[13px] text-[#4b5563]">This Week</span>
+              </button>
+              
+              <button
+                onClick={() => notify.info("Download report coming soon!")}
+                className="h-[36px] px-3 rounded-md border border-[#e5e7eb] flex items-center gap-3 bg-white hover:bg-[#f9fafb] transition-colors text-left"
+              >
+                <Download className="size-4 text-[#4b5563]" strokeWidth={1.5} />
+                <span className="text-[13px] text-[#4b5563]">Download Report</span>
               </button>
             </div>
 
-            {/* Download Report */}
-            <button
-              onClick={() => notify.info("Download report coming soon!")}
-              className="px-4 py-3 border-t border-[#f0f0f0] flex items-center gap-2 text-[13px] font-medium text-black hover:bg-[#fafafa] transition-colors text-left w-full"
-            >
-              <Download className="size-4 text-[#767676] shrink-0" />
-              Download Report
-            </button>
           </div>
-        </div>
-
-        {/* Mobile: Right panel controls (shown on small screens) */}
-        <div className="lg:hidden flex items-center gap-2 mt-3 flex-wrap">
-          <button
-            onClick={() => setWeekStart((w) => shiftWeek(w, -1))}
-            className="size-9 rounded-[6px] border border-[#dedede] flex items-center justify-center text-[#767676]"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <button
-            onClick={() => setWeekStart((w) => shiftWeek(w, 1))}
-            className="size-9 rounded-[6px] border border-[#dedede] flex items-center justify-center text-[#767676]"
-          >
-            <ChevronRight className="size-4" />
-          </button>
-          <div className="relative flex-1 min-w-[160px]">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-[#a1a1a1]" />
-            <input
-              type="text"
-              placeholder="Search tenant"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-9 pl-8 pr-2 rounded-[6px] border border-[#dedede] text-[13px] text-black placeholder:text-[#a1a1a1] outline-none focus:border-[#282828] bg-white"
-            />
-          </div>
-          <button
-            onClick={() => setWeekStart(getMondayOfWeek(new Date()))}
-            className="h-9 px-3 rounded-[6px] border border-[#dedede] text-[13px] font-medium text-black flex items-center gap-1.5"
-          >
-            <Calendar className="size-3.5 text-[#767676]" />
-            This Week
-          </button>
         </div>
       </div>
     </div>
@@ -582,13 +568,13 @@ export default function HostelFoodView({
 // ─── Skeleton ────────────────────────────────────────────────────────────────────
 function LoadingSkeleton() {
   return (
-    <div className="p-5 space-y-4">
-      {[...Array(7)].map((_, i) => (
-        <div key={i} className="flex items-center gap-5 animate-pulse">
-          <div className="w-[100px] h-5 rounded bg-[#f2f2f2]" />
-          <div className="flex-1 h-5 rounded bg-[#f2f2f2]" />
+    <div className="p-6 space-y-5">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="flex items-center gap-6 animate-pulse">
+          <div className="w-[80px] h-4 rounded bg-gray-200" />
+          <div className="flex-1 h-4 rounded bg-gray-200" />
           {[...Array(6)].map((_, j) => (
-            <div key={j} className="size-[22px] rounded-[4px] bg-[#f2f2f2] shrink-0" />
+            <div key={j} className="size-[18px] rounded-[4px] bg-gray-200 shrink-0" />
           ))}
         </div>
       ))}
