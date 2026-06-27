@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import {
-  Loader2, Shield, AlertCircle, Mail, Phone, Building2,
-  Key, Pencil, X, CheckCircle, ExternalLink,
+  Loader2, Shield, Mail, Phone, Building2,
+  Key, Pencil, X, RefreshCw, Search, MapPin,
+  Users, CheckCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { notify } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface WardenItem {
   id: string;
   userId: string;
@@ -25,41 +26,46 @@ interface WardenItem {
   createdAt: string;
 }
 
-export default function WardensPage() {
-  const [wardens, setWardens] = useState<WardenItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const TYPE_STYLE: Record<string, string> = {
+  MENS:   "bg-[#dbeafe] text-[#1e40af]",
+  WOMENS: "bg-[#fce7f3] text-[#9d174d]",
+};
 
-  // Edit modal state
+const formatDate = (d: string) =>
+  new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function WardensPage() {
+  const [wardens, setWardens]     = useState<WardenItem[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [search,  setSearch]      = useState("");
+
+  // Edit modal
   const [editTarget, setEditTarget] = useState<WardenItem | null>(null);
-  const [editEmail, setEditEmail] = useState("");
+  const [editEmail,  setEditEmail]  = useState("");
   const [editSaving, setEditSaving] = useState(false);
 
-  // Reset password modal state
-  const [resetTarget, setResetTarget] = useState<WardenItem | null>(null);
+  // Reset password modal
+  const [resetTarget,   setResetTarget]   = useState<WardenItem | null>(null);
   const [resetPassword, setResetPassword] = useState("");
-  const [resetSaving, setResetSaving] = useState(false);
+  const [resetSaving,   setResetSaving]   = useState(false);
 
   const fetchWardens = async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/wardens");
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Failed to fetch wardens");
-      }
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Failed to fetch wardens"); }
       const data = await res.json();
       setWardens(data.wardens);
-    } catch (err: unknown) {
+    } catch (err) {
       notify.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchWardens();
-  }, []);
+  useEffect(() => { fetchWardens(); }, []);
 
   const handleEdit = async () => {
     if (!editTarget) return;
@@ -75,7 +81,7 @@ export default function WardensPage() {
       notify.success("Email updated successfully");
       setEditTarget(null);
       await fetchWardens();
-    } catch (err: unknown) {
+    } catch (err) {
       notify.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setEditSaving(false);
@@ -96,267 +102,408 @@ export default function WardensPage() {
       notify.success("Password reset successfully!");
       setResetTarget(null);
       setResetPassword("");
-    } catch (err: unknown) {
+    } catch (err) {
       notify.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setResetSaving(false);
     }
   };
 
-  const filteredWardens = wardens.filter(
+  const filtered = wardens.filter(
     (w) =>
       w.hostel.name.toLowerCase().includes(search.toLowerCase()) ||
       w.phone.includes(search)
   );
 
-  const accommodationTypeColors: Record<string, string> = {
-    MENS: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-    WOMENS: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200",
-  };
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="h-8 w-64 bg-muted rounded animate-pulse mb-2" />
-            <div className="h-4 w-96 bg-muted rounded animate-pulse" />
-          </div>
-        </div>
-        <TableSkeleton />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 px-4 py-5 w-full max-w-[1400px] mx-auto bg-white dark:bg-black min-h-screen">
+
+      {/* ── Page Header ── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between pb-5 border-b border-[#dedede]">
         <div>
-          <h1 className="text-2xl font-bold">Warden Management</h1>
-          <p className="text-muted-foreground">View and manage all hostel wardens</p>
+          <h1 className="text-[24px] font-bold tracking-tight text-black dark:text-white">Warden Management</h1>
+          <p className="text-[#767676] text-[14px] mt-0.5">View and manage all hostel wardens.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start flex-wrap">
+          {/* Summary pill */}
+          <div className="h-10 px-4 rounded-[6px] border border-[#dedede] flex items-center gap-2">
+            <Users className="size-4 text-[#767676]" />
+            <span className="text-[14px] font-semibold text-black dark:text-white">{wardens.length}</span>
+            <span className="text-[14px] text-[#767676]">wardens</span>
+          </div>
+          {/* Refresh */}
+          <button
+            onClick={fetchWardens}
+            disabled={loading}
+            className="size-10 rounded-[6px] border border-[#dedede] flex items-center justify-center text-[#767676] hover:text-black hover:border-[#c0c0c0] transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={cn("size-4", loading && "animate-spin")} />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Search ── */}
+      <div className="py-4">
+        <div className="relative w-full sm:w-[280px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#a1a1a1]" />
           <input
             type="text"
             placeholder="Search by hostel or phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm w-64"
+            className="w-full h-9 pl-9 pr-3 rounded-[6px] border border-[#dedede] bg-white text-[13px] text-black placeholder:text-[#a1a1a1] outline-none focus:border-[#282828] transition-colors"
           />
-          <Button variant="outline" size="sm" onClick={fetchWardens}>
-            Refresh
-          </Button>
         </div>
       </div>
 
-      {filteredWardens.length === 0 && (
-        <div className="rounded-lg border border-dashed p-12 text-center">
-          <Shield className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-          <h3 className="font-semibold text-lg mb-1">No Wardens Found</h3>
-          <p className="text-sm text-muted-foreground mb-6">
-            {search ? "No wardens match your search." : "No wardens have been created yet. Create a hostel with a warden or assign one from the dashboard."}
-          </p>
-          <div className="flex justify-center gap-3">
-            <Link href="/admin/hostels/new">
-              <Button>Add Hostel</Button>
-            </Link>
-            <Link href="/admin">
-              <Button variant="outline">Back to Dashboard</Button>
-            </Link>
+      {/* ── Loading ── */}
+      {loading && <LoadingSkeleton />}
+
+      {/* ── Empty State ── */}
+      {!loading && filtered.length === 0 && (
+        <div className="mt-16 flex flex-col items-center justify-center gap-4 text-center">
+          <div className="size-16 rounded-[10px] bg-[#5c5c5c] flex items-center justify-center">
+            <Shield className="size-8 text-[#58ff48]" />
           </div>
+          <div>
+            <h3 className="text-[18px] font-bold text-black dark:text-white">No Wardens Found</h3>
+            <p className="text-[14px] text-[#767676] mt-1">
+              {search ? "No wardens match your search." : "No wardens have been created yet."}
+            </p>
+          </div>
+          {!search && (
+            <div className="flex gap-2 flex-wrap justify-center">
+              <Link
+                href="/admin/hostels/new"
+                className="h-10 px-5 rounded-[6px] bg-[#282828] text-white text-[14px] font-semibold hover:bg-black transition-colors flex items-center gap-2"
+              >
+                Add Hostel
+              </Link>
+              <Link
+                href="/admin"
+                className="h-10 px-5 rounded-[6px] border border-[#dedede] text-[#767676] text-[14px] font-semibold hover:text-black hover:border-[#c0c0c0] transition-colors flex items-center"
+              >
+                Back to Dashboard
+              </Link>
+            </div>
+          )}
         </div>
       )}
 
-      {filteredWardens.length > 0 && (
-        <div className="rounded-lg border bg-card overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-left px-4 py-3 font-semibold">Hostel</th>
-                  <th className="text-left px-4 py-3 font-semibold">Phone</th>
-                  <th className="text-left px-4 py-3 font-semibold">Email</th>
-                  <th className="text-center px-4 py-3 font-semibold">Onboardings</th>
-                  <th className="text-center px-4 py-3 font-semibold">Created</th>
-                  <th className="text-right px-4 py-3 font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filteredWardens.map((warden) => (
-                  <tr key={warden.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <div>
-                          <span className="font-medium">{warden.hostel.name}</span>
-                          <span
-                            className={`ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                              accommodationTypeColors[warden.hostel.accommodationType] || ""
-                            }`}
-                          >
-                            {warden.hostel.accommodationType === "MENS" ? "M" : "W"}
-                          </span>
-                          {warden.hostel.location && (
-                            <span className="ml-1 text-xs text-muted-foreground">
-                              {warden.hostel.location.name}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>{warden.phone}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className={warden.email ? "" : "text-muted-foreground italic"}>
-                          {warden.email || "Not set"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center">{warden.totalOnboardings}</td>
-                    <td className="px-4 py-3 text-center text-xs text-muted-foreground">
-                      {new Date(warden.createdAt).toLocaleDateString("en-IN", {
-                        day: "2-digit", month: "short", year: "numeric",
-                      })}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => {
-                            setEditTarget(warden);
-                            setEditEmail(warden.email || "");
-                          }}
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
-                          title="Edit email"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => {
-                            setResetTarget(warden);
-                            setResetPassword("");
-                          }}
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
-                          title="Reset password"
-                        >
-                          <Key className="h-3.5 w-3.5" />
-                          Password
-                        </button>
-                      </div>
-                    </td>
+      {/* ── Desktop Table ── */}
+      {!loading && filtered.length > 0 && (
+        <>
+          <div className="hidden md:block rounded-[7px] border border-[#dedede] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[700px]">
+                <thead>
+                  <tr className="border-b border-[#f2f2f2] bg-[#fafafa]">
+                    {["Hostel", "Phone", "Email", "Onboardings", "Created", "Actions"].map((h, i) => (
+                      <th
+                        key={h}
+                        className={cn(
+                          "px-4 py-3 text-[12px] font-semibold text-[#767676] uppercase tracking-wide text-left",
+                          i === 3 && "text-center",
+                          i === 5 && "text-right"
+                        )}
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filtered.map((w) => (
+                    <tr
+                      key={w.id}
+                      className="border-b border-[#f2f2f2] last:border-0 bg-white hover:bg-[#fafafa] transition-colors"
+                    >
+                      {/* Hostel */}
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="size-9 rounded-[7px] bg-[#5c5c5c] flex items-center justify-center shrink-0">
+                            <Building2 className="size-4 text-[#58ff48]" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[14px] font-semibold text-black dark:text-white truncate">{w.hostel.name}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                              <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", TYPE_STYLE[w.hostel.accommodationType] ?? "bg-[#f2f2f2] text-[#5c5c5c]")}>
+                                {w.hostel.accommodationType}
+                              </span>
+                              {w.hostel.location && (
+                                <span className="flex items-center gap-1 text-[12px] text-[#767676]">
+                                  <MapPin className="size-3" />
+                                  {w.hostel.location.name}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Phone */}
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-1.5 text-[#767676]">
+                          <Phone className="size-3.5 shrink-0" />
+                          <span className="text-[13px] font-mono">{w.phone}</span>
+                        </div>
+                      </td>
+
+                      {/* Email */}
+                      <td className="px-4 py-3.5">
+                        {w.email ? (
+                          <div className="flex items-center gap-1.5 text-[#767676]">
+                            <Mail className="size-3.5 shrink-0" />
+                            <span className="text-[13px] truncate max-w-[180px]">{w.email}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[13px] text-[#a1a1a1] italic">Not set</span>
+                        )}
+                      </td>
+
+                      {/* Onboardings */}
+                      <td className="px-4 py-3.5 text-center">
+                        <span className={cn(
+                          "inline-flex items-center justify-center size-7 rounded-full text-[13px] font-bold",
+                          w.totalOnboardings > 0
+                            ? "bg-[#dcfce7] text-[#15803d]"
+                            : "bg-[#f2f2f2] text-[#767676]"
+                        )}>
+                          {w.totalOnboardings}
+                        </span>
+                      </td>
+
+                      {/* Created */}
+                      <td className="px-4 py-3.5">
+                        <span className="text-[13px] text-[#767676]">{formatDate(w.createdAt)}</span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => { setEditTarget(w); setEditEmail(w.email || ""); }}
+                            className="flex items-center gap-1.5 h-8 px-3 rounded-[6px] border border-[#dedede] text-[12px] font-semibold text-[#767676] hover:text-black hover:border-[#c0c0c0] transition-colors bg-white"
+                          >
+                            <Pencil className="size-3.5" /> Edit
+                          </button>
+                          <button
+                            onClick={() => { setResetTarget(w); setResetPassword(""); }}
+                            className="flex items-center gap-1.5 h-8 px-3 rounded-[6px] border border-[#dedede] text-[12px] font-semibold text-[#767676] hover:text-black hover:border-[#c0c0c0] transition-colors bg-white"
+                          >
+                            <Key className="size-3.5" /> Password
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* ── Mobile Card List ── */}
+          <div className="md:hidden flex flex-col gap-3">
+            {filtered.map((w) => (
+              <div key={w.id} className="rounded-[7px] border border-[#dedede] bg-white p-4">
+                {/* Header */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="size-10 rounded-[7px] bg-[#5c5c5c] flex items-center justify-center shrink-0">
+                      <Building2 className="size-5 text-[#58ff48]" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[14px] font-bold text-black truncate">{w.hostel.name}</p>
+                      {w.hostel.location && (
+                        <p className="text-[12px] text-[#767676] flex items-center gap-1 mt-0.5">
+                          <MapPin className="size-3" /> {w.hostel.location.name}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <span className={cn("text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0", TYPE_STYLE[w.hostel.accommodationType] ?? "bg-[#f2f2f2] text-[#5c5c5c]")}>
+                    {w.hostel.accommodationType}
+                  </span>
+                </div>
+
+                {/* Details */}
+                <div className="mt-3 flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2 text-[13px] text-[#767676]">
+                    <Phone className="size-3.5 shrink-0" />
+                    <span className="font-mono">{w.phone}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[13px] text-[#767676]">
+                    <Mail className="size-3.5 shrink-0" />
+                    <span className={w.email ? "" : "italic text-[#a1a1a1]"}>{w.email || "Email not set"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[13px] text-[#767676]">
+                    <CheckCircle className="size-3.5 shrink-0" />
+                    <span>{w.totalOnboardings} Onboarding{w.totalOnboardings !== 1 ? "s" : ""}</span>
+                    <span className="ml-auto text-[12px]">{formatDate(w.createdAt)}</span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="mt-3 flex gap-2 pt-3 border-t border-[#f2f2f2]">
+                  <button
+                    onClick={() => { setEditTarget(w); setEditEmail(w.email || ""); }}
+                    className="flex-1 h-9 rounded-[6px] border border-[#dedede] text-[13px] font-semibold text-[#767676] hover:text-black transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Pencil className="size-3.5" /> Edit Email
+                  </button>
+                  <button
+                    onClick={() => { setResetTarget(w); setResetPassword(""); }}
+                    className="flex-1 h-9 rounded-[6px] border border-[#dedede] text-[13px] font-semibold text-[#767676] hover:text-black transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Key className="size-3.5" /> Reset Pwd
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Results count */}
+          <p className="text-[12px] text-[#a1a1a1] mt-3">
+            Showing {filtered.length} of {wardens.length} wardens
+          </p>
+        </>
       )}
 
-      {/* Edit Email Modal */}
+      {/* ── Edit Email Modal ── */}
       {editTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-w-sm w-full rounded-lg border bg-card shadow-xl">
-            <div className="flex items-center justify-between border-b px-5 py-3">
-              <h3 className="font-bold text-sm flex items-center gap-2">
-                <Pencil className="h-4 w-4" />
-                Edit Warden Email
-              </h3>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => { if (!editSaving) setEditTarget(null); }}
+        >
+          <div
+            className="w-full max-w-md rounded-[10px] border border-[#dedede] bg-white shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <h2 className="text-[18px] font-bold text-black">Edit Warden Email</h2>
+                <p className="text-[13px] text-[#767676] mt-0.5">{editTarget.hostel.name} · {editTarget.phone}</p>
+              </div>
+              <button
+                onClick={() => { if (!editSaving) setEditTarget(null); }}
+                className="size-8 rounded-[6px] border border-[#dedede] flex items-center justify-center text-[#767676] hover:text-black transition-colors"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="space-y-1.5 mb-5">
+              <label className="text-[13px] font-semibold text-black">Email Address</label>
+              <input
+                type="email"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                placeholder="warden@example.com"
+                className="w-full h-10 px-3 rounded-[6px] border border-[#dedede] text-[14px] text-black placeholder:text-[#a1a1a1] outline-none focus:border-[#282828] transition-colors"
+              />
+            </div>
+
+            <div className="flex gap-2">
               <button
                 onClick={() => setEditTarget(null)}
-                className="rounded-full p-1 text-muted-foreground hover:bg-muted"
+                disabled={editSaving}
+                className="flex-1 h-10 rounded-[6px] border border-[#dedede] text-[14px] font-semibold text-[#767676] hover:text-black transition-colors disabled:opacity-50"
               >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="px-5 py-4 space-y-3">
-              <p className="text-xs text-muted-foreground">
-                {editTarget.hostel.name} &middot; {editTarget.phone}
-              </p>
-              <div>
-                <label className="text-xs font-medium">Email</label>
-                <input
-                  type="email"
-                  value={editEmail}
-                  onChange={(e) => { setEditEmail(e.target.value); }}
-                  placeholder="warden@example.com"
-                  className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 border-t px-5 py-3">
-              <Button onClick={() => setEditTarget(null)} variant="outline" size="sm">
                 Cancel
-              </Button>
-              <Button onClick={handleEdit} disabled={editSaving} size="sm">
-                {editSaving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
-                Save
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Reset Password Modal */}
-      {resetTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-w-sm w-full rounded-lg border bg-card shadow-xl">
-            <div className="flex items-center justify-between border-b px-5 py-3">
-              <h3 className="font-bold text-sm flex items-center gap-2">
-                <Key className="h-4 w-4" />
-                Reset Password
-              </h3>
+              </button>
               <button
-                onClick={() => { setResetTarget(null); }}
-                className="rounded-full p-1 text-muted-foreground hover:bg-muted"
+                onClick={handleEdit}
+                disabled={editSaving}
+                className="flex-1 h-10 rounded-[6px] bg-[#282828] text-white text-[14px] font-semibold hover:bg-black transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                <X className="h-4 w-4" />
+                {editSaving && <Loader2 className="size-4 animate-spin" />}
+                Save Changes
               </button>
             </div>
-            <div className="px-5 py-4 space-y-3">
-              <p className="text-xs text-muted-foreground">
-                {resetTarget.hostel.name} &middot; {resetTarget.phone}
-              </p>
+          </div>
+        </div>
+      )}
 
-                  <div>
-                    <label className="text-xs font-medium">New Password</label>
-                    <input
-                      type="password"
-                      value={resetPassword}
-                      onChange={(e) => { setResetPassword(e.target.value); }}
-                      placeholder="Minimum 8 characters"
-                      className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                    />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    The warden will need to log in with this new password.
-                  </p>
+      {/* ── Reset Password Modal ── */}
+      {resetTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => { if (!resetSaving) { setResetTarget(null); setResetPassword(""); } }}
+        >
+          <div
+            className="w-full max-w-md rounded-[10px] border border-[#dedede] bg-white shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <h2 className="text-[18px] font-bold text-black">Reset Password</h2>
+                <p className="text-[13px] text-[#767676] mt-0.5">{resetTarget.hostel.name} · {resetTarget.phone}</p>
+              </div>
+              <button
+                onClick={() => { if (!resetSaving) { setResetTarget(null); setResetPassword(""); } }}
+                className="size-8 rounded-[6px] border border-[#dedede] flex items-center justify-center text-[#767676] hover:text-black transition-colors"
+              >
+                <X className="size-4" />
+              </button>
             </div>
-            <div className="flex justify-end gap-2 border-t px-5 py-3">
-                  <Button
-                    onClick={() => { setResetTarget(null); }}
-                    variant="outline"
-                    size="sm"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleResetPassword}
-                    disabled={resetSaving || resetPassword.length < 8}
-                    size="sm"
-                  >
-                    {resetSaving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
-                    Reset Password
-                  </Button>
+
+            <div className="space-y-1.5 mb-2">
+              <label className="text-[13px] font-semibold text-black">New Password</label>
+              <input
+                type="password"
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                placeholder="Minimum 8 characters"
+                className="w-full h-10 px-3 rounded-[6px] border border-[#dedede] text-[14px] text-black placeholder:text-[#a1a1a1] outline-none focus:border-[#282828] transition-colors"
+              />
+            </div>
+            <p className="text-[12px] text-[#a1a1a1] mb-5">The warden will need to log in with this new password.</p>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setResetTarget(null); setResetPassword(""); }}
+                disabled={resetSaving}
+                className="flex-1 h-10 rounded-[6px] border border-[#dedede] text-[14px] font-semibold text-[#767676] hover:text-black transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResetPassword}
+                disabled={resetSaving || resetPassword.length < 8}
+                className="flex-1 h-10 rounded-[6px] bg-[#e23030] text-white text-[14px] font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {resetSaving && <Loader2 className="size-4 animate-spin" />}
+                Reset Password
+              </button>
             </div>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Loading Skeleton ─────────────────────────────────────────────────────────
+function LoadingSkeleton() {
+  return (
+    <div className="rounded-[7px] border border-[#dedede] overflow-hidden">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="flex items-center gap-4 px-4 py-4 border-b border-[#f2f2f2] last:border-0 animate-pulse">
+          <div className="size-9 rounded-[7px] bg-[#f2f2f2] shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3.5 w-40 rounded bg-[#f2f2f2]" />
+            <div className="h-3 w-24 rounded bg-[#f2f2f2]" />
+          </div>
+          <div className="h-3 w-28 rounded bg-[#f2f2f2]" />
+          <div className="h-3 w-36 rounded bg-[#f2f2f2]" />
+          <div className="h-6 w-6 rounded-full bg-[#f2f2f2]" />
+          <div className="h-3 w-20 rounded bg-[#f2f2f2]" />
+          <div className="flex gap-2">
+            <div className="h-8 w-16 rounded-[6px] bg-[#f2f2f2]" />
+            <div className="h-8 w-20 rounded-[6px] bg-[#f2f2f2]" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
