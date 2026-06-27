@@ -1,59 +1,92 @@
+const DAYS = [
+  { num: 1, label: "Mon" },
+  { num: 2, label: "Tue" },
+  { num: 3, label: "Wed" },
+  { num: 4, label: "Thu" },
+];
+
+const TASKS: Record<number, { title: string; assigned: string; deadline: string }[]> = {
+  1: [
+    { title: "Do Grocery Purchases", assigned: "Assigned from HQ", deadline: "Deadline Today 3:33 PM" },
+    { title: "Onboard Ashiq", assigned: "Assigned from HQ", deadline: "Deadline March 3 3:33 PM" },
+  ],
+  2: [
+    { title: "Do Grocery Purchases", assigned: "Assigned from HQ", deadline: "Deadline Today 3:33 PM" },
+    { title: "Do Grocery Purchases", assigned: "Assigned from HQ", deadline: "Deadline Today 3:33 PM" },
+  ],
+  3: [
+    { title: "Do Grocery Purchases", assigned: "Assigned from HQ", deadline: "Deadline Today 3:33 PM" },
+    { title: "Onboard New Staff", assigned: "Assigned from HQ", deadline: "Deadline Today 3:33 PM" },
+  ],
+  4: [
+    { title: "Do Grocery Purchases", assigned: "Assigned from HQ", deadline: "Deadline Today 3:33 PM" },
+    { title: "Check Inventory", assigned: "Assigned from HQ", deadline: "Deadline Today 3:33 PM" },
+  ],
+};
+
 export function TasksList() {
+  const today = new Date().getDay(); // 0=Sun, 1=Mon…
+
   return (
-    <div className="rounded-[7px] border border-[#dedede] bg-white dark:bg-zinc-900 p-5 h-full">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-[19px] font-semibold text-black dark:text-white">Tasks</h3>
-        <button className="bg-[#5c5c5c] text-[#58ff48] rounded-[4px] px-3 py-1 text-[13px] font-medium hover:opacity-90">
+    <div className="rounded-[7px] border border-[#dedede] bg-white dark:bg-zinc-900 p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-[14px] font-semibold text-black dark:text-white">Tasks</h3>
+        <button className="bg-[#282828] text-[#58ff48] rounded-[4px] px-3 py-1 text-[11px] font-semibold hover:opacity-90 transition-opacity">
           View All
         </button>
       </div>
-      
-      <div className="flex flex-col gap-6 overflow-hidden">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <TaskItem title="Do Grocery Purhcases" assigned="Assigned from HQ" deadline="Deadline Today 3:33 PM" />
-            <TaskItem title="Onboard Ashiq" assigned="Assigned from HQ" deadline="Deadline March 3 3:33 PM" />
+
+      <div className="flex flex-col divide-y divide-[#f2f2f2] dark:divide-zinc-800">
+        {DAYS.map((day) => (
+          <div key={day.num} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+            {/* Tasks column */}
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 min-w-0">
+              {(TASKS[day.num] ?? []).map((task, i) => (
+                <TaskItem key={i} {...task} />
+              ))}
+            </div>
+            {/* Day badge */}
+            <div className="flex flex-col items-center gap-0.5 shrink-0 w-10">
+              <div
+                className={`size-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                  day.num === today
+                    ? "bg-[#282828] text-white"
+                    : "bg-[#f2f2f2] dark:bg-zinc-800 text-[#767676]"
+                }`}
+              >
+                {day.num}
+              </div>
+              <span
+                className={`text-[10px] font-semibold ${
+                  day.num === today ? "text-black dark:text-white" : "text-[#767676]"
+                }`}
+              >
+                {day.label}
+              </span>
+            </div>
           </div>
-          <div className="w-[60px] flex items-center justify-end gap-2 ml-4">
-            <div className="size-6 rounded-full bg-[#f1f1f1] dark:bg-zinc-800 text-[#767676] flex items-center justify-center text-[13px] font-semibold">1</div>
-            <span className="text-[#767676] text-[15px] font-medium w-8">Mon</span>
-          </div>
-        </div>
-        
-        <div className="flex items-start justify-between">
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <TaskItem title="Do Grocery Purhcases" assigned="Assigned from HQ" deadline="Deadline Today 3:33 PM" />
-            <TaskItem title="Do Grocery Purhcases" assigned="Assigned from HQ" deadline="Deadline Today 3:33 PM" />
-          </div>
-          <div className="w-[60px] flex items-center justify-end gap-2 ml-4">
-            <div className="size-6 rounded-full bg-[#5c5c5c] text-white flex items-center justify-center text-[13px] font-semibold">2</div>
-            <span className="text-black dark:text-white font-semibold text-[15px] w-8">Tue</span>
-          </div>
-        </div>
-        
-        <div className="flex items-start justify-between">
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <TaskItem title="Do Grocery Purhcases" assigned="Assigned from HQ" deadline="Deadline Today 3:33 PM" />
-            <TaskItem title="Onboard New Staff" assigned="Assigned from HQ" deadline="Deadline Today 3:33 PM" />
-          </div>
-          <div className="w-[60px] flex items-center justify-end gap-2 ml-4">
-            <div className="size-6 rounded-full bg-[#f1f1f1] dark:bg-zinc-800 text-[#767676] flex items-center justify-center text-[13px] font-semibold">3</div>
-            <span className="text-[#767676] text-[15px] font-medium w-8">Wed</span>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );
 }
 
-function TaskItem({ title, assigned, deadline }: { title: string, assigned: string, deadline: string }) {
+function TaskItem({
+  title,
+  assigned,
+  deadline,
+}: {
+  title: string;
+  assigned: string;
+  deadline: string;
+}) {
   return (
-    <div className="flex items-start gap-3 min-w-0">
-      <div className="mt-1 size-[22px] rounded-[4px] border-2 border-[#dedede] shrink-0" />
+    <div className="flex items-start gap-2 min-w-0">
+      <div className="mt-0.5 size-[14px] rounded-[3px] border border-[#dedede] shrink-0" />
       <div className="flex flex-col min-w-0">
-        <h4 className="text-[16px] font-semibold text-black dark:text-white leading-tight mb-1 truncate">{title}</h4>
-        <p className="text-[#a1a1a1] text-[13px] leading-tight mb-0.5 truncate">{assigned}</p>
-        <p className="text-[#a1a1a1] text-[13px] leading-tight truncate">{deadline}</p>
+        <h4 className="text-[12px] font-semibold text-black dark:text-white leading-snug truncate">{title}</h4>
+        <p className="text-[10px] text-[#a1a1a1] leading-snug truncate">{assigned}</p>
+        <p className="text-[10px] text-[#a1a1a1] leading-snug truncate">{deadline}</p>
       </div>
     </div>
   );

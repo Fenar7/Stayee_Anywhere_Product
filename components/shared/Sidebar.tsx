@@ -134,7 +134,7 @@ function SidebarNavItem({
       href={item.href}
       title={collapsed ? item.label : undefined}
       className={cn(
-        "group flex items-center gap-4 px-4 py-[14px] text-[17px] font-medium transition-all duration-150 rounded-[7px]",
+        "group flex items-center gap-3 px-3 py-[10px] text-[13px] font-medium transition-all duration-150 rounded-[7px]",
         isActive
           ? "border border-[#dedede] text-black shadow-sm bg-white font-semibold"
           : "text-black border border-transparent hover:bg-gray-50"
@@ -142,7 +142,7 @@ function SidebarNavItem({
     >
       <Icon
         className={cn(
-          "h-6 w-6 shrink-0 transition-colors",
+          "h-[18px] w-[18px] shrink-0 transition-colors",
           isActive ? "text-black" : "text-black group-hover:text-black"
         )}
       />

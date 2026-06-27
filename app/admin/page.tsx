@@ -36,16 +36,18 @@ export default async function AdminPage() {
   ];
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12 w-full max-w-[1400px] mx-auto p-6 bg-white dark:bg-black min-h-screen">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10 w-full max-w-[1400px] mx-auto p-4 bg-white dark:bg-black min-h-screen">
       <DashboardHeader />
       
+      <div className="space-y-4">
+
       <ActionAlertsClient role="MAIN_ADMIN" />
 
       {/* Overview Title */}
-      <h2 className="text-[22px] font-bold text-black dark:text-white -mb-2 mt-2">Overview</h2>
+      <h2 className="text-[15px] font-bold text-black dark:text-white">Overview</h2>
 
       {/* Stats Grid */}
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <StatCard 
           title="Available Beds" 
           value={stats.totalBeds - stats.totalOccupiedBeds} 
@@ -81,10 +83,10 @@ export default async function AdminPage() {
       </div>
 
       {/* Main Content Layout */}
-      <div className="grid gap-6 grid-cols-1 xl:grid-cols-3 items-start">
+      <div className="grid gap-4 grid-cols-1 xl:grid-cols-3 items-start">
         {/* Left Column (2/3) */}
-        <div className="xl:col-span-2 space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
+        <div className="xl:col-span-2 space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <StatusListCard 
               title="Occupancy Status"
               items={occupancyItems}
@@ -102,6 +104,7 @@ export default async function AdminPage() {
         <div className="xl:col-span-1 h-full">
           <ActivityFeed />
         </div>
+      </div>
       </div>
     </div>
   );
