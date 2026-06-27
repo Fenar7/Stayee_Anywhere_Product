@@ -61,7 +61,7 @@ export default async function AdminHostelsPage() {
       ) : (
         <>
           {/* ── Summary Bar ── */}
-          <div className="flex items-center gap-6 py-4 border-b border-[#f2f2f2] dark:border-zinc-800 mb-5">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 py-4 border-b border-[#f2f2f2] dark:border-zinc-800 mb-5">
             <div className="flex items-center gap-2">
               <Building2 className="size-4 text-[#767676]" />
               <span className="text-[14px] text-[#767676]">
@@ -135,14 +135,14 @@ function HostelCard({
         </div>
 
         {/* Card Stats */}
-        <div className="px-5 py-3 flex items-center justify-between border-b border-[#f2f2f2] dark:border-zinc-800">
+        <div className="px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[#f2f2f2] dark:border-zinc-800">
           <div className="flex items-center gap-1.5 text-[#767676]">
             <Users className="size-4" />
             <span className="text-[13px]">
               {hostel.warden ? "1" : "0"} Warden{hostel.warden ? "" : "s"}
             </span>
           </div>
-          <div className="w-px h-4 bg-[#dedede]" />
+          <div className="hidden sm:block w-px h-4 bg-[#dedede]" />
           <div className="flex items-center gap-1.5 text-[#767676]">
             <Layers className="size-4" />
             <span className="text-[13px]">{hostel._count.floors} Floor{hostel._count.floors !== 1 ? "s" : ""}</span>
