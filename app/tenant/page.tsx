@@ -266,7 +266,7 @@ export default function TenantDashboardPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <header className="border-b bg-white/70 dark:bg-slate-900/70 backdrop-blur-md sticky top-0 z-50">
-        <div className="w-full px-4 md:px-6 xl:px-8 py-4 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
               Anywhere Node
@@ -279,7 +279,7 @@ export default function TenantDashboardPage() {
         </div>
       </header>
 
-      <main className="w-full px-4 md:px-6 xl:px-8 py-8 space-y-8">
+      <main className="max-w-5xl mx-auto px-4 py-8 space-y-8">
         {homeNotifications.length > 0 && (
           <div className="space-y-3">
             {homeNotifications.map((notif) => (

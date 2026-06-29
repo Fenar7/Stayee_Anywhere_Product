@@ -14,7 +14,7 @@ export default function AdminShell({
   role: string;
 }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-white">
+    <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar role="MAIN_ADMIN" userName={userName} />
       {/* Offset for mobile hamburger button */}
       <main className="flex-1 overflow-y-auto pt-14 lg:pt-0">

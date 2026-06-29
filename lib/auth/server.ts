@@ -2,12 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
-export async function createClient(forceRememberMe?: boolean) {
+export async function createClient() {
   const cookieStore = await cookies();
 
   const rememberMeCookie = cookieStore.get("remember_me");
-  const isRememberMe = forceRememberMe ?? (rememberMeCookie?.value === "true");
-  const maxAge = isRememberMe ? 30 * 24 * 60 * 60 : undefined;
+  const maxAge = rememberMeCookie ? 30 * 24 * 60 * 60 : undefined;
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

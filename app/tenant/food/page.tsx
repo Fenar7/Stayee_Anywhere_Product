@@ -142,7 +142,7 @@ export default function TenantFoodPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-8">
-      <div className="w-full px-4 md:px-6 xl:px-8 space-y-8">
+      <div className="max-w-6xl mx-auto space-y-8">
         
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b pb-6">

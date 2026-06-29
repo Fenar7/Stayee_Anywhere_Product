@@ -281,18 +281,15 @@ describe("setUserPasswordSetAt", () => {
   });
 });
 
-describe("Next.js proxy", () => {
+describe("proxy middleware", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    global.fetch = vi.fn();
   });
 
   it("should allow public routes like /login without checking session", async () => {
     const mockRequest = {
       nextUrl: { pathname: "/login" },
       url: "http://localhost:3000/login",
-      cookies: { get: vi.fn(), getAll: vi.fn(), set: vi.fn() },
-      headers: new Headers(),
     } as any;
 
     const res = await proxy(mockRequest);
@@ -303,8 +300,6 @@ describe("Next.js proxy", () => {
     const mockRequest = {
       nextUrl: { pathname: "/warden/dashboard" },
       url: "http://localhost:3000/warden/dashboard",
-      cookies: { get: vi.fn(), getAll: vi.fn(), set: vi.fn() },
-      headers: new Headers(),
     } as any;
 
     const mockSupabase = {
@@ -323,8 +318,6 @@ describe("Next.js proxy", () => {
     const mockRequest = {
       nextUrl: { pathname: "/warden/dashboard" },
       url: "http://localhost:3000/warden/dashboard",
-      cookies: { get: vi.fn(), getAll: vi.fn(), set: vi.fn() },
-      headers: new Headers(),
     } as any;
 
     const mockSupabase = {
@@ -337,11 +330,9 @@ describe("Next.js proxy", () => {
     };
     (createServerClient as any).mockReturnValue(mockSupabase);
 
-    (global.fetch as any).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        dbUser: { role: UserRole.WARDEN, passwordSetAt: null }
-      })
+    mockPrisma.user.findUnique.mockResolvedValue({
+      role: UserRole.WARDEN,
+      passwordSetAt: null,
     });
 
     const res = await proxy(mockRequest);
@@ -353,8 +344,6 @@ describe("Next.js proxy", () => {
     const mockRequest = {
       nextUrl: { pathname: "/warden/dashboard" },
       url: "http://localhost:3000/warden/dashboard",
-      cookies: { get: vi.fn(), getAll: vi.fn(), set: vi.fn() },
-      headers: new Headers(),
     } as any;
 
     const mockSupabase = {
@@ -367,11 +356,9 @@ describe("Next.js proxy", () => {
     };
     (createServerClient as any).mockReturnValue(mockSupabase);
 
-    (global.fetch as any).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        dbUser: { role: UserRole.WARDEN, passwordSetAt: new Date() }
-      })
+    mockPrisma.user.findUnique.mockResolvedValue({
+      role: UserRole.WARDEN,
+      passwordSetAt: new Date(),
     });
 
     const res = await proxy(mockRequest);

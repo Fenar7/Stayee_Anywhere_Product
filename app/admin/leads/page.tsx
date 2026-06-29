@@ -1,14 +1,27 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { notify } from "@/lib/toast";
-import { 
-  X, Loader2, FileText, MessageCircle, ChevronDown, Check,
-  UserPlus, PhoneCall, RefreshCw, CheckCircle, Ban
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { X, Loader2, FileText, MessageCircle } from "lucide-react";
+import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, LEAD_SOURCE_COLORS } from "@/lib/labels";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { TableSkeleton } from "@/components/shared/TableSkeleton";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface LeadNote {
   note: string;
   createdAt: string;
@@ -31,47 +44,11 @@ interface Hostel {
   name: string;
 }
 
-type FilterTab = "ALL" | "NEW" | "CONTACTED" | "FOLLOW_UP" | "CONVERTED" | "DROPPED";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-const STATUS_LABELS: Record<string, string> = {
-  NEW: "New",
-  CONTACTED: "Contacted",
-  FOLLOW_UP: "Follow Up",
-  CONVERTED: "Converted",
-  DROPPED: "Dropped",
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  NEW: "bg-[#dbeafe] text-[#1e40af]", // blue
-  CONTACTED: "bg-[#f3e8ff] text-[#7e22ce]", // purple
-  FOLLOW_UP: "bg-[#fefce8] text-[#ca8a04]", // yellow
-  CONVERTED: "bg-[#dcfce7] text-[#15803d]", // green
-  DROPPED: "bg-[#f2f2f2] text-[#767676]", // gray
-};
-
-const STATUS_ICONS: Record<string, any> = {
-  NEW: UserPlus,
-  CONTACTED: PhoneCall,
-  FOLLOW_UP: RefreshCw,
-  CONVERTED: CheckCircle,
-  DROPPED: Ban,
-};
-
-const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    day: "2-digit", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
-};
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 export default function AdminLeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [hostels, setHostels] = useState<Hostel[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedHostelId, setSelectedHostelId] = useState<string>("ALL");
-  const [activeTab, setActiveTab] = useState<FilterTab>("ALL");
   
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -95,8 +72,8 @@ export default function AdminLeadsPage() {
       }
       const data = await res.json();
       setLeads(data.leads);
-    } catch (err) {
-      notify.error(err instanceof Error ? err.message : "Failed to fetch leads");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "Failed to fetch leads");
     } finally {
       setLoading(false);
     }
@@ -109,7 +86,7 @@ export default function AdminLeadsPage() {
         const data = await res.json();
         setHostels(data.hostels || []);
       }
-    } catch (err) {
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
       console.error("Failed to fetch hostels:", err);
     }
   }, []);
@@ -138,8 +115,8 @@ export default function AdminLeadsPage() {
       notify.success("Lead updated successfully");
       setShowDetailModal(false);
       fetchLeads();
-    } catch (err) {
-      notify.error(err instanceof Error ? err.message : "Error updating lead");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "Error updating lead");
     } finally {
       setDetailLoading(false);
     }
@@ -152,340 +129,229 @@ export default function AdminLeadsPage() {
     setShowDetailModal(true);
   };
 
-  // ─── Filters ───
-  const newLeads = useMemo(() => leads.filter((l) => l.status === "NEW"), [leads]);
-  const contactedLeads = useMemo(() => leads.filter((l) => l.status === "CONTACTED"), [leads]);
-  const followUpLeads = useMemo(() => leads.filter((l) => l.status === "FOLLOW_UP"), [leads]);
-  const convertedLeads = useMemo(() => leads.filter((l) => l.status === "CONVERTED"), [leads]);
-  const droppedLeads = useMemo(() => leads.filter((l) => l.status === "DROPPED"), [leads]);
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
-  const filteredItems = useMemo(() => {
-    switch (activeTab) {
-      case "NEW": return newLeads;
-      case "CONTACTED": return contactedLeads;
-      case "FOLLOW_UP": return followUpLeads;
-      case "CONVERTED": return convertedLeads;
-      case "DROPPED": return droppedLeads;
-      default: return leads;
+  const renderTable = (items: Lead[], emptyMessage: string) => {
+    if (items.length === 0) {
+      return (
+        <EmptyState
+          icon={FileText}
+          title="No Leads Found"
+          description={emptyMessage}
+        />
+      );
     }
-  }, [activeTab, leads, newLeads, contactedLeads, followUpLeads, convertedLeads, droppedLeads]);
 
-  const TABS: { id: FilterTab; label: string; count: number }[] = [
-    { id: "ALL", label: "All Leads", count: leads.length },
-    { id: "NEW", label: "New", count: newLeads.length },
-    { id: "CONTACTED", label: "Contacted", count: contactedLeads.length },
-    { id: "FOLLOW_UP", label: "Follow Up", count: followUpLeads.length },
-    { id: "CONVERTED", label: "Converted", count: convertedLeads.length },
-    { id: "DROPPED", label: "Dropped", count: droppedLeads.length },
-  ];
-
-  return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full px-4 md:px-6 xl:px-8 py-5 bg-white dark:bg-black min-h-screen">
-      
-      {/* ── Page Header ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between pb-5 border-b border-[#dedede]">
-        <div>
-          <h1 className="text-[24px] font-bold tracking-tight text-black dark:text-white">Portfolio Leads</h1>
-          <p className="text-[#767676] text-[14px] mt-0.5">Track and manage prospective tenants across all properties.</p>
-        </div>
-        
-        {/* Hostel Selector */}
-        <div className="relative self-start w-full sm:w-[220px]">
-          <select
-            value={selectedHostelId}
-            onChange={(e) => setSelectedHostelId(e.target.value)}
-            className="w-full h-10 pl-3 pr-9 appearance-none bg-white border border-[#dedede] rounded-[6px] text-[13px] font-semibold text-black focus:outline-none focus:border-[#282828] transition-colors"
-          >
-            <option value="ALL">All Hostels</option>
-            {hostels.map((h) => (
-              <option key={h.id} value={h.id}>{h.name}</option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-[#767676] pointer-events-none" />
-        </div>
-      </div>
-
-      {/* ── Tabs ── */}
-      <div className="py-4">
-        <div className="flex items-center gap-1 overflow-x-auto pb-2 scrollbar-hide">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              className={cn(
-                "h-9 px-4 rounded-[6px] text-[13px] font-semibold transition-all flex items-center gap-2 whitespace-nowrap",
-                activeTab === t.id
-                  ? "bg-[#282828] text-white"
-                  : "border border-[#dedede] text-[#767676] hover:text-black hover:border-[#c0c0c0] bg-white"
-              )}
-            >
-              {t.label}
-              <span className={cn(
-                "text-[11px] px-1.5 py-0.5 rounded-full",
-                activeTab === t.id ? "bg-white/20 text-white" : "bg-[#f2f2f2] text-[#767676]"
-              )}>
-                {t.count}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Content ── */}
-      {loading ? (
-        <LoadingSkeleton />
-      ) : filteredItems.length === 0 ? (
-        <EmptyLeads tab={activeTab} />
-      ) : (
-        <>
-          {/* Desktop Table */}
-          <div className="hidden md:block rounded-[7px] border border-[#dedede] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px]">
-                <thead>
-                  <tr className="border-b border-[#f2f2f2] bg-[#fafafa]">
-                    {["Phone / Contact", "Hostel", "Status", "Source", "Latest Note", "Created"].map((h) => (
-                      <th
-                        key={h}
-                        className="px-4 py-3 text-[12px] font-semibold text-[#767676] uppercase tracking-wide text-left"
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredItems.map((lead) => {
-                    const latestNote = lead.notes[0]?.note || "No notes";
-                    const StatusIcon = STATUS_ICONS[lead.status] || UserPlus;
-                    return (
-                      <tr
-                        key={lead.id}
-                        onClick={() => openLeadDetails(lead)}
-                        className="border-b border-[#f2f2f2] last:border-0 bg-white hover:bg-[#fafafa] transition-colors cursor-pointer group"
-                      >
-                        {/* Phone */}
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-[14px] font-semibold text-black dark:text-white">{lead.phone}</span>
-                            <a
-                              href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, "")}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="size-7 rounded-[4px] bg-[#dcfce7] text-[#15803d] hover:bg-[#bbf7d0] transition-colors flex items-center justify-center"
-                              title="WhatsApp"
-                            >
-                              <MessageCircle className="size-4" />
-                            </a>
-                          </div>
-                        </td>
-
-                        {/* Hostel */}
-                        <td className="px-4 py-3.5">
-                          <span className="text-[13px] font-medium text-black dark:text-white">
-                            {lead.hostelName || "None"}
-                          </span>
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-4 py-3.5">
-                          <span className={cn(
-                            "inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full",
-                            STATUS_STYLES[lead.status] || "bg-[#f2f2f2] text-[#767676]"
-                          )}>
-                            <StatusIcon className="size-3" />
-                            {STATUS_LABELS[lead.status] || lead.status}
-                          </span>
-                        </td>
-
-                        {/* Source */}
-                        <td className="px-4 py-3.5">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#f2f2f2] text-[#5c5c5c] uppercase tracking-wider">
-                            {lead.source.replace("_", " ")}
-                          </span>
-                        </td>
-
-                        {/* Note */}
-                        <td className="px-4 py-3.5">
-                          <span className="text-[13px] text-[#767676] line-clamp-1 max-w-[200px]">
-                            {latestNote}
-                          </span>
-                        </td>
-
-                        {/* Created */}
-                        <td className="px-4 py-3.5">
-                          <span className="text-[13px] text-[#767676]">
-                            {formatDate(lead.createdAt)}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Mobile Card List */}
-          <div className="md:hidden flex flex-col gap-3">
-            {filteredItems.map((lead) => {
-              const latestNote = lead.notes[0]?.note || "No notes";
-              const StatusIcon = STATUS_ICONS[lead.status] || UserPlus;
-
+    return (
+      <div className="rounded-md border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Phone / Contact</TableHead>
+              <TableHead>Hostel</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Source</TableHead>
+              <TableHead>Latest Note</TableHead>
+              <TableHead>Created</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((lead) => {
+              const latestNote = lead.notes[0];
+              const noteText = latestNote ? latestNote.note : "No notes";
               return (
-                <div
-                  key={lead.id}
+                <TableRow 
+                  key={lead.id} 
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => openLeadDetails(lead)}
-                  className="rounded-[7px] border border-[#dedede] bg-white p-4 cursor-pointer hover:border-[#c0c0c0] transition-colors"
                 >
-                  <div className="flex items-start justify-between gap-3 mb-3">
+                  <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-[16px] font-bold text-black">{lead.phone}</span>
-                      <a
-                        href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, "")}`}
-                        target="_blank"
+                      <span className="font-mono">{lead.phone}</span>
+                      <a 
+                        href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`} 
+                        target="_blank" 
                         rel="noreferrer"
+                        className="text-emerald-600 hover:text-emerald-700 p-1"
                         onClick={(e) => e.stopPropagation()}
-                        className="size-7 rounded-[4px] bg-[#dcfce7] text-[#15803d] hover:bg-[#bbf7d0] transition-colors flex items-center justify-center"
+                        title="WhatsApp"
                       >
-                        <MessageCircle className="size-4" />
+                        <MessageCircle className="h-4 w-4" />
                       </a>
                     </div>
-                    <span className={cn(
-                      "inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-full shrink-0",
-                      STATUS_STYLES[lead.status] || "bg-[#f2f2f2] text-[#767676]"
-                    )}>
-                      <StatusIcon className="size-3" />
-                      {STATUS_LABELS[lead.status] || lead.status}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5 mb-3 text-[13px] text-[#767676]">
-                    <p className="flex justify-between">
-                      <span>Hostel:</span>
-                      <span className="font-semibold text-black">{lead.hostelName || "None"}</span>
-                    </p>
-                    <p className="flex justify-between">
-                      <span>Source:</span>
-                      <span className="uppercase">{lead.source.replace("_", " ")}</span>
-                    </p>
-                    <p className="flex justify-between">
-                      <span>Created:</span>
-                      <span>{formatDate(lead.createdAt)}</span>
-                    </p>
-                  </div>
-
-                  <div className="pt-3 border-t border-[#f2f2f2]">
-                    <p className="text-[12px] font-semibold text-black mb-1">Latest Note:</p>
-                    <p className="text-[13px] text-[#767676] line-clamp-2">{latestNote}</p>
-                  </div>
-                </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">{lead.hostelName || "None"}</span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={LEAD_STATUS_COLORS[lead.status] || ""}>
+                      {LEAD_STATUS_LABELS[lead.status] || lead.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={`text-[10px] uppercase tracking-wider ${LEAD_SOURCE_COLORS[lead.status] || "bg-muted"}`}>
+                      {lead.source.replace("_", " ")}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="max-w-[150px] truncate text-sm text-muted-foreground">
+                    {noteText}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDate(lead.createdAt)}
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </div>
-          
-          <p className="text-[12px] text-[#a1a1a1] mt-3">
-            Showing {filteredItems.length} leads
-          </p>
-        </>
-      )}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
 
-      {/* ── Detail Modal ── */}
+  const newLeads = leads.filter(l => l.status === "NEW");
+  const contactedLeads = leads.filter(l => l.status === "CONTACTED");
+  const followUpLeads = leads.filter(l => l.status === "FOLLOW_UP");
+  const convertedLeads = leads.filter(l => l.status === "CONVERTED");
+  const droppedLeads = leads.filter(l => l.status === "DROPPED");
+
+  return (
+    <div className="flex flex-col min-h-full">
+      <PageHeader
+        title="Portfolio Leads"
+        description="Track and manage prospective tenants across all properties."
+        actions={
+          <div className="flex items-center gap-2">
+            <Select value={selectedHostelId} onValueChange={(val) => setSelectedHostelId(val || "")}>
+              <SelectTrigger className="w-[200px] h-8 text-xs">
+                <SelectValue placeholder="All Hostels" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Hostels</SelectItem>
+                {hostels.map((h) => (
+                  <SelectItem key={h.id} value={h.id}>
+                    {h.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
+      />
+      <div className="p-6">
+        {loading ? (
+          <TableSkeleton />
+        ) : (
+          <Tabs defaultValue="ALL" className="w-full">
+            <TabsList className="mb-6 overflow-x-auto flex-nowrap w-full justify-start h-auto p-1 bg-muted/50">
+              <TabsTrigger value="ALL">All Leads ({leads.length})</TabsTrigger>
+              <TabsTrigger value="NEW">New ({newLeads.length})</TabsTrigger>
+              <TabsTrigger value="CONTACTED">Contacted ({contactedLeads.length})</TabsTrigger>
+              <TabsTrigger value="FOLLOW_UP">Follow Up ({followUpLeads.length})</TabsTrigger>
+              <TabsTrigger value="CONVERTED">Converted ({convertedLeads.length})</TabsTrigger>
+              <TabsTrigger value="DROPPED">Dropped ({droppedLeads.length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="ALL" className="m-0">
+              {renderTable(leads, "No leads have been captured yet.")}
+            </TabsContent>
+            <TabsContent value="NEW" className="m-0">
+              {renderTable(newLeads, "No new leads.")}
+            </TabsContent>
+            <TabsContent value="CONTACTED" className="m-0">
+              {renderTable(contactedLeads, "No contacted leads.")}
+            </TabsContent>
+            <TabsContent value="FOLLOW_UP" className="m-0">
+              {renderTable(followUpLeads, "No leads require follow-up.")}
+            </TabsContent>
+            <TabsContent value="CONVERTED" className="m-0">
+              {renderTable(convertedLeads, "No leads converted yet.")}
+            </TabsContent>
+            <TabsContent value="DROPPED" className="m-0">
+              {renderTable(droppedLeads, "No dropped leads.")}
+            </TabsContent>
+          </Tabs>
+        )}
+      </div>
+
       {showDetailModal && selectedLead && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto"
-          onClick={() => { if (!detailLoading) setShowDetailModal(false); }}
-        >
-          <div
-            className="w-full max-w-3xl rounded-[10px] border border-[#dedede] bg-white shadow-2xl my-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-start justify-between p-5 border-b border-[#f2f2f2]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl rounded-2xl bg-background shadow-xl border my-auto">
+            <div className="flex items-center justify-between p-6 border-b">
               <div>
-                <div className="flex items-center gap-3">
-                  <h3 className="font-mono text-[20px] font-bold text-black">{selectedLead.phone}</h3>
-                  <span className={cn(
-                    "inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full",
-                    STATUS_STYLES[selectedLead.status] || "bg-[#f2f2f2] text-[#767676]"
-                  )}>
-                    {STATUS_LABELS[selectedLead.status] || selectedLead.status}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 mt-1.5 text-[13px] text-[#767676]">
-                  <span>Added {formatDate(selectedLead.createdAt)}</span>
-                  <span className="w-1 h-1 rounded-full bg-[#dedede]" />
-                  <span className="uppercase text-[11px] font-bold tracking-wider">Hostel: {selectedLead.hostelName || "None"}</span>
-                </div>
+                <h3 className="text-xl font-bold flex items-center gap-3">
+                  <span className="font-mono">{selectedLead.phone}</span>
+                  <Badge variant="outline" className={LEAD_STATUS_COLORS[selectedLead.status] || ""}>
+                    {LEAD_STATUS_LABELS[selectedLead.status] || selectedLead.status}
+                  </Badge>
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Added on {formatDate(selectedLead.createdAt)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wider">
+                  Hostel: {selectedLead.hostelName || "None"}
+                </p>
               </div>
               <button
-                onClick={() => { if (!detailLoading) setShowDetailModal(false); }}
-                className="size-8 rounded-[6px] border border-[#dedede] flex items-center justify-center text-[#767676] hover:text-black transition-colors"
+                onClick={() => setShowDetailModal(false)}
+                className="text-muted-foreground hover:text-foreground p-2 bg-muted/50 rounded-full"
               >
-                <X className="size-4" />
+                <X className="h-5 w-5" />
               </button>
             </div>
             
-            {/* Body */}
-            <div className="p-5 grid grid-cols-1 md:grid-cols-5 gap-6">
-              
-              {/* Left Column: Update form */}
-              <div className="md:col-span-2 space-y-5">
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-black">Update Status</label>
-                  <div className="relative">
-                    <select
-                      value={detailStatus}
-                      onChange={(e) => setDetailStatus(e.target.value)}
-                      className="w-full h-10 pl-3 pr-9 appearance-none bg-white border border-[#dedede] rounded-[6px] text-[14px] text-black focus:outline-none focus:border-[#282828] transition-colors"
-                    >
-                      <option value="NEW">New</option>
-                      <option value="CONTACTED">Contacted</option>
-                      <option value="FOLLOW_UP">Follow Up</option>
-                      <option value="CONVERTED">Converted</option>
-                      <option value="DROPPED">Dropped</option>
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-[#767676] pointer-events-none" />
-                  </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label>Update Status</Label>
+                  <Select value={detailStatus} onValueChange={(val) => setDetailStatus(val || "")}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NEW">New</SelectItem>
+                      <SelectItem value="CONTACTED">Contacted</SelectItem>
+                      <SelectItem value="FOLLOW_UP">Follow Up</SelectItem>
+                      <SelectItem value="CONVERTED">Converted</SelectItem>
+                      <SelectItem value="DROPPED">Dropped</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-black">Add Note</label>
-                  <textarea
+                <div className="space-y-2">
+                  <Label>Add Note</Label>
+                  <Textarea
                     placeholder="Had a call regarding..."
                     rows={4}
                     value={detailNote}
                     onChange={(e) => setDetailNote(e.target.value)}
-                    className="w-full p-3 bg-white border border-[#dedede] rounded-[6px] text-[14px] text-black placeholder:text-[#a1a1a1] focus:outline-none focus:border-[#282828] transition-colors resize-none"
                   />
+                  <div className="mt-4">
+                    <Button onClick={handleUpdateLead} disabled={detailLoading} className="w-full">
+                      {detailLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      Save Update
+                    </Button>
+                  </div>
                 </div>
-
-                <button
-                  onClick={handleUpdateLead}
-                  disabled={detailLoading}
-                  className="w-full h-10 rounded-[6px] bg-[#282828] text-white text-[14px] font-semibold hover:bg-black transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {detailLoading && <Loader2 className="size-4 animate-spin" />}
-                  Save Update
-                </button>
               </div>
               
-              {/* Right Column: Activity */}
-              <div className="md:col-span-3 border-t md:border-t-0 md:border-l border-[#f2f2f2] md:pl-6 pt-5 md:pt-0">
-                <h4 className="text-[12px] font-bold text-[#a1a1a1] uppercase tracking-wider mb-4">Activity History</h4>
+              <div className="border-t md:border-t-0 md:border-l md:pl-8 pt-6 md:pt-0">
+                <h4 className="text-sm font-semibold mb-4 uppercase tracking-wider text-muted-foreground">Activity History</h4>
                 {selectedLead.notes.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-center">
-                    <FileText className="size-8 text-[#dedede] mb-2" />
-                    <p className="text-[13px] text-[#a1a1a1]">No history available.</p>
-                  </div>
+                  <p className="text-sm text-muted-foreground italic">No history available.</p>
                 ) : (
-                  <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
                     {selectedLead.notes.map((n, idx) => (
-                      <div key={idx} className="bg-[#fafafa] p-3.5 rounded-[7px] border border-[#f2f2f2]">
-                        <p className="text-[13px] text-black leading-relaxed mb-2 whitespace-pre-wrap">{n.note}</p>
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#f2f2f2] text-[11px] text-[#a1a1a1]">
-                          <span className="font-mono font-medium">Added by: {n.author.phone}</span>
+                      <div key={idx} className="bg-muted/30 p-4 rounded-xl border border-border/50">
+                        <p className="text-sm text-foreground mb-3">{n.note}</p>
+                        <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+                          <span className="font-mono">{n.author.phone}</span>
                           <span>{formatDate(n.createdAt)}</span>
                         </div>
                       </div>
@@ -493,55 +359,10 @@ export default function AdminLeadsPage() {
                   </div>
                 )}
               </div>
-
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// ─── Loading Skeleton ─────────────────────────────────────────────────────────
-function LoadingSkeleton() {
-  return (
-    <div className="rounded-[7px] border border-[#dedede] overflow-hidden mt-4">
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="flex items-center gap-4 px-4 py-3.5 border-b border-[#f2f2f2] last:border-0 animate-pulse">
-          <div className="h-4 w-32 rounded bg-[#f2f2f2]" />
-          <div className="h-4 w-24 rounded bg-[#f2f2f2]" />
-          <div className="h-6 w-20 rounded-full bg-[#f2f2f2]" />
-          <div className="h-6 w-16 rounded bg-[#f2f2f2]" />
-          <div className="flex-1 h-4 rounded bg-[#f2f2f2]" />
-          <div className="h-4 w-24 rounded bg-[#f2f2f2]" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── Empty State ──────────────────────────────────────────────────────────────
-function EmptyLeads({ tab }: { tab: FilterTab }) {
-  const getMessage = () => {
-    switch (tab) {
-      case "NEW": return "No new leads.";
-      case "CONTACTED": return "No contacted leads.";
-      case "FOLLOW_UP": return "No leads require follow-up.";
-      case "CONVERTED": return "No leads converted yet.";
-      case "DROPPED": return "No dropped leads.";
-      default: return "No leads have been captured yet.";
-    }
-  };
-
-  return (
-    <div className="mt-16 flex flex-col items-center justify-center gap-4 text-center">
-      <div className="size-16 rounded-[10px] bg-[#5c5c5c] flex items-center justify-center">
-        <FileText className="size-8 text-[#58ff48]" />
-      </div>
-      <div>
-        <h3 className="text-[18px] font-bold text-black dark:text-white">No Leads Found</h3>
-        <p className="text-[14px] text-[#767676] mt-1">{getMessage()}</p>
-      </div>
     </div>
   );
 }

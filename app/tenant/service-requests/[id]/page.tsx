@@ -75,14 +75,14 @@ export default async function ServiceRequestPaymentPage(props: { params: Promise
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <header className="border-b bg-white/70 dark:bg-slate-900/70 backdrop-blur-md sticky top-0 z-50">
-        <div className="w-full px-4 md:px-6 xl:px-8 py-4 flex items-center">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center">
           <Link href="/tenant" className={buttonVariants({ variant: "ghost", size: "sm", className: "mr-4" })}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Link>
           <h1 className="text-xl font-bold tracking-tight">Service Request</h1>
         </div>
       </header>
-      <main className="w-full px-4 md:px-6 xl:px-8 py-12">
+      <main className="max-w-5xl mx-auto px-4 py-12">
         <PaymentForm
           serviceRequestId={id}
           amount={amount}

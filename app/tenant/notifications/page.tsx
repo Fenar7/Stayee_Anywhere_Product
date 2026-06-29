@@ -132,7 +132,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="w-full py-8 px-4 md:px-6 xl:px-8 space-y-6">
+    <div className="mx-auto max-w-4xl py-8 px-4 md:px-8 space-y-6">
       {/* Clean, Non-flashy Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-6">
         <div className="space-y-1">

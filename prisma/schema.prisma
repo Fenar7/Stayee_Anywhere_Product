@@ -386,12 +386,9 @@ model FoodOrder {
   stayId      String
   stay        Stay      @relation(fields: [stayId], references: [id], onDelete: Cascade)
   forDate     DateTime
-  breakfast   Boolean   @default(false)
-  lunch       Boolean   @default(false)
-  dinner      Boolean   @default(false)
-  tea         Boolean   @default(false)
-  cutFruits   Boolean   @default(false)
-  gymDiet     Boolean   @default(false)
+  breakfast   Boolean
+  lunch       Boolean
+  dinner      Boolean
   confirmedAt DateTime?
   lockedAt    DateTime?
   createdAt   DateTime  @default(now())

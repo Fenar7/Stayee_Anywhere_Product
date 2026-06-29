@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { notify } from "@/lib/toast";
-import { MessageSquare, ShieldCheck, FileText, Clock, CreditCard, ClipboardList, RefreshCw } from "lucide-react";
-import { rentDueReminder } from "@/lib/whatsapp/templates";
-import { buildWaMeLink } from "@/lib/whatsapp/utils";
+import { Loader2, MessageSquare, ShieldCheck, FileText, Clock, CreditCard, ClipboardList } from "lucide-react";
+import { rentDueReminder, applicationApprovedPaymentRequest } from "@/lib/whatsapp/templates";
+import { buildWaMeLink, normalizePhoneNumber } from "@/lib/whatsapp/utils";
+import { getStartOfDayIST, addDays, diffInDays } from "@/lib/dates";
 import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
-import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -136,17 +137,13 @@ export default function HostelWorklistsView({
 
   const filteredRentDue = rentDueStays.filter((s) => s.daysRemaining <= rentFilter);
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-IN", {
+  const handleRentReminder = (stay: RentDueStay) => {
+    const dueDateStr = new Date(stay.endDate).toLocaleDateString("en-IN", {
       timeZone: "Asia/Kolkata",
       day: "numeric",
       month: "short",
       year: "numeric",
     });
-  };
-
-  const handleRentReminder = (stay: RentDueStay) => {
-    const dueDateStr = formatDate(stay.endDate);
     const paymentUrl = `${window.location.origin}/tenant`;
     const phone = stay.tenant.phone ?? "";
     const message = rentDueReminder({
@@ -160,10 +157,10 @@ export default function HostelWorklistsView({
   };
 
   const tabs: { key: TabKey; label: string; count: number; icon: React.ReactNode }[] = [
-    { key: "rent", label: "Rent Due Soon", count: rentDueStays.length, icon: <Clock className="size-4" /> },
-    { key: "payments", label: "Pending Verification", count: paymentsPending.length, icon: <CreditCard className="size-4" /> },
-    { key: "applications", label: "Applications", count: applicationsPending.length, icon: <ClipboardList className="size-4" /> },
-    { key: "adhoc", label: "Pending Ad-Hoc Payments", count: serviceRequestsPending.length, icon: <CreditCard className="size-4" /> },
+    { key: "rent", label: "Rent Due Soon", count: rentDueStays.length, icon: <Clock className="h-4 w-4" /> },
+    { key: "payments", label: "Pending Verification", count: paymentsPending.length, icon: <CreditCard className="h-4 w-4" /> },
+    { key: "applications", label: "Applications", count: applicationsPending.length, icon: <ClipboardList className="h-4 w-4" /> },
+    { key: "adhoc", label: "Pending Ad-Hoc Payments", count: serviceRequestsPending.length, icon: <CreditCard className="h-4 w-4" /> },
   ];
 
   if (loading) {
@@ -171,50 +168,32 @@ export default function HostelWorklistsView({
   }
 
   return (
-    <div className="min-h-screen bg-white w-full px-4 md:px-6 xl:px-8 py-5">
-      {/* ── Header ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between pb-6">
-        <div>
-          <h1 className="text-[26px] font-bold tracking-tight text-black flex items-center gap-2">
-            Worklists <span className="text-[24px]">👋</span>
-          </h1>
-          <p className="text-[#767676] text-[14px] font-medium mt-0.5">
-            Action items requiring your attention
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={fetchData}
-            className="flex items-center justify-center h-10 px-5 border border-[#dedede] rounded-[6px] bg-white text-black text-[15px] font-semibold hover:bg-gray-50 transition-colors whitespace-nowrap"
-          >
-            <RefreshCw className="mr-2 size-4 text-[#5c5c5c]" />
-            Refresh
-          </button>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Warden Worklists</h1>
+        <p className="text-muted-foreground">Action items requiring your attention</p>
       </div>
 
-      {/* ── Tabs ── */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      {/* Tab Navigation */}
+      <div className="flex flex-wrap gap-2">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              "flex items-center justify-center h-10 px-4 rounded-[6px] text-[14px] font-semibold transition-colors whitespace-nowrap border",
+            className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
               activeTab === tab.key
-                ? "bg-[#282828] text-[#58ff48] border-[#282828] hover:bg-black"
-                : "bg-white text-black border-[#dedede] hover:bg-gray-50"
-            )}
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-card text-card-foreground hover:bg-muted"
+            }`}
           >
-            <span className="mr-2 text-current opacity-80">{tab.icon}</span>
+            {tab.icon}
             {tab.label}
             <span
-              className={cn(
-                "ml-2 flex h-[20px] min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-bold",
+              className={`ml-1 rounded-full px-2 py-0.5 text-xs font-bold ${
                 activeTab === tab.key
-                  ? "bg-[#58ff48]/20 text-[#58ff48]"
-                  : "bg-[#f2f2f2] text-[#767676]"
-              )}
+                  ? "bg-primary-foreground/20 text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}
             >
               {tab.count}
             </span>
@@ -222,71 +201,70 @@ export default function HostelWorklistsView({
         ))}
       </div>
 
-      {/* ── Content ── */}
-      <div className="rounded-[7px] border border-[#dedede] bg-white p-5 w-full">
-        
+      {/* Tab Content */}
+      <div className="rounded-lg border bg-card shadow-sm">
         {/* Rent Due Soon */}
         {activeTab === "rent" && (
-          <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#f2f2f2] pb-4">
-              <h3 className="text-[16px] font-semibold text-black">Rent Due Soon</h3>
-              <div className="flex gap-2 bg-[#f2f2f2] p-1 rounded-[5px]">
-                {([3, 7, 14] as const).map((days) => (
-                  <button
-                    key={days}
-                    onClick={() => setRentFilter(days)}
-                    className={cn(
-                      "rounded-[4px] px-3 py-1.5 text-[12px] font-semibold transition-colors",
-                      rentFilter === days
-                        ? "bg-white text-black shadow-sm"
-                        : "text-[#767676] hover:text-black"
-                    )}
-                  >
-                    {days} days ({rentDueStays.filter((s) => s.daysRemaining <= days).length})
-                  </button>
-                ))}
-              </div>
+          <div className="p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">Rent Due Soon</h2>
+            </div>
+
+            {/* Sub-filters */}
+            <div className="flex gap-2">
+              {([3, 7, 14] as const).map((days) => (
+                <button
+                  key={days}
+                  onClick={() => setRentFilter(days)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    rentFilter === days
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {days} days ({rentDueStays.filter((s) => s.daysRemaining <= days).length})
+                </button>
+              ))}
             </div>
 
             {filteredRentDue.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="size-12 rounded-full bg-[#f2f2f2] flex items-center justify-center mb-3">
-                  <Clock className="size-6 text-[#a1a1a1]" />
-                </div>
-                <p className="text-[14px] text-[#767676] font-medium">No stays due within {rentFilter} days.</p>
-              </div>
+              <p className="text-sm text-muted-foreground py-8 text-center">
+                No stays due within {rentFilter} days.
+              </p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-3">
                 {filteredRentDue.map((stay) => (
                   <div
                     key={stay.id}
-                    className="flex flex-col justify-between gap-4 p-4 rounded-[6px] border border-[#dedede] bg-white hover:border-[#a1a1a1] transition-colors"
+                    className="flex items-center justify-between rounded-lg border p-4"
                   >
-                    <div>
-                      <p className="text-[15px] font-semibold text-black leading-snug">{stay.tenant.fullName}</p>
-                      <p className="text-[12px] text-[#767676] mt-1 leading-snug">
-                        Room {stay.bed.roomNumber} &middot; Bed {stay.bed.label} &middot; Checkout: {formatDate(stay.endDate)}
+                    <div className="space-y-1">
+                      <p className="font-medium">{stay.tenant.fullName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Room {stay.bed.roomNumber} &middot; Bed {stay.bed.label} &middot; Rent: ₹{stay.rentAmount.toLocaleString("en-IN")} &middot; Checkout:{" "}
+                        {new Date(stay.endDate).toLocaleDateString("en-IN", {
+                          timeZone: "Asia/Kolkata",
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
                       </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-[13px] font-bold text-black">₹{stay.rentAmount.toLocaleString("en-IN")}</span>
-                        <span className="text-[#dedede]">|</span>
-                        <span
-                          className={cn(
-                            "text-[12px] font-semibold",
-                            stay.daysRemaining <= 3 ? "text-red-500" : stay.daysRemaining <= 7 ? "text-yellow-600" : "text-[#767676]"
-                          )}
-                        >
-                          {stay.daysRemaining} day{stay.daysRemaining !== 1 ? "s" : ""} left
-                        </span>
-                      </div>
+                      <p
+                        className={`text-xs font-semibold ${
+                          stay.daysRemaining <= 3 ? "text-red-600" : stay.daysRemaining <= 7 ? "text-amber-600" : "text-muted-foreground"
+                        }`}
+                      >
+                        {stay.daysRemaining} day{stay.daysRemaining !== 1 ? "s" : ""} remaining
+                      </p>
                     </div>
-                    <button
+                    <Button
                       onClick={() => handleRentReminder(stay)}
-                      className="w-full h-[36px] rounded-[5px] bg-[#282828] hover:bg-black text-[#58ff48] text-[13px] font-semibold flex items-center justify-center gap-2 transition-colors"
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-1.5"
                     >
-                      <MessageSquare className="size-4" />
+                      <MessageSquare className="h-3.5 w-3.5" />
                       Send WhatsApp Reminder
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -296,48 +274,44 @@ export default function HostelWorklistsView({
 
         {/* Payments Pending Verification */}
         {activeTab === "payments" && (
-          <div className="space-y-5">
-            <div className="border-b border-[#f2f2f2] pb-4">
-              <h3 className="text-[16px] font-semibold text-black">Payments Pending Verification</h3>
-            </div>
-            
+          <div className="p-6 space-y-4">
+            <h2 className="text-lg font-semibold">Payments Pending Verification</h2>
             {paymentsPending.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="size-12 rounded-full bg-[#f2f2f2] flex items-center justify-center mb-3">
-                  <CreditCard className="size-6 text-[#a1a1a1]" />
-                </div>
-                <p className="text-[14px] text-[#767676] font-medium">No payments pending verification.</p>
-              </div>
+              <p className="text-sm text-muted-foreground py-8 text-center">
+                No payments pending verification.
+              </p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-3">
                 {paymentsPending.map((stay) => (
                   <div
                     key={stay.id}
-                    className="flex flex-col justify-between gap-4 p-4 rounded-[6px] border border-[#dedede] bg-white hover:border-[#a1a1a1] transition-colors"
+                    className="flex items-center justify-between rounded-lg border p-4"
                   >
-                    <div>
-                      <p className="text-[15px] font-semibold text-black leading-snug">{stay.tenant.fullName}</p>
-                      <p className="text-[12px] text-[#767676] mt-1 leading-snug">
+                    <div className="space-y-1">
+                      <p className="font-medium">{stay.tenant.fullName}</p>
+                      <p className="text-xs text-muted-foreground">
                         Room {stay.bed.roomNumber} &middot; Bed {stay.bed.label}
                       </p>
-                      <div className="mt-3 space-y-1.5">
+                      <div className="space-y-0.5">
                         {stay.pendingPayments.map((pmt) => (
-                          <div key={pmt.id} className="flex justify-between items-center text-[12px] font-medium bg-[#f2f2f2] rounded px-2 py-1">
-                            <span className="text-[#767676]">Amount: <span className="text-black">₹{pmt.amount.toLocaleString("en-IN")}</span></span>
+                          <p key={pmt.id} className="text-xs text-muted-foreground">
+                            Pending: ₹{pmt.amount.toLocaleString("en-IN")}
                             {pmt.transactionRefNo && (
-                              <span className="font-mono text-[#a1a1a1]">Ref: {pmt.transactionRefNo}</span>
+                              <span className="ml-1 font-mono">Ref: {pmt.transactionRefNo}</span>
                             )}
-                          </div>
+                          </p>
                         ))}
                       </div>
                     </div>
-                    <button
+                    <Button
                       onClick={() => router.push(`${baseRoute}/onboards/${stay.id}`)}
-                      className="w-full h-[36px] rounded-[5px] border border-[#dedede] bg-white hover:bg-gray-50 text-black text-[13px] font-semibold flex items-center justify-center gap-2 transition-colors"
+                      size="sm"
+                      variant="outline"
+                      className="flex items-center gap-1.5"
                     >
-                      <ShieldCheck className="size-4 text-[#5c5c5c]" />
+                      <ShieldCheck className="h-3.5 w-3.5" />
                       Verify Payment
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -347,44 +321,43 @@ export default function HostelWorklistsView({
 
         {/* Applications Awaiting Review */}
         {activeTab === "applications" && (
-          <div className="space-y-5">
-            <div className="border-b border-[#f2f2f2] pb-4">
-              <h3 className="text-[16px] font-semibold text-black">Applications Awaiting Review</h3>
-            </div>
-            
+          <div className="p-6 space-y-4">
+            <h2 className="text-lg font-semibold">Applications Awaiting Review</h2>
             {applicationsPending.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="size-12 rounded-full bg-[#f2f2f2] flex items-center justify-center mb-3">
-                  <ClipboardList className="size-6 text-[#a1a1a1]" />
-                </div>
-                <p className="text-[14px] text-[#767676] font-medium">No applications awaiting review.</p>
-              </div>
+              <p className="text-sm text-muted-foreground py-8 text-center">
+                No applications awaiting review.
+              </p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-3">
                 {applicationsPending.map((stay) => (
                   <div
                     key={stay.id}
-                    className="flex flex-col justify-between gap-4 p-4 rounded-[6px] border border-[#dedede] bg-white hover:border-[#a1a1a1] transition-colors"
+                    className="flex items-center justify-between rounded-lg border p-4"
                   >
-                    <div>
-                      <p className="text-[15px] font-semibold text-black leading-snug">{stay.tenant.fullName}</p>
-                      <p className="text-[12px] text-[#767676] mt-1 leading-snug">
-                        Room {stay.bed.roomNumber} &middot; Bed {stay.bed.label}
+                    <div className="space-y-1">
+                      <p className="font-medium">{stay.tenant.fullName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Room {stay.bed.roomNumber} &middot; Bed {stay.bed.label} &middot; Joining:{" "}
+                        {new Date(stay.joiningDate).toLocaleDateString("en-IN", {
+                          timeZone: "Asia/Kolkata",
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
                       </p>
-                      <div className="mt-2 space-y-0.5">
-                         <p className="text-[12px] font-medium text-[#767676]">Joining: <span className="text-black">{formatDate(stay.joiningDate)}</span></p>
-                         {stay.tenant.phone && (
-                           <p className="text-[12px] font-medium text-[#767676]">Phone: <span className="text-black">{stay.tenant.phone}</span></p>
-                         )}
-                      </div>
+                      {stay.tenant.phone && (
+                        <p className="text-xs text-muted-foreground">Phone: {stay.tenant.phone}</p>
+                      )}
                     </div>
-                    <button
+                    <Button
                       onClick={() => router.push(`${baseRoute}/onboards/${stay.id}`)}
-                      className="w-full h-[36px] rounded-[5px] border border-[#dedede] bg-white hover:bg-gray-50 text-black text-[13px] font-semibold flex items-center justify-center gap-2 transition-colors"
+                      size="sm"
+                      variant="outline"
+                      className="flex items-center gap-1.5"
                     >
-                      <FileText className="size-4 text-[#5c5c5c]" />
+                      <FileText className="h-3.5 w-3.5" />
                       Review Application
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -394,51 +367,43 @@ export default function HostelWorklistsView({
 
         {/* Pending Ad-Hoc Payments */}
         {activeTab === "adhoc" && (
-          <div className="space-y-5">
-            <div className="border-b border-[#f2f2f2] pb-4">
-              <h3 className="text-[16px] font-semibold text-black">Pending Ad-Hoc Payments</h3>
-            </div>
-            
+          <div className="p-6 space-y-4">
+            <h2 className="text-lg font-semibold">Pending Ad-Hoc Payments</h2>
             {serviceRequestsPending.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="size-12 rounded-full bg-[#f2f2f2] flex items-center justify-center mb-3">
-                  <CreditCard className="size-6 text-[#a1a1a1]" />
-                </div>
-                <p className="text-[14px] text-[#767676] font-medium">No ad-hoc payments pending verification.</p>
-              </div>
+              <p className="text-sm text-muted-foreground py-8 text-center">
+                No ad-hoc payments pending verification.
+              </p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-3">
                 {serviceRequestsPending.map((sr) => (
                   <div
                     key={sr.id}
-                    className="flex flex-col justify-between gap-4 p-4 rounded-[6px] border border-[#dedede] bg-white hover:border-[#a1a1a1] transition-colors"
+                    className="flex items-center justify-between rounded-lg border p-4"
                   >
-                    <div>
-                      <p className="text-[15px] font-semibold text-black leading-snug">{sr.stay.tenantName}</p>
-                      <p className="text-[12px] text-[#767676] mt-1 leading-snug">
+                    <div className="space-y-1">
+                      <p className="font-medium">{sr.stay.tenantName}</p>
+                      <p className="text-xs text-muted-foreground">
                         Room {sr.stay.roomNumber} &middot; Bed {sr.stay.bedLabel}
                       </p>
-                      <p className="text-[13px] font-medium text-black mt-2">
-                        Type: <span className="capitalize font-normal text-[#767676]">{sr.type.replace(/_/g, " ").toLowerCase()}</span>
-                      </p>
-                      <p className="text-[13px] font-bold text-black mt-0.5">
-                        Amount: ₹{sr.amount.toLocaleString("en-IN")}
+                      <p className="text-xs text-muted-foreground">
+                        Type: {sr.type.replace(/_/g, " ")} &middot; Amount: ₹{sr.amount.toLocaleString("en-IN")}
                       </p>
                     </div>
-                    <button
+                    <Button
                       onClick={() => router.push(`${baseRoute}/service-requests/${sr.id}`)}
-                      className="w-full h-[36px] rounded-[5px] border border-[#dedede] bg-white hover:bg-gray-50 text-black text-[13px] font-semibold flex items-center justify-center gap-2 transition-colors"
+                      size="sm"
+                      variant="outline"
+                      className="flex items-center gap-1.5"
                     >
-                      <ShieldCheck className="size-4 text-[#5c5c5c]" />
+                      <ShieldCheck className="h-3.5 w-3.5" />
                       Verify Ad-Hoc
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
             )}
           </div>
         )}
-
       </div>
     </div>
   );
