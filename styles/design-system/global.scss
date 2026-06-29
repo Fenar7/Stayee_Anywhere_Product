@@ -31,12 +31,12 @@ body {
 
 /* Premium Dashboard Utility Classes */
 .premium-card {
-  @apply bg-white dark:bg-[#0a0a0a] border border-[#dedede] dark:border-white/10 rounded-sm shadow-sm;
+  @apply bg-white dark:bg-[#0a0a0a] border border-[#dedede] dark:border-white/10 rounded-sm;
   transition: all 0.2s ease-in-out;
 }
 
 .premium-card-glass {
-  @apply bg-white/80 dark:bg-black/60 backdrop-blur-md border border-[#dedede] dark:border-white/10 rounded-sm shadow-sm;
+  @apply bg-white/80 dark:bg-black/60 backdrop-blur-md border border-[#dedede] dark:border-white/10 rounded-sm;
 }
 
 .premium-table {

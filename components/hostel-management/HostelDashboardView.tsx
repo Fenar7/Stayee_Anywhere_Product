@@ -3,8 +3,9 @@ import { UserRole } from "@prisma/client";
 import { ActionAlertsClient } from "@/components/dashboard/ActionAlertsClient";
 import { getWardenHostelStats } from "@/services/hostel/dashboard.service";
 
+import { Bell, Plus } from "lucide-react";
+
 // Modular Dashboard Components
-import { DashboardHeader } from "./dashboard/DashboardHeader";
 import { StatCard } from "./dashboard/StatCard";
 import { StatusListCard, StatusItem } from "./dashboard/StatusListCard";
 import { ActivityFeed } from "./dashboard/ActivityFeed";
@@ -54,11 +55,34 @@ export default async function HostelDashboardView({
     { id: "3", label: "Payment Pending", value: 32, iconUrl: "/icons/payment-pending-icon.png" },
   ];
 
+  const dateStr = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  }).format(new Date());
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 w-full px-8 py-8 min-h-full">
-      <DashboardHeader />
+      {/* ── Header ── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-[#dedede] dark:border-white/10 mb-8">
+        <div>
+          <h1 className="text-[28px] font-bold tracking-tight text-black dark:text-white flex items-center gap-2">
+            {stats.hostelName} Dashboard
+          </h1>
+          <p className="text-[#767676] text-[13px] font-medium mt-1 uppercase tracking-wider">{dateStr}</p>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+          <button className="flex items-center justify-center size-10 premium-button-outline shrink-0">
+            <Bell className="size-5 text-black dark:text-white" />
+          </button>
+          <button className="flex items-center justify-center gap-2 premium-button-outline whitespace-nowrap">
+            Manage Rent <Plus className="size-4 text-[#58ff48]" />
+          </button>
+          <button className="flex items-center justify-center gap-2 premium-button whitespace-nowrap">
+            On Board a User <Plus className="size-4" />
+          </button>
+        </div>
+      </div>
       
-      <div className="space-y-8 mt-8">
+      <div className="space-y-8">
 
       <ActionAlertsClient role={userRole} />
 

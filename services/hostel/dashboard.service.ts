@@ -27,6 +27,7 @@ export interface AdminPortfolioStats {
 }
 
 export interface WardenHostelStats {
+  hostelName: string;
   totalBeds: number;
   occupiedBeds: number;
   availableBeds: number;
@@ -177,6 +178,7 @@ export async function getWardenHostelStats(hostelId: string): Promise<WardenHost
     where: { id: hostelId },
     select: {
       id: true,
+      name: true,
       floors: {
         select: {
           rooms: { select: { _count: { select: { beds: true } } } },
@@ -234,6 +236,7 @@ export async function getWardenHostelStats(hostelId: string): Promise<WardenHost
   const occupancyRate = totalBeds > 0 ? (occupiedBeds / totalBeds) * 100 : 0;
 
   return {
+    hostelName: hostel.name,
     totalBeds,
     occupiedBeds,
     availableBeds,
