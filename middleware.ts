@@ -1,7 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { prisma } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 
 const ROLE_HIERARCHY: Record<string, UserRole> = {
@@ -117,11 +116,29 @@ export async function middleware(request: NextRequest) {
 
   let dbUser: { role: UserRole; passwordSetAt: Date | null } | null = null;
   try {
-    dbUser = await prisma.user.findUnique({
-      where: { supabaseAuthId: supabaseUserId },
-      select: { role: true, passwordSetAt: true },
+    const res = await fetch(`${request.nextUrl.origin}/api/internal/auth-check`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({ userId: supabaseUserId }),
     });
-  } catch {
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.dbUser) {
+        dbUser = {
+          role: data.dbUser.role as UserRole,
+          passwordSetAt: data.dbUser.passwordSetAt ? new Date(data.dbUser.passwordSetAt) : null,
+        };
+      }
+    } else {
+      console.error(`[Proxy Log] internal auth-check failed: ${res.status}`);
+      return supabaseResponse;
+    }
+  } catch (err) {
+    console.error(`[Proxy Log] internal auth-check error:`, err);
     return supabaseResponse;
   }
 
