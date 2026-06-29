@@ -247,17 +247,22 @@ export default function HostelLeadsView({ hostelId, baseRoute }: { hostelId: str
   const droppedLeads = leads.filter(l => l.status === "DROPPED");
 
   return (
-    <div className="flex flex-col min-h-full">
-      <PageHeader
-        title="Hostel Leads"
-        description="Track and manage prospective tenants."
-        actions={
-          <button className="premium-button flex items-center" onClick={() => setShowLogModal(true)}>
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 w-full px-8 py-8 min-h-full">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-[#dedede] dark:border-white/10">
+        <div>
+          <h1 className="text-[28px] font-bold tracking-tight text-black dark:text-white flex items-center gap-2">
+            Hostel Leads
+          </h1>
+          <p className="text-[#767676] text-[13px] font-medium mt-1 uppercase tracking-wider">Track and manage prospective tenants</p>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+          <button className="flex items-center justify-center gap-2 premium-button whitespace-nowrap" onClick={() => setShowLogModal(true)}>
             <Plus className="mr-1.5 h-4 w-4" /> Log Enquiry
           </button>
-        }
-      />
-      <div className="px-6 pb-6 w-full">
+        </div>
+      </div>
+      
+      <div className="mt-8 w-full">
         {loading ? (
           <TableSkeleton />
         ) : (

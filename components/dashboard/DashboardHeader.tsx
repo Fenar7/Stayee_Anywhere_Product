@@ -6,7 +6,7 @@ export function DashboardHeader() {
   }).format(new Date());
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between pb-4">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-[#dedede] dark:border-white/10">
       <div>
         <h1 className="text-[28px] font-bold tracking-tight text-black dark:text-white flex items-center gap-2">
           Dashboard

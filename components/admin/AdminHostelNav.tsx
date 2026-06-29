@@ -36,27 +36,23 @@ export default function AdminHostelNav({ hostelId }: { hostelId: string }) {
   ];
 
   return (
-    <div className="border-b border-border">
-      <nav className="flex space-x-2 overflow-x-auto pb-px" aria-label="Tabs">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                "whitespace-nowrap flex items-center px-4 py-2 border-b-2 font-medium text-sm transition-colors",
-                isActive
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-              )}
-            >
-              <item.icon className={cn("mr-2 h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
-              {item.name}
-            </Link>
-          );
-        })}
-      </nav>
-    </div>
+    <nav className="flex gap-6 overflow-x-auto" aria-label="Tabs">
+      {navItems.map((item) => {
+        const isActive = pathname === item.href;
+        return (
+          <Link
+            key={item.name}
+            href={item.href}
+            className={cn(
+              "premium-tab flex items-center",
+              isActive && "active"
+            )}
+          >
+            <item.icon className={cn("mr-2 size-4", isActive ? "text-[#58ff48]" : "text-[#767676]")} />
+            {item.name}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }

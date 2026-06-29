@@ -182,43 +182,42 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 w-full px-8 py-8 min-h-full">
       {/* ── Header ── */}
-      <div className="px-6 pt-6 pb-4 border-b border-[#f0f0f0]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-          <div>
-            <h1 className="text-[26px] sm:text-[28px] font-semibold text-[#1a1a1a] tracking-tight">
-              Manage Beds & Floors
-            </h1>
-            <p className="text-[14px] text-[#767676] mt-0.5">Location : {data.name}</p>
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              onClick={() => notify.info("No new notifications")}
-              className="size-[40px] rounded-md border border-[#e5e7eb] flex items-center justify-center text-[#4b5563] hover:bg-[#f9fafb] transition-colors"
-            >
-              <Bell className="size-4" strokeWidth={2} />
-            </button>
-            <button
-              onClick={() => notify.info("Add Floor coming soon")}
-              className="h-[40px] px-4 rounded-md border border-[#e5e7eb] text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2"
-            >
-              Add Floor <Plus className="size-[15px] text-[#22c55e]" strokeWidth={2.5} />
-            </button>
-            <button
-              onClick={() => notify.info("Add Room coming soon")}
-              className="h-[40px] px-4 rounded-md border border-[#e5e7eb] text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2"
-            >
-              Add Room <Plus className="size-[15px] text-[#22c55e]" strokeWidth={2.5} />
-            </button>
-            <button
-              onClick={() => notify.info("Add Bed coming soon")}
-              className="h-[40px] px-4 rounded-md bg-[#1f2937] text-white text-[13px] font-medium flex items-center gap-2 hover:bg-[#111827] transition-colors"
-            >
-              Add a Bed <Plus className="size-[15px] text-[#22c55e]" strokeWidth={2.5} />
-            </button>
-          </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-[#dedede] dark:border-white/10 mb-8">
+        <div>
+          <h1 className="text-[28px] font-bold tracking-tight text-black dark:text-white flex items-center gap-2">
+            Occupancy Overview
+          </h1>
+          <p className="text-[#767676] text-[13px] font-medium mt-1 uppercase tracking-wider">Location : {data.name}</p>
         </div>
+        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+          <button
+            onClick={() => notify.info("No new notifications")}
+            className="flex items-center justify-center size-10 premium-button-outline shrink-0"
+          >
+            <Bell className="size-5 text-black dark:text-white" />
+          </button>
+          <button
+            onClick={() => notify.info("Add Floor coming soon")}
+            className="flex items-center justify-center gap-2 premium-button-outline whitespace-nowrap"
+          >
+            Add Floor <Plus className="size-4 text-[#58ff48]" />
+          </button>
+          <button
+            onClick={() => notify.info("Add Room coming soon")}
+            className="flex items-center justify-center gap-2 premium-button-outline whitespace-nowrap"
+          >
+            Add Room <Plus className="size-4 text-[#58ff48]" />
+          </button>
+          <button
+            onClick={() => notify.info("Add Bed coming soon")}
+            className="flex items-center justify-center gap-2 premium-button whitespace-nowrap"
+          >
+            Add a Bed <Plus className="size-4" />
+          </button>
+        </div>
+      </div>
 
         {/* ── Stats ── */}
         <div className="flex flex-col gap-2.5 text-[14px] font-medium text-[#1a1a1a] mb-6">
