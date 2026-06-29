@@ -4,11 +4,11 @@ import { ActionAlertsClient } from "@/components/dashboard/ActionAlertsClient";
 import { getWardenHostelStats } from "@/services/hostel/dashboard.service";
 
 // Modular Dashboard Components
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { StatCard } from "@/components/dashboard/StatCard";
-import { StatusListCard, StatusItem } from "@/components/dashboard/StatusListCard";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
-import { TasksList } from "@/components/dashboard/TasksList";
+import { DashboardHeader } from "./dashboard/DashboardHeader";
+import { StatCard } from "./dashboard/StatCard";
+import { StatusListCard, StatusItem } from "./dashboard/StatusListCard";
+import { ActivityFeed } from "./dashboard/ActivityFeed";
+import { TasksList } from "./dashboard/TasksList";
 
 export const dynamic = "force-dynamic";
 

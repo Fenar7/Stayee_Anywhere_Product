@@ -13,13 +13,13 @@ interface StatCardProps {
 
 export function StatCard({ title, value, subtitle, icon: Icon, iconUrl, trend, trendUp }: StatCardProps) {
   return (
-    <div className="premium-card flex flex-col justify-between p-6 gap-6 relative overflow-hidden">
+    <div className="rounded-[7px] border border-[#dedede] bg-white dark:bg-zinc-900 flex flex-col justify-between p-5 gap-5">
       {/* Top row: title + icon */}
-      <div className="flex justify-between items-start relative z-10">
-        <h3 className="text-[13px] font-semibold text-[#767676] dark:text-[#a0a0a0] uppercase tracking-wider leading-snug">{title}</h3>
-        <div className="size-8 flex items-center justify-center shrink-0">
+      <div className="flex justify-between items-start">
+        <h3 className="text-[15px] font-semibold text-black dark:text-white leading-snug">{title}</h3>
+        <div className="size-12 rounded-[6px] bg-[#5c5c5c] flex items-center justify-center shrink-0">
           {iconUrl ? (
-            <Image src={iconUrl} alt={title} width={24} height={24} className="size-6 object-contain opacity-70 dark:opacity-50" />
+            <Image src={iconUrl} alt={title} width={24} height={24} className="size-6 object-contain" />
           ) : Icon ? (
             <Icon className="size-6 text-[#58ff48]" />
           ) : null}
@@ -27,23 +27,20 @@ export function StatCard({ title, value, subtitle, icon: Icon, iconUrl, trend, t
       </div>
 
       {/* Bottom row: value + trend */}
-      <div className="flex justify-between items-end relative z-10">
+      <div className="flex justify-between items-end">
         <div>
-          <div className="text-[40px] font-bold text-black dark:text-white leading-none tracking-tight">{value}</div>
-          <div className="text-[13px] text-[#767676] mt-2 font-medium">{subtitle}</div>
+          <div className="text-[30px] font-bold text-black dark:text-white leading-none">{value}</div>
+          <div className="text-[13px] text-[#767676] mt-1">{subtitle}</div>
         </div>
-        <div className="text-[13px] text-black dark:text-white font-medium flex flex-col items-end gap-1">
+        <div className="text-[13px] text-[#767676] flex flex-col items-end gap-0.5">
           {trendUp !== undefined && (
             trendUp
-              ? <ArrowUpRight className="size-5 text-[#58ff48]" />
-              : <ArrowDownRight className="size-5 text-red-500" />
+              ? <ArrowUpRight className="size-5 text-black dark:text-white" />
+              : <ArrowDownRight className="size-5 text-black dark:text-white" />
           )}
           <span>{trend}</span>
         </div>
       </div>
-      
-      {/* Subtle background glow for dark mode */}
-      <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#58ff48] opacity-0 dark:opacity-[0.03] blur-3xl rounded-full pointer-events-none z-0"></div>
     </div>
   );
 }
