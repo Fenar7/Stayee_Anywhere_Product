@@ -34,7 +34,7 @@ vi.mock("@supabase/ssr", () => ({
 import { authorizePasswordReset, resetPasswordViaAdmin } from "../services/auth/password.service";
 import { authenticateUser, fetchUserBySupabaseId, setUserPasswordSetAt } from "../services/auth/auth.service";
 import { createAdminClient } from "../lib/auth/server";
-import { middleware } from "../middleware";
+import { proxy } from "../proxy";
 import { createServerClient } from "@supabase/ssr";
 
 describe("authorizePasswordReset", () => {
@@ -281,7 +281,7 @@ describe("setUserPasswordSetAt", () => {
   });
 });
 
-describe("Next.js middleware", () => {
+describe("Next.js proxy", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     global.fetch = vi.fn();
@@ -295,7 +295,7 @@ describe("Next.js middleware", () => {
       headers: new Headers(),
     } as any;
 
-    const res = await middleware(mockRequest);
+    const res = await proxy(mockRequest);
     expect(res).toBeDefined();
   });
 
@@ -314,7 +314,7 @@ describe("Next.js middleware", () => {
     };
     (createServerClient as any).mockReturnValue(mockSupabase);
 
-    const res = await middleware(mockRequest);
+    const res = await proxy(mockRequest);
     expect(res.status).toBe(307);
     expect(res.headers.get("Location")).toContain("/login");
   });
@@ -344,7 +344,7 @@ describe("Next.js middleware", () => {
       })
     });
 
-    const res = await middleware(mockRequest);
+    const res = await proxy(mockRequest);
     expect(res.status).toBe(307);
     expect(res.headers.get("Location")).toContain("/set-password");
   });
@@ -374,7 +374,7 @@ describe("Next.js middleware", () => {
       })
     });
 
-    const res = await middleware(mockRequest);
+    const res = await proxy(mockRequest);
     expect(res).toBeDefined();
     expect(res.status).not.toBe(307);
   });

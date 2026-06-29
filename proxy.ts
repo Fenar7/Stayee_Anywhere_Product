@@ -74,7 +74,7 @@ function jsonError(status: number, message: string, code: string): NextResponse 
   return NextResponse.json({ error: message, code }, { status });
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isApiRoute = pathname.startsWith("/api/");
   const requiredRole = getRequiredRole(pathname);
