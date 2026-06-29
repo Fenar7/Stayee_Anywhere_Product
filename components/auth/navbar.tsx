@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface NavbarProps {
   userName: string;
@@ -26,9 +27,7 @@ export function Navbar({ userName, role }: NavbarProps) {
     <nav className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-background/80 px-6 backdrop-blur-md">
       <div className="flex items-center gap-8">
         <Link href="/" className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded bg-primary flex items-center justify-center">
-            <span className="text-[10px] font-bold text-primary-foreground">NH</span>
-          </div>
+          <Image src="/anywhere-node-squre-icon.png" alt="Anywhere Node" width={24} height={24} className="rounded shrink-0" />
           <span className="text-lg font-bold tracking-tight">Anywhere Node</span>
         </Link>
 

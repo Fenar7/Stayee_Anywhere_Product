@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient(rememberMe);
     
     // 2. Fetch the exact phone/email from Supabase using their Auth ID to ensure we use the exact string Supabase expects
     // Note: We always prefer EMAIL here, even if they logged in with their phone number, 

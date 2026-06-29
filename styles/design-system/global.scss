@@ -1,0 +1,21 @@
+@import 'variables';
+@import 'mixins';
+
+// We map these variables to CSS custom properties so they can also be used in Tailwind v4 if needed, 
+// and generally available in the DOM.
+:root {
+  --carbon-black: #{$carbon-black};
+  --black: #{$black};
+  --hash-grey-2: #{$hash-grey-2};
+  --cloud-grey: #{$cloud-grey};
+  --stroke-grey: #{$stroke-grey};
+  --cta-green: #{$cta-green};
+  --light-white: #{$light-white};
+  --white: #{$white};
+}
+
+body {
+  font-family: $font-family-base;
+  color: $carbon-black;
+  background-color: $white;
+}

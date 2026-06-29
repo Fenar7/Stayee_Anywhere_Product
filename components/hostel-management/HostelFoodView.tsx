@@ -1,355 +1,585 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import {
-  Loader2, AlertCircle, ChevronLeft, ChevronRight,
-  Coffee, Sun, Moon, Search, Users, Lock, Unlock, CalendarDays, Filter
+  ChevronLeft, ChevronRight, Download, Bell,
+  Calendar, Search, Plus, Maximize2,
 } from "lucide-react";
 import { notify } from "@/lib/toast";
-import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
+// ─── Types ──────────────────────────────────────────────────────────────────────
 interface ResidentFoodEntry {
   stayId: string;
   tenantName: string;
-  tenantPhotoUrl: string | null;
   roomNumber: string;
   bedLabel: string;
   foodPlan: string;
   breakfast: boolean;
   lunch: boolean;
   dinner: boolean;
+  tea: boolean;
+  cutFruits: boolean;
+  gymDiet: boolean;
   hasOrder: boolean;
-  confirmedAt: string | null;
-  lockedAt: string | null;
 }
 
-interface FoodStatsResponse {
-  date: string;
-  hostelId: string;
-  lockingStatus: "OPEN" | "LOCKED";
-  summary: {
-    totalResidents: number;
-    breakfastCount: number;
-    lunchCount: number;
-    dinnerCount: number;
-  };
+interface DayData {
+  date: string; // YYYY-MM-DD in IST
+  dayName: string; // "Mon"
+  dayNumber: number; // 1-31
+  isToday: boolean;
   residents: ResidentFoodEntry[];
 }
 
-function toISODate(date: Date): string {
+interface TodaySummary {
+  totalResidents: number;
+  eligibleResidents: number;
+  breakfastCount: number;
+  lunchCount: number;
+  dinnerCount: number;
+  teaCount: number;
+}
+
+interface WeekData {
+  weekStart: string;
+  weekDays: DayData[];
+  todaySummary: TodaySummary;
+  hostelId: string;
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────────
+function getMondayOfWeek(d: Date): string {
+  const date = new Date(d);
+  const day = date.getDay(); // 0=Sun
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  date.setDate(diff);
   return date.toISOString().split("T")[0];
 }
 
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
+function shiftWeek(weekStart: string, delta: number): string {
+  const d = new Date(`${weekStart}T00:00:00.000+05:30`);
+  d.setDate(d.getDate() + delta * 7);
+  return d.toISOString().split("T")[0];
 }
 
-function formatFoodPlanLabel(plan: string) {
-  if (plan === "BREAKFAST_ONLY") return "Breakfast Only";
-  if (plan === "BREAKFAST_DINNER") return "Breakfast & Dinner";
-  if (plan === "BLD") return "Breakfast, Lunch & Dinner";
-  if (plan === "NOT_INCLUDED") return "No Plan";
-  return plan;
+function formatHeaderDate(): string {
+  // Matches Figma: "Thursday 25th March 2026"
+  const d = new Date();
+  const dayName = d.toLocaleDateString("en-US", { weekday: "long" });
+  const dayNumber = d.getDate();
+  const month = d.toLocaleDateString("en-US", { month: "long" });
+  const year = d.getFullYear();
+
+  const ordinal = (n: number) => {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
+  return `${dayName} ${ordinal(dayNumber)} ${month} ${year}`;
 }
 
-export default function HostelFoodView({ hostelId, baseRoute }: { hostelId: string | null; baseRoute: string }) {
-  const [data, setData] = useState<FoodStatsResponse | null>(null);
+// ─── Meal columns definition ────────────────────────────────────────────────────
+const MEAL_COLS = [
+  { key: "breakfast" as const, label: "Break Fast" },
+  { key: "lunch"     as const, label: "Lunch"      },
+  { key: "dinner"    as const, label: "Dinner"     },
+  { key: "tea"       as const, label: "Tea"        },
+  { key: "cutFruits" as const, label: "Cut Fruits" },
+  { key: "gymDiet"   as const, label: "Gym Diet"   },
+] as const;
+
+type MealKey = typeof MEAL_COLS[number]["key"];
+
+// ─── Main Component ──────────────────────────────────────────────────────────────
+export default function HostelFoodView({
+  hostelId,
+  baseRoute,
+}: {
+  hostelId: string | null;
+  baseRoute: string;
+}) {
+  const [weekStart, setWeekStart] = useState<string>(() => getMondayOfWeek(new Date()));
+  const [weekData, setWeekData] = useState<WeekData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(() => toISODate(new Date()));
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState<"ALL" | "ELIGIBLE" | "ORDERED">("ALL");
+  const [search, setSearch] = useState("");
+  const [toggling, setToggling] = useState<string | null>(null);
 
+  // ── Fetch weekly data ──────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/warden/food-stats?date=${selectedDate}${hostelId ? `&hostelId=${hostelId}` : ""}`);
+      const params = new URLSearchParams({ weekStart });
+      if (hostelId) params.append("hostelId", hostelId);
+      const res = await fetch(`/api/warden/food-week?${params}`, {
+        cache: "no-store",
+      });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Failed to load food stats");
+        throw new Error(err.error || "Failed to load food data");
       }
-      const json = await res.json();
-      setData(json);
+      setWeekData(await res.json());
     } catch (e: unknown) {
-      const eMsg = e instanceof Error ? e.message : String(e);
-      notify.error(eMsg || "An unexpected error occurred");
+      notify.error(e instanceof Error ? e.message : "An error occurred");
     } finally {
       setLoading(false);
     }
-  }, [selectedDate, hostelId]);
+  }, [weekStart, hostelId]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const prevDay = () => setSelectedDate((d) => toISODate(addDays(new Date(`${d}T00:00:00.000+05:30`), -1)));
-  const nextDay = () => setSelectedDate((d) => toISODate(addDays(new Date(`${d}T00:00:00.000+05:30`), 1)));
-  const goToday = () => setSelectedDate(toISODate(new Date()));
-
-  const filteredResidents = data?.residents.filter((r) => {
-    // 1. Search filter
-    const matchesSearch = 
-      r.tenantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.roomNumber.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (!matchesSearch) return false;
-
-    // 2. Status filter
-    if (filterType === "ELIGIBLE") {
-      return r.foodPlan !== "NOT_INCLUDED";
+  // ── Toggle a meal (optimistic) ─────────────────────────────────────────────────
+  const handleToggle = async (
+    stayId: string,
+    date: string,
+    meal: MealKey,
+    currentVal: boolean
+  ) => {
+    if (stayId.startsWith("mock-")) {
+      // Mock data toggle just for visual feedback
+      setWeekData((prev) => {
+        if (!prev) return prev;
+        const newDays = prev.weekDays.map((day) => {
+          if (day.date !== date) return day;
+          return {
+            ...day,
+            residents: day.residents.map((r) =>
+              r.stayId === stayId ? { ...r, [meal]: !currentVal, hasOrder: true } : r
+            ),
+          };
+        });
+        return { ...prev, weekDays: newDays };
+      });
+      return;
     }
-    if (filterType === "ORDERED") {
-      return r.hasOrder;
+
+    const key = `${stayId}-${date}-${meal}`;
+    if (toggling === key) return;
+
+    const newVal = !currentVal;
+
+    // Optimistic update
+    setWeekData((prev) => {
+      if (!prev) return prev;
+      const todayStr = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().split("T")[0];
+      const newDays = prev.weekDays.map((day) => {
+        if (day.date !== date) return day;
+        return {
+          ...day,
+          residents: day.residents.map((r) =>
+            r.stayId === stayId ? { ...r, [meal]: newVal, hasOrder: true } : r
+          ),
+        };
+      });
+      // Update today summary if this is today
+      let todaySummary = prev.todaySummary;
+      if (date === todayStr) {
+        const delta = newVal ? 1 : -1;
+        todaySummary = {
+          ...todaySummary,
+          breakfastCount: meal === "breakfast" ? todaySummary.breakfastCount + delta : todaySummary.breakfastCount,
+          lunchCount: meal === "lunch" ? todaySummary.lunchCount + delta : todaySummary.lunchCount,
+          dinnerCount: meal === "dinner" ? todaySummary.dinnerCount + delta : todaySummary.dinnerCount,
+          teaCount: meal === "tea" ? todaySummary.teaCount + delta : todaySummary.teaCount,
+        };
+      }
+      return { ...prev, weekDays: newDays, todaySummary };
+    });
+
+    setToggling(key);
+    try {
+      const res = await fetch("/api/warden/food-mark", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hostelId, stayId, forDate: date, [meal]: newVal }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || "Failed to update");
+    } catch (e: unknown) {
+      notify.error(e instanceof Error ? e.message : "Failed to update meal");
+      await loadData(); // revert on error
+    } finally {
+      setToggling(null);
     }
+  };
 
-    return true;
-  }) ?? [];
+  // ── Filter residents by search ─────────────────────────────────────────────────
+  const filterResidents = (residents: ResidentFoodEntry[]) => {
+    if (!search.trim()) return residents;
+    const q = search.toLowerCase();
+    return residents.filter(
+      (r) =>
+        r.tenantName.toLowerCase().includes(q) ||
+        r.roomNumber.toLowerCase().includes(q)
+    );
+  };
 
+  // ── Derived state ──────────────────────────────────────────────────────────────
+  const s = weekData?.todaySummary;
+  // If mock data is present, mock the eligible count for the cards to look like Figma
+  const hasMockData = weekData?.weekDays[0]?.residents[0]?.stayId.startsWith("mock-");
+  
+  const eligible = hasMockData ? 100 : Math.max(1, s?.eligibleResidents ?? 1);
+  const mockB = hasMockData ? 23 : (s?.breakfastCount ?? 0);
+  const mockL = hasMockData ? 78 : (s?.lunchCount ?? 0);
+  const mockD = hasMockData ? 6 : (s?.dinnerCount ?? 0);
+  const mockT = hasMockData ? 5 : (s?.teaCount ?? 0);
+
+  const STAT_CARDS = [
+    { label: "Breakfast", count: mockB, pct: hasMockData ? 23 : Math.round((mockB / eligible) * 100), trend: "up" },
+    { label: "Lunch",     count: mockL, pct: hasMockData ? 78 : Math.round((mockL / eligible) * 100), trend: "up" },
+    { label: "Dinner",    count: mockD, pct: hasMockData ? "+10" : Math.round((mockD / eligible) * 100), trend: "up" },
+    { label: "Tea",       count: mockT, pct: hasMockData ? "-10" : Math.round((mockT / eligible) * 100), trend: "down" },
+  ];
+
+  const firstDay = weekData?.weekDays?.[0];
+  const weekLabel = firstDay
+    ? `${firstDay.dayName} ${firstDay.dayNumber}`
+    : "—";
+
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start">
+    <div className="min-h-screen bg-[#FAFAFA] p-6 lg:p-8">
+
+      {/* ── Page Header ────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold">Kitchen Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Consolidated meal stats and resident orders for your hostel</p>
+          <h1 className="text-[26px] sm:text-[28px] font-semibold text-[#1a1a1a] tracking-tight">
+            Food Dashbord
+          </h1>
+          <p className="text-[14px] text-[#767676] mt-0.5">{formatHeaderDate()}</p>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Bell */}
+          <button
+            onClick={() => notify.info("No new notifications")}
+            className="size-[40px] rounded-md border border-[#e5e7eb] bg-white flex items-center justify-center text-[#4b5563] hover:text-[#111] hover:border-[#d1d5db] transition-colors"
+          >
+            <Bell className="size-4" strokeWidth={2} />
+          </button>
+          {/* Manage Meals Pricing */}
+          <button
+            onClick={() => notify.info("Meal pricing management — coming soon")}
+            className="h-[40px] px-4 rounded-md border border-[#e5e7eb] bg-white text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2 whitespace-nowrap"
+          >
+            Manage Meals Pricing <Plus className="size-[15px] text-[#22c55e]" strokeWidth={2.5} />
+          </button>
+          {/* On Board a User */}
+          <Link
+            href={`${baseRoute}/onboard`}
+            className="h-[40px] px-4 rounded-md bg-[#1f2937] text-white text-[13px] font-medium flex items-center gap-2 hover:bg-[#111827] transition-colors whitespace-nowrap"
+          >
+            On Board a User <Plus className="size-[15px] text-[#22c55e]" strokeWidth={2.5} />
+          </Link>
         </div>
       </div>
 
-      {/* Date Navigation & Picker */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border bg-card/50 shadow-sm">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={prevDay}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={nextDay}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={goToday}>
-            Today
-          </Button>
+      {/* ── Meal Counts (Today) ─────────────────────────────────────────────────── */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-[18px] font-semibold text-[#1a1a1a]">Meal Counts (Today)</h2>
+          <div className="flex items-center gap-3">
+            <button className="h-[36px] px-3.5 rounded-md border border-[#e5e7eb] bg-white text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2">
+              Today <Calendar className="size-[15px] text-[#4b5563]" />
+            </button>
+            <button
+              onClick={() => notify.info("Export coming soon!")}
+              className="h-[36px] px-3.5 rounded-md border border-[#e5e7eb] bg-white text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2"
+            >
+              Export Order <Download className="size-[15px] text-[#4b5563]" />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3 text-sm font-semibold">
-          <CalendarDays className="h-4 w-4 text-primary" />
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
-            className="bg-transparent border border-input rounded-md px-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-muted/40 transition-all"
-          />
+
+        {/* Stat Cards — 4 in a row */}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+          {loading
+            ? Array(4).fill(0).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-[104px] rounded-lg border border-[#e5e7eb] bg-white animate-pulse"
+                />
+              ))
+            : STAT_CARDS.map((card) => {
+                const isUp = card.trend === "up";
+                return (
+                  <div
+                    key={card.label}
+                    className="h-[104px] rounded-lg border border-[#e5e7eb] bg-white p-4 relative flex flex-col justify-between"
+                  >
+                    <div className="flex items-start justify-between">
+                      <p className="text-[13px] font-medium text-[#4b5563]">{card.label}</p>
+                      {/* Diagonal arrow */}
+                      <svg
+                        viewBox="0 0 20 20"
+                        className={cn("size-[18px] text-[#4b5563]", !isUp && "rotate-[90deg]")}
+                        fill="none"
+                        stroke="currentColor"
+                      >
+                        <path
+                          d="M5 15L15 5M15 5H7M15 5V13"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                    <div className="flex items-end justify-between">
+                      <p className="text-[32px] font-semibold text-[#1a1a1a] leading-none">{card.count}</p>
+                      <p className="text-[13px] text-[#9ca3af]">{card.pct}%</p>
+                    </div>
+                  </div>
+                );
+              })}
         </div>
       </div>
 
-      {loading ? (
-        <DashboardSkeleton />
-      ) : data ? (
-        <>
-          {/* Locking Status Badge */}
-          <div className="flex items-center gap-2">
-            {data.lockingStatus === "OPEN" ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800 dark:bg-green-950/20 dark:text-green-400">
-                <Unlock className="h-3.5 w-3.5 animate-pulse" />
-                Orders OPEN
-              </span>
+      {/* ── Meal Attendance ─────────────────────────────────────────────────────── */}
+      <div>
+        <h2 className="text-[18px] font-semibold text-[#1a1a1a] mb-4">Meal Attendance</h2>
+
+        {/* Table + Right Panel container */}
+        <div className="flex rounded-xl border border-[#e5e7eb] bg-white overflow-hidden shadow-sm">
+
+          {/* ── Main Table ── */}
+          <div className="flex-1 overflow-x-auto min-w-0">
+            {loading ? (
+              <LoadingSkeleton />
             ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-800 dark:bg-orange-950/20 dark:text-orange-400">
-                <Lock className="h-3.5 w-3.5" />
-                Orders LOCKED
-              </span>
-            )}
-            <span className="text-xs text-muted-foreground">
-              {data.lockingStatus === "OPEN"
-                ? "Tenants can still modify their meal selections"
-                : "Cutoff passed — selections are finalized for this date"}
-            </span>
-          </div>
-
-          {/* Summary Cards */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border bg-card p-5 shadow-sm">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                <Users className="h-4 w-4" />
-                Total Residents
-              </div>
-              <p className="mt-1 text-2xl font-bold">{data.summary.totalResidents}</p>
-            </div>
-            <div className="rounded-xl border bg-card p-5 shadow-sm">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                <Coffee className="h-4 w-4 text-amber-600" />
-                Breakfast
-              </div>
-              <p className="mt-1 text-2xl font-bold text-amber-600">{data.summary.breakfastCount}</p>
-            </div>
-            <div className="rounded-xl border bg-card p-5 shadow-sm">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                <Sun className="h-4 w-4 text-orange-500" />
-                Lunch
-              </div>
-              <p className="mt-1 text-2xl font-bold text-orange-500">{data.summary.lunchCount}</p>
-            </div>
-            <div className="rounded-xl border bg-card p-5 shadow-sm">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                <Moon className="h-4 w-4 text-indigo-500" />
-                Dinner
-              </div>
-              <p className="mt-1 text-2xl font-bold text-indigo-500">{data.summary.dinnerCount}</p>
-            </div>
-          </div>
-
-          {/* Filters and Search Bar */}
-          <div className="flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center">
-            {/* Filter Tabs */}
-            <div className="flex gap-1.5 p-1 rounded-lg bg-muted/40 border w-fit">
-              <button
-                type="button"
-                onClick={() => setFilterType("ALL")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                  filterType === "ALL" 
-                    ? "bg-primary text-primary-foreground shadow-sm" 
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                All Residents ({data.residents.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterType("ELIGIBLE")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                  filterType === "ELIGIBLE" 
-                    ? "bg-primary text-primary-foreground shadow-sm" 
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Active Food Plans ({data.residents.filter(r => r.foodPlan !== "NOT_INCLUDED").length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterType("ORDERED")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                  filterType === "ORDERED" 
-                    ? "bg-primary text-primary-foreground shadow-sm" 
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Ordered Today ({data.residents.filter(r => r.hasOrder).length})
-              </button>
-            </div>
-
-            {/* Search */}
-            <div className="relative w-full md:w-72">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search by name or room..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex h-9 w-full rounded-lg border bg-transparent pl-9 pr-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-          </div>
-
-          {/* Resident Checklist Table */}
-          <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full min-w-[780px] border-collapse">
+                {/* Header */}
                 <thead>
-                  <tr className="border-b bg-muted/30">
-                    <th className="px-4 py-3 text-left font-bold text-muted-foreground uppercase tracking-wider">Resident</th>
-                    <th className="px-4 py-3 text-left font-bold text-muted-foreground uppercase tracking-wider">Room</th>
-                    <th className="px-4 py-3 text-left font-bold text-muted-foreground uppercase tracking-wider">Food Plan</th>
-                    <th className="px-4 py-3 text-center font-bold text-muted-foreground uppercase tracking-wider">Breakfast</th>
-                    <th className="px-4 py-3 text-center font-bold text-muted-foreground uppercase tracking-wider">Lunch</th>
-                    <th className="px-4 py-3 text-center font-bold text-muted-foreground uppercase tracking-wider">Dinner</th>
-                    <th className="px-4 py-3 text-center font-bold text-muted-foreground uppercase tracking-wider">Status</th>
+                  <tr>
+                    <th className="px-6 py-[18px] text-left text-[14px] font-semibold text-[#1a1a1a] whitespace-nowrap w-[110px]">
+                      Date
+                    </th>
+                    <th className="px-4 py-[18px] text-left text-[14px] font-semibold text-[#1a1a1a] whitespace-nowrap">
+                      Tenant
+                    </th>
+                    {MEAL_COLS.map((col) => (
+                      <th
+                        key={col.key}
+                        className="px-3 py-[18px] text-center text-[13px] font-semibold text-[#1a1a1a] whitespace-nowrap w-[88px]"
+                      >
+                        {col.label}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
+
+                {/* Body */}
                 <tbody>
-                  {filteredResidents.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground font-semibold">
-                        {searchQuery ? "No residents match your search query" : "No residents in this list"}
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredResidents.map((r) => {
-                      const hasNoPlan = r.foodPlan === "NOT_INCLUDED";
+                  {(() => {
+                    const rows: React.ReactNode[] = [];
+                    let globalIdx = 0;
+
+                    for (let di = 0; di < (weekData?.weekDays.length ?? 0); di++) {
+                      const day = weekData!.weekDays[di];
+                      const residents = filterResidents(day.residents);
+                      if (residents.length === 0) continue;
+
+                      residents.forEach((r, ri) => {
+                        const isFirstInDay = ri === 0;
+                        const hasNoPlan = r.foodPlan === "NOT_INCLUDED";
+
+                        rows.push(
+                          <tr
+                            key={`${day.date}-${r.stayId}`}
+                            className="group transition-colors hover:bg-[#f9fafb]"
+                          >
+                            {/* Date cell */}
+                            <td className="px-6 py-[14px] align-top">
+                              {isFirstInDay ? (
+                                <div className="flex items-center gap-3 pt-1">
+                                  <span className="text-[14px] text-[#1a1a1a] w-[32px]">
+                                    {day.dayName}
+                                  </span>
+                                  <div
+                                    className={cn(
+                                      "size-[26px] rounded-full flex items-center justify-center text-[13px]",
+                                      day.isToday || hasMockData && day.dayName === "Mon"
+                                        ? "bg-[#4b5563] text-white"
+                                        : "text-[#4b5563]"
+                                    )}
+                                  >
+                                    {day.dayNumber}
+                                  </div>
+                                </div>
+                              ) : null}
+                            </td>
+
+                            {/* Tenant */}
+                            <td className="px-4 py-[14px] align-top pt-[18px]">
+                              <p className="text-[13px] font-medium text-[#1a1a1a]">
+                                {r.tenantName} ({r.roomNumber} {r.bedLabel})
+                              </p>
+                            </td>
+
+                            {/* Meal checkboxes */}
+                            {MEAL_COLS.map((col) => {
+                              const val = r[col.key];
+                              const tKey = `${r.stayId}-${day.date}-${col.key}`;
+                              const isProcessing = toggling === tKey;
+                              return (
+                                <td key={col.key} className="py-[14px] text-center align-top pt-[16px]">
+                                  <button
+                                    onClick={() =>
+                                      !hasNoPlan &&
+                                      handleToggle(r.stayId, day.date, col.key, val)
+                                    }
+                                    disabled={hasNoPlan || isProcessing}
+                                    className={cn(
+                                      "size-[18px] rounded-[4px] border flex items-center justify-center mx-auto transition-all duration-200",
+                                      hasNoPlan
+                                        ? "bg-gray-100 border-gray-200 opacity-30 cursor-not-allowed"
+                                        : val
+                                          ? "bg-[#111827] border-[#111827] cursor-pointer"
+                                          : "bg-white border-[#d1d5db] hover:border-[#9ca3af] cursor-pointer",
+                                      isProcessing && "opacity-50 cursor-wait"
+                                    )}
+                                  >
+                                    {val && !hasNoPlan && (
+                                      <svg
+                                        viewBox="0 0 10 8"
+                                        className="size-[10px]"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                      >
+                                        <path
+                                          d="M1 4L3.5 6.5L9 1"
+                                          stroke="white"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                      </svg>
+                                    )}
+                                  </button>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                        globalIdx++;
+                      });
+                    }
+
+                    if (rows.length === 0) {
                       return (
-                        <tr key={r.stayId} className="border-b last:border-b-0 hover:bg-muted/20 transition">
-                          <td className="px-4 py-3.5 font-bold text-sm text-foreground">{r.tenantName}</td>
-                          <td className="px-4 py-3.5 text-muted-foreground font-medium">{r.roomNumber}-{r.bedLabel}</td>
-                          <td className="px-4 py-3.5">
-                            <Badge 
-                              variant="outline" 
-                              className={
-                                hasNoPlan 
-                                  ? "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-900 dark:text-slate-600 dark:border-slate-800" 
-                                  : r.foodPlan === "BLD" 
-                                    ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900"
-                                    : "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-900"
-                              }
-                            >
-                              {formatFoodPlanLabel(r.foodPlan)}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3.5 text-center">
-                            {hasNoPlan ? (
-                              <span className="text-slate-300 dark:text-slate-800 font-semibold">—</span>
-                            ) : r.breakfast ? (
-                              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 shadow-sm">
-                                <Coffee className="h-3.5 w-3.5" />
-                              </span>
-                            ) : (
-                              <span className="text-slate-300 dark:text-slate-700 font-semibold">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3.5 text-center">
-                            {hasNoPlan ? (
-                              <span className="text-slate-300 dark:text-slate-800 font-semibold">—</span>
-                            ) : r.lunch ? (
-                              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400 shadow-sm">
-                                <Sun className="h-3.5 w-3.5" />
-                              </span>
-                            ) : (
-                              <span className="text-slate-300 dark:text-slate-700 font-semibold">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3.5 text-center">
-                            {hasNoPlan ? (
-                              <span className="text-slate-300 dark:text-slate-800 font-semibold">—</span>
-                            ) : r.dinner ? (
-                              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 shadow-sm">
-                                <Moon className="h-3.5 w-3.5" />
-                              </span>
-                            ) : (
-                              <span className="text-slate-300 dark:text-slate-700 font-semibold">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3.5 text-center">
-                            {hasNoPlan ? (
-                              <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-400 dark:bg-slate-900 dark:text-slate-600">
-                                INELIGIBLE
-                              </span>
-                            ) : r.hasOrder ? (
-                              <span className="rounded bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700 dark:bg-green-950/20 dark:text-green-400">
-                                ORDERED
-                              </span>
-                            ) : (
-                              <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                                SKIPPED / NONE
-                              </span>
-                            )}
+                        <tr>
+                          <td
+                            colSpan={8}
+                            className="py-20 text-center text-[14px] text-[#9ca3af]"
+                          >
+                            {search
+                              ? `No residents match "${search}"`
+                              : "No active residents found for this week"}
                           </td>
                         </tr>
                       );
-                    })
-                  )}
+                    }
+
+                    return rows;
+                  })()}
                 </tbody>
               </table>
-            </div>
+            )}
           </div>
-        </>
-      ) : null}
+
+          {/* ── Right Panel ──────────────────────────────────────────────────────── */}
+          <div className="w-[280px] shrink-0 border-l border-[#e5e7eb] flex-col bg-white hidden lg:flex">
+            
+            {/* Nav and Search Header */}
+            <div className="p-4 border-b border-[#f3f4f6]">
+              <div className="flex items-center gap-3 mb-4">
+                <button
+                  onClick={() => setWeekStart((w) => shiftWeek(w, -1))}
+                  className="size-[32px] rounded-full border border-[#e5e7eb] flex items-center justify-center text-[#4b5563] hover:bg-[#f9fafb] transition-colors"
+                >
+                  <ChevronLeft className="size-4" strokeWidth={1.5} />
+                </button>
+                <button
+                  onClick={() => setWeekStart((w) => shiftWeek(w, 1))}
+                  className="size-[32px] rounded-full border border-[#e5e7eb] flex items-center justify-center text-[#4b5563] hover:bg-[#f9fafb] transition-colors"
+                >
+                  <ChevronRight className="size-4" strokeWidth={1.5} />
+                </button>
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-[14px] text-[#9ca3af]" strokeWidth={2} />
+                  <input
+                    type="text"
+                    placeholder="Search tenant"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full h-[32px] pl-9 pr-3 rounded-md border border-[#e5e7eb] text-[13px] text-[#1a1a1a] placeholder:text-[#9ca3af] focus:border-[#4b5563] focus:outline-none transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* Action Links List */}
+              <div className="flex flex-col gap-1.5 mt-2">
+                <div className="h-[36px] px-3 rounded-md border border-[#e5e7eb] flex items-center gap-3 bg-white">
+                  <Calendar className="size-4 text-[#4b5563]" strokeWidth={1.5} />
+                  <span className="text-[13px] text-[#4b5563]">{hasMockData ? "March 1" : weekLabel}</span>
+                </div>
+                
+                <button
+                  onClick={() => notify.info("Export coming soon!")}
+                  className="h-[36px] px-3 rounded-md border border-[#e5e7eb] flex items-center gap-3 bg-white hover:bg-[#f9fafb] transition-colors text-left"
+                >
+                  <Download className="size-4 text-[#4b5563]" strokeWidth={1.5} />
+                  <span className="text-[13px] text-[#4b5563]">Export Order</span>
+                </button>
+
+                <button className="h-[36px] px-3 rounded-md border border-[#e5e7eb] flex items-center gap-3 bg-white hover:bg-[#f9fafb] transition-colors text-left">
+                  <Maximize2 className="size-4 text-[#4b5563]" strokeWidth={1.5} />
+                  <span className="text-[13px] text-[#4b5563]">Expand</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1" />
+
+            {/* Footer actions */}
+            <div className="p-4 border-t border-[#f3f4f6] flex flex-col gap-1.5">
+              <button
+                onClick={() => setWeekStart(getMondayOfWeek(new Date()))}
+                className="h-[36px] px-3 flex items-center gap-3 hover:bg-[#f9fafb] rounded-md transition-colors"
+              >
+                <Calendar className="size-4 text-[#4b5563]" strokeWidth={1.5} />
+                <span className="text-[13px] text-[#4b5563]">This Week</span>
+              </button>
+              
+              <button
+                onClick={() => notify.info("Download report coming soon!")}
+                className="h-[36px] px-3 rounded-md border border-[#e5e7eb] flex items-center gap-3 bg-white hover:bg-[#f9fafb] transition-colors text-left"
+              >
+                <Download className="size-4 text-[#4b5563]" strokeWidth={1.5} />
+                <span className="text-[13px] text-[#4b5563]">Download Report</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Skeleton ────────────────────────────────────────────────────────────────────
+function LoadingSkeleton() {
+  return (
+    <div className="p-6 space-y-5">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="flex items-center gap-6 animate-pulse">
+          <div className="w-[80px] h-4 rounded bg-gray-200" />
+          <div className="flex-1 h-4 rounded bg-gray-200" />
+          {[...Array(6)].map((_, j) => (
+            <div key={j} className="size-[18px] rounded-[4px] bg-gray-200 shrink-0" />
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
