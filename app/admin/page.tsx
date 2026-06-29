@@ -36,7 +36,7 @@ export default async function AdminPage() {
   ];
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10 w-full max-w-[1400px] mx-auto px-4 py-5 bg-white dark:bg-black min-h-screen">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10 w-full px-4 md:px-6 xl:px-8 py-5 bg-white dark:bg-black min-h-screen">
       <DashboardHeader />
       
       <div className="space-y-4">

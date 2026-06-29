@@ -170,7 +170,7 @@ export default function AdminOnboardsPage() {
   ];
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 px-4 py-5 w-full max-w-[1400px] mx-auto bg-white dark:bg-black min-h-screen">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full px-4 md:px-6 xl:px-8 py-5 bg-white dark:bg-black min-h-screen">
       
       {/* ── Page Header ── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between pb-5 border-b border-[#dedede]">

@@ -171,7 +171,7 @@ export default function HostelWorklistsView({
   }
 
   return (
-    <div className="min-h-screen bg-white w-full max-w-[1400px] mx-auto px-4 py-5">
+    <div className="min-h-screen bg-white w-full px-4 md:px-6 xl:px-8 py-5">
       {/* ── Header ── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between pb-6">
         <div>
