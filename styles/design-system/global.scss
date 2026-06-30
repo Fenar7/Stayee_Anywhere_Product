@@ -56,15 +56,15 @@ body {
 }
 
 .premium-tab-list {
-  @apply flex gap-6 border-b border-[#dedede] dark:border-white/10 w-full overflow-x-auto;
+  @apply flex gap-6 w-full overflow-x-auto scrollbar-none;
 }
 
 .premium-tab {
-  @apply pb-3 font-medium text-sm text-[#767676] dark:text-[#a0a0a0] transition-colors whitespace-nowrap;
+  @apply py-3.5 px-1 font-medium text-[14px] text-[#767676] dark:text-[#a0a0a0] transition-colors whitespace-nowrap border-b-[3px] border-transparent relative top-[1px];
 }
 
 .premium-tab.active {
-  @apply text-black dark:text-white border-b-2 border-[#58ff48];
+  @apply font-semibold text-black dark:text-white border-[#58ff48];
 }
 
 .premium-button {

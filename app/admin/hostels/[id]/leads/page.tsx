@@ -1,4 +1,5 @@
 import HostelLeadsView from "@/components/hostel-management/HostelLeadsView";
+import { prisma } from "@/lib/db";
 
 export default async function AdminHostelLeadsPage({
   params,
@@ -6,5 +7,9 @@ export default async function AdminHostelLeadsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <HostelLeadsView hostelId={id} baseRoute={`/admin/hostels/${id}`} />;
+  const hostel = await prisma.hostel.findUnique({
+    where: { id },
+    select: { name: true },
+  });
+  return <HostelLeadsView hostelId={id} hostelName={hostel?.name} baseRoute={`/admin/hostels/${id}`} />;
 }

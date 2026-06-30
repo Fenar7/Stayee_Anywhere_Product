@@ -30,7 +30,9 @@ interface AvailableBed {
 
 const PHONE_REGEX = /^\+91[0-9]{10}$/;
 
-export default function HostelOnboardView({ hostelId, baseRoute }: { hostelId: string | null; baseRoute: string }) {
+import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
+
+export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: { hostelId: string | null; hostelName?: string; baseRoute: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -253,13 +255,13 @@ export default function HostelOnboardView({ hostelId, baseRoute }: { hostelId: s
     "w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 p-4">
-      <div>
-        <h1 className="text-2xl font-bold">Onboard New Tenant</h1>
-        <p className="text-muted-foreground">
-          Create a new onboarding request for a prospective tenant
-        </p>
-      </div>
+    <HostelWorkspaceLayout
+      hostelId={hostelId || ""}
+      hostelName={hostelName}
+      title="Onboard New Tenant"
+      subtitle="Create a new onboarding request for a prospective tenant"
+    >
+      <div className="max-w-2xl mx-auto space-y-6 p-4">
 
       {/* Step progress indicator */}
       <div className="flex items-center gap-2 text-sm">
@@ -862,6 +864,7 @@ export default function HostelOnboardView({ hostelId, baseRoute }: { hostelId: s
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </HostelWorkspaceLayout>
   );
 }

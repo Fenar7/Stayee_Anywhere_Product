@@ -1,15 +1,14 @@
-import { BedDouble, CalendarCheck, IndianRupee, Clock, Bed, Ban, Play, AlertCircle } from "lucide-react";
+import { Bell, Plus } from "lucide-react";
 import { UserRole } from "@prisma/client";
 import { ActionAlertsClient } from "@/components/dashboard/ActionAlertsClient";
 import { getWardenHostelStats } from "@/services/hostel/dashboard.service";
-
-import { Bell, Plus } from "lucide-react";
 
 // Modular Dashboard Components
 import { StatCard } from "./dashboard/StatCard";
 import { StatusListCard, StatusItem } from "./dashboard/StatusListCard";
 import { ActivityFeed } from "./dashboard/ActivityFeed";
 import { TasksList } from "./dashboard/TasksList";
+import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +23,7 @@ export default async function HostelDashboardView({
 }) {
   if (!hostelId) {
     return (
-      <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 p-8">
         <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
           Hostel Dashboard
         </h1>
@@ -59,96 +58,91 @@ export default async function HostelDashboardView({
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   }).format(new Date());
 
+  const Actions = (
+    <>
+      <button className="flex items-center justify-center size-10 premium-button-outline shrink-0">
+        <Bell className="size-5 text-black dark:text-white" />
+      </button>
+      <button className="flex items-center justify-center gap-2 premium-button-outline whitespace-nowrap">
+        Manage Rent <Plus className="size-4 text-[#58ff48]" />
+      </button>
+      <button className="flex items-center justify-center gap-2 premium-button whitespace-nowrap">
+        On Board a User <Plus className="size-4" />
+      </button>
+    </>
+  );
+
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 w-full px-8 py-8 min-h-full">
-      {/* ── Header ── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-[#dedede] dark:border-white/10 mb-8">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-tight text-black dark:text-white flex items-center gap-2">
-            {stats.hostelName} Dashboard
-          </h1>
-          <p className="text-[#767676] text-[13px] font-medium mt-1 uppercase tracking-wider">{dateStr}</p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-          <button className="flex items-center justify-center size-10 premium-button-outline shrink-0">
-            <Bell className="size-5 text-black dark:text-white" />
-          </button>
-          <button className="flex items-center justify-center gap-2 premium-button-outline whitespace-nowrap">
-            Manage Rent <Plus className="size-4 text-[#58ff48]" />
-          </button>
-          <button className="flex items-center justify-center gap-2 premium-button whitespace-nowrap">
-            On Board a User <Plus className="size-4" />
-          </button>
-        </div>
-      </div>
-      
+    <HostelWorkspaceLayout
+      hostelId={hostelId}
+      hostelName={stats.hostelName}
+      title="Dashboard"
+      subtitle={dateStr}
+      actions={Actions}
+    >
       <div className="space-y-8">
+        <ActionAlertsClient role={userRole} />
 
-      <ActionAlertsClient role={userRole} />
+        {/* Stats Grid */}
+        <div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
+          <StatCard 
+            title="Available Beds" 
+            value={stats.availableBeds} 
+            subtitle="Ready for booking"
+            iconUrl="/icons/available-bed-card.png"
+            trend="23%"
+            trendUp={true}
+          />
+          <StatCard 
+            title="Occupied Beds" 
+            value={stats.occupiedBeds} 
+            subtitle="Active tenants"
+            iconUrl="/icons/occupied-bed-card.png"
+            trend="78%"
+            trendUp={true}
+          />
+          <StatCard 
+            title="Pending Bookings" 
+            value={stats.pendingOnboarding} 
+            subtitle="onboarding/approval"
+            iconUrl="/icons/pending-bookings-card.png"
+            trend="+10%"
+            trendUp={true}
+          />
+          <StatCard 
+            title="Rent Due" 
+            value={stats.pendingPayments} 
+            subtitle="Tenants need payment"
+            iconUrl="/icons/rent-due-card.png"
+            trend="-10%"
+            trendUp={false}
+          />
+        </div>
 
-      {/* Overview Title */}
-      <h2 className="text-[14px] uppercase tracking-wider font-bold text-black dark:text-white border-b border-[#dedede] dark:border-white/10 pb-2">Overview</h2>
-
-      {/* Stats Grid */}
-      <div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
-        <StatCard 
-          title="Available Beds" 
-          value={stats.availableBeds} 
-          subtitle="Ready for booking"
-          iconUrl="/icons/available-bed-card.png"
-          trend="23%"
-          trendUp={true}
-        />
-        <StatCard 
-          title="Occupied Beds" 
-          value={stats.occupiedBeds} 
-          subtitle="Active tenants"
-          iconUrl="/icons/occupied-bed-card.png"
-          trend="78%"
-          trendUp={true}
-        />
-        <StatCard 
-          title="Pending Bookings" 
-          value={stats.pendingOnboarding} 
-          subtitle="onboarding/approval"
-          iconUrl="/icons/pending-bookings-card.png"
-          trend="+10%"
-          trendUp={true}
-        />
-        <StatCard 
-          title="Rent Due" 
-          value={stats.pendingPayments} 
-          subtitle="Tenants need payment"
-          iconUrl="/icons/rent-due-card.png"
-          trend="-10%"
-          trendUp={false}
-        />
-      </div>
-
-      {/* Main Content Layout */}
-      <div className="grid gap-6 grid-cols-1 xl:grid-cols-3 items-stretch">
-        {/* Left Column (2/3) */}
-        <div className="xl:col-span-2 flex flex-col gap-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <StatusListCard 
-              title="Occupancy Status"
-              items={occupancyItems}
-            />
-            <StatusListCard 
-              title="Booking Status"
-              items={bookingItems}
-            />
+        {/* Main Content Layout */}
+        <div className="grid gap-6 grid-cols-1 xl:grid-cols-3 items-stretch">
+          {/* Left Column (2/3) */}
+          <div className="xl:col-span-2 flex flex-col gap-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <StatusListCard 
+                title="Occupancy Status"
+                items={occupancyItems}
+              />
+              <StatusListCard 
+                title="Booking Status"
+                items={bookingItems}
+              />
+            </div>
+            
+            <TasksList />
           </div>
-          
-          <TasksList />
-        </div>
 
-        {/* Right Column (1/3) */}
-        <div className="xl:col-span-1 h-full">
-          <ActivityFeed />
+          {/* Right Column (1/3) */}
+          <div className="xl:col-span-1 h-full">
+            <ActivityFeed />
+          </div>
         </div>
       </div>
-      </div>
-    </div>
+    </HostelWorkspaceLayout>
   );
 }

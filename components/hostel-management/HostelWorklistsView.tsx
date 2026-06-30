@@ -92,11 +92,15 @@ interface ServiceRequestPending {
 
 type TabKey = "rent" | "payments" | "applications" | "adhoc";
 
+import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
+
 export default function HostelWorklistsView({
   hostelId,
+  hostelName,
   baseRoute,
 }: {
   hostelId: string | null;
+  hostelName?: string;
   baseRoute: string;
 }) {
   const router = useRouter();
@@ -170,28 +174,25 @@ export default function HostelWorklistsView({
     return <DashboardSkeleton />;
   }
 
+  const Actions = (
+    <button
+      onClick={fetchData}
+      className="flex items-center justify-center h-10 px-5 border border-[#dedede] rounded-[6px] bg-white text-black text-[15px] font-semibold hover:bg-gray-50 transition-colors whitespace-nowrap"
+    >
+      <RefreshCw className="mr-2 size-4 text-[#5c5c5c]" />
+      Refresh
+    </button>
+  );
+
   return (
-    <div className="min-h-screen bg-white w-full px-4 md:px-6 xl:px-8 py-5">
-      {/* ── Header ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between pb-6">
-        <div>
-          <h1 className="text-[26px] font-bold tracking-tight text-black flex items-center gap-2">
-            Worklists <span className="text-[24px]">👋</span>
-          </h1>
-          <p className="text-[#767676] text-[14px] font-medium mt-0.5">
-            Action items requiring your attention
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={fetchData}
-            className="flex items-center justify-center h-10 px-5 border border-[#dedede] rounded-[6px] bg-white text-black text-[15px] font-semibold hover:bg-gray-50 transition-colors whitespace-nowrap"
-          >
-            <RefreshCw className="mr-2 size-4 text-[#5c5c5c]" />
-            Refresh
-          </button>
-        </div>
-      </div>
+    <HostelWorkspaceLayout
+      hostelId={hostelId || ""}
+      hostelName={hostelName}
+      title="Worklists"
+      subtitle="Action items requiring your attention"
+      actions={Actions}
+    >
+      <div className="w-full">
 
       {/* ── Tabs ── */}
       <div className="flex flex-wrap gap-2 mb-6">
@@ -440,6 +441,7 @@ export default function HostelWorklistsView({
         )}
 
       </div>
-    </div>
+      </div>
+    </HostelWorkspaceLayout>
   );
 }

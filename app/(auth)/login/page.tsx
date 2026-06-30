@@ -75,7 +75,7 @@ function LoginFormInner() {
             id="identifier"
             type="text"
             autoComplete="username"
-            className="flex h-[46px] w-full rounded-[8px] border border-[#dedede] bg-transparent px-3 text-[15px] shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#222222] placeholder:text-[#a0a0a0]"
+            className="flex h-[46px] w-full rounded-[8px] border border-[#dedede] bg-transparent px-3 text-[#222222] text-[15px] shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#222222] placeholder:text-[#a0a0a0]"
             placeholder="Enter your email or phone"
             {...register("identifier")}
           />
@@ -93,7 +93,7 @@ function LoginFormInner() {
               id="password"
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
-              className="flex h-[46px] w-full rounded-[8px] border border-[#dedede] bg-transparent px-3 pr-10 text-[15px] shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#222222] placeholder:text-[#a0a0a0]"
+              className="flex h-[46px] w-full rounded-[8px] border border-[#dedede] bg-transparent px-3 pr-10 text-[#222222] text-[15px] shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#222222] placeholder:text-[#a0a0a0]"
               placeholder="**********"
               {...register("password")}
             />

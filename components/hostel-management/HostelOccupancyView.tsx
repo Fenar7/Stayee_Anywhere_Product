@@ -10,6 +10,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 type Bed = {
@@ -80,7 +81,7 @@ const getBedColor = (status: string) => {
 };
 
 // ─── Main Component ──────────────────────────────────────────────────────────────
-export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId: string | null; baseRoute: string }) {
+export default function HostelOccupancyView({ hostelId, hostelName, baseRoute }: { hostelId: string | null; hostelName?: string; baseRoute: string }) {
   const [data, setData] = useState<HostelHierarchy | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -170,54 +171,48 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
     );
   }
 
+  if (!hostelId) {
+    return (
+      <div className="space-y-4 p-8">
+        <h1 className="text-3xl font-bold tracking-tight">Occupancy</h1>
+        <p className="text-muted-foreground">No hostel selected.</p>
+      </div>
+    );
+  }
+
+  const Actions = (
+    <>
+      <button className="flex items-center justify-center gap-2 premium-button-outline whitespace-nowrap">
+        Export Data
+      </button>
+      <button
+        onClick={() => router.push(`${baseRoute}/builder`)}
+        className="flex items-center justify-center gap-2 premium-button whitespace-nowrap"
+      >
+        Manage Rooms <Plus className="size-4" />
+      </button>
+    </>
+  );
+
   if (error || !data) {
     return (
       <div className="p-6">
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
           {error || "Failed to load data"}
         </div>
-        <button onClick={loadData} className="mt-4 text-sm text-blue-600 hover:underline">Retry</button>
       </div>
     );
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 w-full px-8 py-8 min-h-full">
-      {/* ── Header ── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-[#dedede] dark:border-white/10 mb-8">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-tight text-black dark:text-white flex items-center gap-2">
-            Occupancy Overview
-          </h1>
-          <p className="text-[#767676] text-[13px] font-medium mt-1 uppercase tracking-wider">Location : {data.name}</p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-          <button
-            onClick={() => notify.info("No new notifications")}
-            className="flex items-center justify-center size-10 premium-button-outline shrink-0"
-          >
-            <Bell className="size-5 text-black dark:text-white" />
-          </button>
-          <button
-            onClick={() => notify.info("Add Floor coming soon")}
-            className="flex items-center justify-center gap-2 premium-button-outline whitespace-nowrap"
-          >
-            Add Floor <Plus className="size-4 text-[#58ff48]" />
-          </button>
-          <button
-            onClick={() => notify.info("Add Room coming soon")}
-            className="flex items-center justify-center gap-2 premium-button-outline whitespace-nowrap"
-          >
-            Add Room <Plus className="size-4 text-[#58ff48]" />
-          </button>
-          <button
-            onClick={() => notify.info("Add Bed coming soon")}
-            className="flex items-center justify-center gap-2 premium-button whitespace-nowrap"
-          >
-            Add a Bed <Plus className="size-4" />
-          </button>
-        </div>
-      </div>
+    <HostelWorkspaceLayout
+      hostelId={hostelId}
+      hostelName={hostelName}
+      title="Hostel Occupancy"
+      subtitle="View and manage room assignments"
+      actions={Actions}
+    >
+      <div className="w-full">
 
         {/* ── Stats ── */}
         <div className="flex flex-col gap-2.5 text-[14px] font-medium text-[#1a1a1a] mb-6">
@@ -375,6 +370,6 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
           );
         })}
       </div>
-    </div>
+    </HostelWorkspaceLayout>
   );
 }

@@ -5,14 +5,7 @@ import ExtendStaySheet from "@/components/warden/ExtendStaySheet";
 import EarlyExitSheet from "@/components/warden/EarlyExitSheet";
 import NaturalCheckoutButton from "@/components/warden/NaturalCheckoutButton";
 import StayDetailsTrigger from "@/components/warden/StayDetailsTrigger";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
 
 export default async function HostelStaysView({
   hostelId,
@@ -29,6 +22,11 @@ export default async function HostelStaysView({
       </div>
     );
   }
+
+  const hostel = await prisma.hostel.findUnique({
+    where: { id: hostelId },
+    select: { name: true },
+  });
 
   const stays = await prisma.stay.findMany({
     where: {
@@ -47,26 +45,26 @@ export default async function HostelStaysView({
     orderBy: { endDate: "asc" },
   });
 
-  return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 w-full px-8 py-8 min-h-full">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-[#dedede] dark:border-white/10">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-tight text-black dark:text-white flex items-center gap-2">
-            Stays Management
-          </h1>
-          <p className="text-[#767676] text-[13px] font-medium mt-1 uppercase tracking-wider">Manage active and extended stays</p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-          <button className="flex items-center justify-center gap-2 premium-button-outline whitespace-nowrap">
-            Export Data
-          </button>
-          <button className="flex items-center justify-center gap-2 premium-button whitespace-nowrap">
-            Add Stay <span className="text-[14px]">→</span>
-          </button>
-        </div>
-      </div>
+  const Actions = (
+    <>
+      <button className="flex items-center justify-center gap-2 premium-button-outline whitespace-nowrap">
+        Export Data
+      </button>
+      <button className="flex items-center justify-center gap-2 premium-button whitespace-nowrap">
+        Add Stay <span className="text-[14px]">→</span>
+      </button>
+    </>
+  );
 
-      <div className="mt-8 w-full overflow-x-auto bg-white dark:bg-[#0a0a0a] border border-[#dedede] dark:border-white/10 rounded-sm">
+  return (
+    <HostelWorkspaceLayout
+      hostelId={hostelId}
+      hostelName={hostel?.name}
+      title="Stays Management"
+      subtitle="Manage active and extended stays"
+      actions={Actions}
+    >
+      <div className="w-full overflow-x-auto bg-white dark:bg-[#0a0a0a] border border-[#dedede] dark:border-white/10 rounded-sm">
         <table className="premium-table">
           <thead>
             <tr>
@@ -147,6 +145,6 @@ export default async function HostelStaysView({
           </tbody>
         </table>
       </div>
-    </div>
+    </HostelWorkspaceLayout>
   );
 }

@@ -93,12 +93,16 @@ const MEAL_COLS = [
 
 type MealKey = typeof MEAL_COLS[number]["key"];
 
+import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
+
 // ─── Main Component ──────────────────────────────────────────────────────────────
 export default function HostelFoodView({
   hostelId,
+  hostelName,
   baseRoute,
 }: {
   hostelId: string | null;
+  hostelName?: string;
   baseRoute: string;
 }) {
   const [weekStart, setWeekStart] = useState<string>(() => getMondayOfWeek(new Date()));
@@ -239,41 +243,41 @@ export default function HostelFoodView({
     : "—";
 
   // ─────────────────────────────────────────────────────────────────────────────
-  return (
-    <div className="min-h-screen bg-[#FAFAFA] p-6 lg:p-8">
+  const Actions = (
+    <>
+      {/* Bell */}
+      <button
+        onClick={() => notify.info("No new notifications")}
+        className="size-[40px] rounded-md border border-[#e5e7eb] bg-white flex items-center justify-center text-[#4b5563] hover:text-[#111] hover:border-[#d1d5db] transition-colors"
+      >
+        <Bell className="size-4" strokeWidth={2} />
+      </button>
+      {/* Manage Meals Pricing */}
+      <button
+        onClick={() => notify.info("Meal pricing management — coming soon")}
+        className="h-[40px] px-4 rounded-md border border-[#e5e7eb] bg-white text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2 whitespace-nowrap"
+      >
+        Manage Meals Pricing <Plus className="size-[15px] text-[#22c55e]" strokeWidth={2.5} />
+      </button>
+      {/* On Board a User */}
+      <Link
+        href={`${baseRoute}/onboard`}
+        className="h-[40px] px-4 rounded-md bg-[#1f2937] text-white text-[13px] font-medium flex items-center gap-2 hover:bg-[#111827] transition-colors whitespace-nowrap"
+      >
+        On Board a User <Plus className="size-[15px] text-[#22c55e]" strokeWidth={2.5} />
+      </Link>
+    </>
+  );
 
-      {/* ── Page Header ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-[26px] sm:text-[28px] font-semibold text-[#1a1a1a] tracking-tight">
-            Food Dashbord
-          </h1>
-          <p className="text-[14px] text-[#767676] mt-0.5">{formatHeaderDate()}</p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Bell */}
-          <button
-            onClick={() => notify.info("No new notifications")}
-            className="size-[40px] rounded-md border border-[#e5e7eb] bg-white flex items-center justify-center text-[#4b5563] hover:text-[#111] hover:border-[#d1d5db] transition-colors"
-          >
-            <Bell className="size-4" strokeWidth={2} />
-          </button>
-          {/* Manage Meals Pricing */}
-          <button
-            onClick={() => notify.info("Meal pricing management — coming soon")}
-            className="h-[40px] px-4 rounded-md border border-[#e5e7eb] bg-white text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2 whitespace-nowrap"
-          >
-            Manage Meals Pricing <Plus className="size-[15px] text-[#22c55e]" strokeWidth={2.5} />
-          </button>
-          {/* On Board a User */}
-          <Link
-            href={`${baseRoute}/onboard`}
-            className="h-[40px] px-4 rounded-md bg-[#1f2937] text-white text-[13px] font-medium flex items-center gap-2 hover:bg-[#111827] transition-colors whitespace-nowrap"
-          >
-            On Board a User <Plus className="size-[15px] text-[#22c55e]" strokeWidth={2.5} />
-          </Link>
-        </div>
-      </div>
+  return (
+    <HostelWorkspaceLayout
+      hostelId={hostelId || ""}
+      hostelName={hostelName}
+      title="Food Dashboard"
+      subtitle={formatHeaderDate()}
+      actions={Actions}
+    >
+      <div className="w-full">
 
       {/* ── Meal Counts (Today) ─────────────────────────────────────────────────── */}
       <div className="mb-8">
@@ -563,7 +567,8 @@ export default function HostelFoodView({
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </HostelWorkspaceLayout>
   );
 }
 

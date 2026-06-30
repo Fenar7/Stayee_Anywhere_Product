@@ -1,4 +1,5 @@
 import HostelWorklistsView from "@/components/hostel-management/HostelWorklistsView";
+import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -8,5 +9,9 @@ export default async function AdminHostelWorklistsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <HostelWorklistsView hostelId={id} baseRoute={`/admin/hostels/${id}`} />;
+  const hostel = await prisma.hostel.findUnique({
+    where: { id },
+    select: { name: true },
+  });
+  return <HostelWorklistsView hostelId={id} hostelName={hostel?.name} baseRoute={`/admin/hostels/${id}`} />;
 }

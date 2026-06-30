@@ -26,24 +26,8 @@ export default async function AdminHostelWorkspaceLayout({
   }
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-black">
-      <div className="flex items-center px-8 py-4 border-b border-[#dedede] dark:border-white/10 shrink-0">
-        <div className="flex items-center text-[13px] text-[#767676] font-medium uppercase tracking-wider">
-          <Link href="/admin/hostels" className="hover:text-black dark:hover:text-white transition-colors">
-            Hostels
-          </Link>
-          <ChevronRight className="size-4 mx-2" />
-          <span className="text-black dark:text-white font-bold">{hostel.name}</span>
-        </div>
-      </div>
-
-      <div className="px-8 border-b border-[#dedede] dark:border-white/10 shrink-0">
-        <AdminHostelNav hostelId={id} />
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
-        {children}
-      </div>
+    <div className="h-full bg-white dark:bg-black">
+      {children}
     </div>
   );
 }

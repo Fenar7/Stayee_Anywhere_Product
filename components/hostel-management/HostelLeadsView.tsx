@@ -24,6 +24,8 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 
+import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
+
 interface LeadNote {
   note: string;
   createdAt: string;
@@ -42,7 +44,7 @@ interface Lead {
 
 type StatusFilter = "ALL" | "NEW" | "CONTACTED" | "FOLLOW_UP" | "CONVERTED" | "DROPPED";
 
-export default function HostelLeadsView({ hostelId, baseRoute }: { hostelId: string | null; baseRoute: string }) {
+export default function HostelLeadsView({ hostelId, hostelName, baseRoute }: { hostelId: string | null; hostelName?: string; baseRoute: string }) {
   const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -246,23 +248,21 @@ export default function HostelLeadsView({ hostelId, baseRoute }: { hostelId: str
   const convertedLeads = leads.filter(l => l.status === "CONVERTED");
   const droppedLeads = leads.filter(l => l.status === "DROPPED");
 
+  const Actions = (
+    <button className="flex items-center justify-center gap-2 premium-button whitespace-nowrap" onClick={() => setShowLogModal(true)}>
+      <Plus className="mr-1.5 h-4 w-4" /> Log Enquiry
+    </button>
+  );
+
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 w-full px-8 py-8 min-h-full">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-[#dedede] dark:border-white/10">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-tight text-black dark:text-white flex items-center gap-2">
-            Hostel Leads
-          </h1>
-          <p className="text-[#767676] text-[13px] font-medium mt-1 uppercase tracking-wider">Track and manage prospective tenants</p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-          <button className="flex items-center justify-center gap-2 premium-button whitespace-nowrap" onClick={() => setShowLogModal(true)}>
-            <Plus className="mr-1.5 h-4 w-4" /> Log Enquiry
-          </button>
-        </div>
-      </div>
-      
-      <div className="mt-8 w-full">
+    <HostelWorkspaceLayout
+      hostelId={hostelId || ""}
+      hostelName={hostelName}
+      title="Hostel Leads"
+      subtitle="Track and manage prospective tenants"
+      actions={Actions}
+    >
+      <div className="w-full">
         {loading ? (
           <TableSkeleton />
         ) : (
@@ -434,6 +434,6 @@ export default function HostelLeadsView({ hostelId, baseRoute }: { hostelId: str
           </div>
         </div>
       )}
-    </div>
+    </HostelWorkspaceLayout>
   );
 }

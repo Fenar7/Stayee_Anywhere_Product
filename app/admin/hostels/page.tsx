@@ -17,6 +17,25 @@ export default async function AdminHostelsPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  const hostelsWithStats = await Promise.all(
+    hostels.map(async (hostel) => {
+      const totalBeds = await prisma.bed.count({
+        where: { room: { floor: { hostelId: hostel.id } } },
+      });
+      const occupiedBeds = await prisma.bed.count({
+        where: {
+          status: "OCCUPIED",
+          room: { floor: { hostelId: hostel.id } },
+        },
+      });
+      return {
+        ...hostel,
+        totalBeds,
+        occupiedBeds,
+      };
+    })
+  );
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full px-4 md:px-6 xl:px-8 py-5 bg-white dark:bg-black min-h-screen">
       {/* ── Page Header ── */}
@@ -39,7 +58,7 @@ export default async function AdminHostelsPage() {
       </div>
 
       {/* ── Empty State ── */}
-      {hostels.length === 0 ? (
+      {hostelsWithStats.length === 0 ? (
         <div className="mt-16 flex flex-col items-center justify-center gap-4 text-center">
           <div className="size-16 rounded-[10px] bg-[#5c5c5c] flex items-center justify-center">
             <Building2 className="size-8 text-[#58ff48]" />
@@ -65,7 +84,7 @@ export default async function AdminHostelsPage() {
             <div className="flex items-center gap-2">
               <Building2 className="size-4 text-[#767676]" />
               <span className="text-[14px] text-[#767676]">
-                <span className="font-bold text-black dark:text-white">{hostels.length}</span> Hostels
+                <span className="font-bold text-black dark:text-white">{hostelsWithStats.length}</span> Hostels
               </span>
             </div>
             <div className="w-px h-4 bg-[#dedede]" />
@@ -73,7 +92,7 @@ export default async function AdminHostelsPage() {
               <Users className="size-4 text-[#767676]" />
               <span className="text-[14px] text-[#767676]">
                 <span className="font-bold text-black dark:text-white">
-                  {hostels.filter((h) => h.warden).length}
+                  {hostelsWithStats.filter((h) => h.warden).length}
                 </span>{" "}
                 Wardens assigned
               </span>
@@ -82,7 +101,7 @@ export default async function AdminHostelsPage() {
 
           {/* ── Hostel Grid ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {hostels.map((hostel) => (
+            {hostelsWithStats.map((hostel) => (
               <HostelCard key={hostel.id} hostel={hostel} />
             ))}
           </div>
@@ -104,6 +123,8 @@ function HostelCard({
     accommodationType: string;
     warden: { id: string; name?: string | null } | null;
     _count: { floors: number };
+    totalBeds: number;
+    occupiedBeds: number;
   };
 }) {
   const typeColor =
@@ -113,9 +134,11 @@ function HostelCard({
       ? "bg-[#fce4ec] text-[#880e4f] dark:bg-pink-900/20 dark:text-pink-400"
       : "bg-[#e3f2fd] text-[#0d47a1] dark:bg-blue-900/20 dark:text-blue-400";
 
+  const occupancyPercentage = hostel.totalBeds > 0 ? Math.round((hostel.occupiedBeds / hostel.totalBeds) * 100) : 0;
+
   return (
     <Link href={`/admin/hostels/${hostel.id}`} className="group block">
-      <div className="rounded-[7px] border border-[#dedede] bg-white dark:bg-zinc-900 hover:border-[#c0c0c0] hover:shadow-sm transition-all duration-150 overflow-hidden">
+      <div className="rounded-[7px] border border-[#dedede] bg-white dark:bg-zinc-900 hover:border-[#c0c0c0] hover:shadow-sm transition-all duration-150 overflow-hidden flex flex-col h-full">
         {/* Card Header */}
         <div className="p-5 pb-4 border-b border-[#f2f2f2] dark:border-zinc-800">
           <div className="flex items-start justify-between gap-3">
@@ -135,7 +158,7 @@ function HostelCard({
         </div>
 
         {/* Card Stats */}
-        <div className="px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[#f2f2f2] dark:border-zinc-800">
+        <div className="px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[#f2f2f2] dark:border-zinc-800 flex-1">
           <div className="flex items-center gap-1.5 text-[#767676]">
             <Users className="size-4" />
             <span className="text-[13px]">
@@ -159,8 +182,26 @@ function HostelCard({
           )}
         </div>
 
+        {/* Occupancy Progress */}
+        <div className="px-5 py-4 border-b border-[#f2f2f2] dark:border-zinc-800">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-[12px] font-semibold text-[#767676] uppercase tracking-wider">Occupancy</span>
+            <span className="text-[13px] font-bold text-black dark:text-white">{occupancyPercentage}%</span>
+          </div>
+          <div className="h-1.5 w-full bg-[#f4f4f4] dark:bg-zinc-800 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-[#58ff48] transition-all duration-500 rounded-full" 
+              style={{ width: `${occupancyPercentage}%` }}
+            />
+          </div>
+          <div className="flex justify-between items-center mt-2 text-[12px] text-[#a1a1a1]">
+            <span>{hostel.occupiedBeds} occupied</span>
+            <span>{hostel.totalBeds} total beds</span>
+          </div>
+        </div>
+
         {/* Card Footer */}
-        <div className="px-5 py-3 flex items-center justify-between">
+        <div className="px-5 py-3 flex items-center justify-between mt-auto">
           <span
             className={`text-[12px] font-semibold px-3 py-1 rounded-full ${typeColor}`}
           >

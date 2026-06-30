@@ -47,8 +47,12 @@ export function ResetPasswordButton({ userId, userPhone }: { userId: string; use
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)} className="gap-2">
-        <Key className="h-4 w-4" /> Reset Password
+      <Button 
+        variant="outline" 
+        onClick={() => setOpen(true)} 
+        className="gap-2 h-9 px-4 text-[13px] font-semibold text-black dark:text-white border-[#dedede] dark:border-white/10 bg-white dark:bg-black hover:bg-[#f4f4f4] dark:hover:bg-white/5 transition-colors shadow-sm"
+      >
+        <Key className="h-4 w-4 text-[#767676] dark:text-[#a0a0a0]" /> Reset Password
       </Button>
 
       <AlertDialog

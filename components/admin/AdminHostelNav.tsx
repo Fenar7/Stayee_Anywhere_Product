@@ -36,7 +36,7 @@ export default function AdminHostelNav({ hostelId }: { hostelId: string }) {
   ];
 
   return (
-    <nav className="flex gap-6 overflow-x-auto" aria-label="Tabs">
+    <nav className="premium-tab-list" aria-label="Tabs">
       {navItems.map((item) => {
         const isActive = pathname === item.href;
         return (
