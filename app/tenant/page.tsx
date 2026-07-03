@@ -103,12 +103,12 @@ function getInitials(name: string) {
 
 // Helper components for layout
 const DataRow = ({ label, value, icon: Icon }: { label: string, value: string | React.ReactNode, icon?: any }) => (
-  <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3">
-    <div className="w-[160px] shrink-0 text-[12px] font-semibold text-[#767676] dark:text-[#a0a0a0] uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
-      {Icon && <Icon className="size-3.5" />}
+  <div className="flex items-center justify-between py-2.5">
+    <div className="text-[13px] font-medium text-[#767676] dark:text-[#a0a0a0] flex items-center gap-2">
+      {Icon && <Icon className="size-4" />}
       {label}
     </div>
-    <div className="flex-1 text-[14px] font-medium text-[#222222] dark:text-white break-words">
+    <div className="text-[14px] font-semibold text-[#222222] dark:text-white text-right break-words">
       {value}
     </div>
   </div>
@@ -282,24 +282,6 @@ export default function TenantDashboardPage() {
 
   return (
     <div className="min-h-screen bg-transparent pb-16">
-      
-      {/* 1. Global Premium Top Bar */}
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 md:px-6 xl:px-8 py-2.5 border-b border-[#dedede] dark:border-white/10 sticky top-0 bg-white/80 dark:bg-black/80 backdrop-blur-md z-50">
-        <div className="flex items-center gap-3">
-          <span className="text-[18px] font-bold tracking-tight text-[#222222] dark:text-white">
-            Anywhere Node
-          </span>
-          <span className="text-[10px] px-2 py-0.5 rounded-sm border font-bold uppercase tracking-wider bg-[#f5f5f5] dark:bg-white/5 text-[#767676] dark:text-[#a0a0a0] border-[#dedede] dark:border-white/10">
-            Tenant
-          </span>
-        </div>
-        
-        <div className="flex items-center gap-2 mt-3 sm:mt-0">
-          <button onClick={handleLogout} className="premium-button-outline h-9 px-4 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 dark:border-red-900/30">
-            <LogOut className="h-4 w-4 mr-2" /> Log Out
-          </button>
-        </div>
-      </header>
 
       <main className="w-full px-4 md:px-6 xl:px-8 py-6 space-y-6">
         
