@@ -1,8 +1,10 @@
-import { Sidebar } from "@/components/shared/Sidebar";
+"use client";
 
 /**
- * RoleShell — wraps all /tenant pages with the shared sidebar layout.
- * Receives hydrated user info from the server-side TenantLayout.
+ * Tenant Shell — wraps all /tenant pages.
+ * The tenant dashboard is designed as a mobile-first consumer app, 
+ * so it explicitly does NOT use the global admin Sidebar.
+ * Navigation is handled internally via a Bottom Navigation Bar.
  */
 export default function RoleShell({
   children,
@@ -14,10 +16,12 @@ export default function RoleShell({
   role: string;
 }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar role={role as any} userName={userName} />
-      {/* Offset for mobile hamburger button */}
-      <main className="flex-1 overflow-y-auto pt-14 lg:pt-0">
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
+      {/* 
+        No Sidebar here. 
+        The page component handles its own scroll container and bottom nav.
+      */}
+      <main className="flex-1 overflow-y-auto">
         {children}
       </main>
     </div>

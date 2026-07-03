@@ -5,7 +5,8 @@ import {
   Loader2, Building2, AlertCircle, Upload, Download,
   UtensilsCrossed, CreditCard, ChevronRight, CheckCircle2,
   XCircle, Clock, ArrowUpRight, LogOut, Utensils,
-  MapPin, BedSingle, Search, Bell, Settings, User as UserIcon
+  MapPin, BedSingle, Search, Bell, Settings, User as UserIcon,
+  Home, Wallet
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -85,7 +86,6 @@ function PillButton({ children, onClick, variant = "primary", className = "", ty
   );
 }
 
-// Default 3D-style avatars from DiceBear (fallback if no photoUrl)
 function getAvatarUrl(gender?: string, name?: string) {
   const seed = name || "User";
   if (gender === "FEMALE") {
@@ -178,7 +178,7 @@ export default function TenantDashboardPage() {
   // ─── Edge States (No Stay / Pending) ─────────────────────────────────────
 
   if (!stay) return (
-    <div className="max-w-md mx-auto p-6 md:p-10 min-h-[80vh] flex items-center justify-center">
+    <div className="max-w-md mx-auto p-6 md:p-10 min-h-screen flex items-center justify-center">
       <SoftCard className="text-center w-full py-12">
         <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-full mx-auto flex items-center justify-center mb-6">
           <Building2 className="w-8 h-8 text-gray-400" />
@@ -193,7 +193,7 @@ export default function TenantDashboardPage() {
   );
 
   if (stay.status === "ONBOARDING_PENDING") return (
-    <div className="max-w-md mx-auto p-6 md:p-10 min-h-[80vh] flex items-center justify-center">
+    <div className="max-w-md mx-auto p-6 md:p-10 min-h-screen flex items-center justify-center">
       <SoftCard className="text-center w-full py-12 border-amber-100 shadow-[0_20px_40px_rgb(245,158,11,0.05)]">
         <div className="w-20 h-20 bg-amber-50 dark:bg-amber-500/10 rounded-full mx-auto flex items-center justify-center mb-6">
           <Clock className="w-8 h-8 text-amber-500" />
@@ -202,6 +202,7 @@ export default function TenantDashboardPage() {
         <p className="text-gray-500 mb-8 leading-relaxed">
           Your request for <strong>{hostel?.name}</strong> is being processed. We'll notify you soon.
         </p>
+        <PillButton onClick={handleLogout} variant="outline">Sign Out</PillButton>
       </SoftCard>
     </div>
   );
@@ -227,10 +228,10 @@ export default function TenantDashboardPage() {
   // ─── Main Dashboard (Consumer / Fintech Vibe) ─────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-24 text-[#111111] dark:text-white font-sans">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-32 text-[#111111] dark:text-white font-sans relative">
       
       {/* ── Top App Bar ── */}
-      <header className="px-6 pt-12 pb-6 flex items-center justify-between sticky top-0 bg-[#FAFAFA]/80 dark:bg-[#0A0A0A]/80 backdrop-blur-xl z-40">
+      <header className="px-6 pt-12 pb-6 flex items-center justify-between sticky top-0 bg-[#FAFAFA]/90 dark:bg-[#0A0A0A]/90 backdrop-blur-xl z-40">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 shadow-inner">
             <img 
@@ -245,29 +246,12 @@ export default function TenantDashboardPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/tenant/notifications" className="w-12 h-12 rounded-full bg-white dark:bg-[#1A1A1A] shadow-sm border border-gray-100 dark:border-white/5 flex items-center justify-center relative">
+          <Link href="/tenant/notifications" className="w-12 h-12 rounded-full bg-white dark:bg-[#1A1A1A] shadow-sm border border-gray-100 dark:border-white/5 flex items-center justify-center relative hover:scale-105 transition-transform">
             <Bell className="w-5 h-5" />
             <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-[#1A1A1A]"></span>
           </Link>
         </div>
       </header>
-
-      {/* ── Segmented Control (Tabs) ── */}
-      <div className="px-6 mb-8">
-        <div className="p-1 bg-gray-100 dark:bg-[#1A1A1A] rounded-full flex relative shadow-inner">
-          {(["overview", "payments", "profile"] as const).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-3 text-[14px] font-bold rounded-full transition-all duration-300 relative z-10 capitalize ${
-                activeTab === tab ? "text-[#111111] dark:text-black shadow-sm bg-white dark:bg-[#58ff48]" : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
 
       <main className="px-6">
         
@@ -279,7 +263,6 @@ export default function TenantDashboardPage() {
             
             {/* Hero Card */}
             <div className="bg-[#111111] dark:bg-[#1A1A1A] text-white rounded-[32px] p-8 shadow-[0_20px_40px_rgb(0,0,0,0.15)] relative overflow-hidden">
-              {/* Decorative background circle */}
               <div className="absolute -right-20 -top-20 w-64 h-64 bg-[#58ff48]/10 blur-3xl rounded-full"></div>
               
               <div className="relative z-10">
@@ -310,7 +293,7 @@ export default function TenantDashboardPage() {
 
             {/* Quick Actions / Stats Grid */}
             <div className="grid grid-cols-2 gap-4">
-              <SoftCard className="p-5 flex flex-col items-center justify-center text-center gap-3">
+              <SoftCard className="p-5 flex flex-col items-center justify-center text-center gap-3 hover:scale-[1.02] transition-transform">
                 <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-500 rounded-full flex items-center justify-center">
                   <Clock className="w-6 h-6" />
                 </div>
@@ -320,7 +303,7 @@ export default function TenantDashboardPage() {
                 </div>
               </SoftCard>
               
-              <SoftCard className="p-5 flex flex-col items-center justify-center text-center gap-3">
+              <SoftCard className="p-5 flex flex-col items-center justify-center text-center gap-3 hover:scale-[1.02] transition-transform">
                 <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/20 text-purple-500 rounded-full flex items-center justify-center">
                   <BedSingle className="w-6 h-6" />
                 </div>
@@ -353,7 +336,7 @@ export default function TenantDashboardPage() {
                     <p className="text-sm text-gray-500 mt-0.5">{stay.foodPlan === "NOT_INCLUDED" ? "No plan active" : "Weekly meals included"}</p>
                   </div>
                   {stay.foodPlan !== "NOT_INCLUDED" && (
-                    <Link href="/tenant/food" className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center">
+                    <Link href="/tenant/food" className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center hover:bg-gray-200 transition-colors">
                       <ChevronRight className="w-5 h-5" />
                     </Link>
                   )}
@@ -405,7 +388,7 @@ export default function TenantDashboardPage() {
             <div>
               <div className="flex justify-between items-center mb-4 px-2">
                 <h3 className="text-lg font-bold">Recent Transactions</h3>
-                <span className="text-sm font-bold text-gray-500">See all</span>
+                <span className="text-sm font-bold text-gray-500 cursor-pointer hover:text-black">See all</span>
               </div>
               
               <div className="space-y-3">
@@ -458,7 +441,7 @@ export default function TenantDashboardPage() {
                 />
               </div>
               
-              <SoftCard className="w-full pt-20 pb-8 text-center bg-white/90 dark:bg-[#121212]/90 backdrop-blur-xl relative z-10">
+              <SoftCard className="w-full pt-20 pb-8 text-center bg-white/90 dark:bg-[#121212]/90 backdrop-blur-xl relative z-10 shadow-[0_20px_40px_rgb(0,0,0,0.05)]">
                 <h2 className="text-2xl font-black mb-1">{tenant?.fullName}</h2>
                 <p className="text-gray-500 font-medium mb-6">Tenant Account</p>
                 
@@ -497,7 +480,7 @@ export default function TenantDashboardPage() {
             </div>
 
             <div className="mt-6 space-y-4">
-              <SoftCard className="p-0 overflow-hidden">
+              <SoftCard className="p-0 overflow-hidden shadow-sm">
                 <button className="w-full p-5 flex items-center justify-between border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-gray-100 dark:bg-white/10 rounded-full flex items-center justify-center">
@@ -523,6 +506,53 @@ export default function TenantDashboardPage() {
         )}
 
       </main>
+
+      {/* ── Fixed Bottom Navigation Bar ── */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#111111]/90 backdrop-blur-xl border-t border-gray-100 dark:border-white/5 z-50 pb-safe">
+        <div className="max-w-md mx-auto flex justify-between items-center px-8 py-3">
+          
+          <button onClick={() => setActiveTab("overview")} className="flex flex-col items-center gap-1 w-16 relative">
+            <div className={`transition-all duration-300 ${activeTab === "overview" ? "-translate-y-1" : ""}`}>
+              {activeTab === "overview" ? (
+                <div className="w-12 h-12 bg-black dark:bg-[#58ff48] rounded-full flex items-center justify-center shadow-lg shadow-black/20 dark:shadow-[#58ff48]/20 absolute -top-8 left-1/2 -translate-x-1/2">
+                  <Home className="w-6 h-6 text-white dark:text-black" />
+                </div>
+              ) : (
+                <Home className="w-6 h-6 text-gray-400" />
+              )}
+            </div>
+            <span className={`text-[10px] font-bold mt-1 ${activeTab === "overview" ? "text-black dark:text-[#58ff48] mt-6" : "text-gray-400"}`}>Home</span>
+          </button>
+
+          <button onClick={() => setActiveTab("payments")} className="flex flex-col items-center gap-1 w-16 relative">
+            <div className={`transition-all duration-300 ${activeTab === "payments" ? "-translate-y-1" : ""}`}>
+              {activeTab === "payments" ? (
+                <div className="w-12 h-12 bg-black dark:bg-[#58ff48] rounded-full flex items-center justify-center shadow-lg shadow-black/20 dark:shadow-[#58ff48]/20 absolute -top-8 left-1/2 -translate-x-1/2">
+                  <Wallet className="w-6 h-6 text-white dark:text-black" />
+                </div>
+              ) : (
+                <Wallet className="w-6 h-6 text-gray-400" />
+              )}
+            </div>
+            <span className={`text-[10px] font-bold mt-1 ${activeTab === "payments" ? "text-black dark:text-[#58ff48] mt-6" : "text-gray-400"}`}>Wallet</span>
+          </button>
+
+          <button onClick={() => setActiveTab("profile")} className="flex flex-col items-center gap-1 w-16 relative">
+            <div className={`transition-all duration-300 ${activeTab === "profile" ? "-translate-y-1" : ""}`}>
+              {activeTab === "profile" ? (
+                <div className="w-12 h-12 bg-black dark:bg-[#58ff48] rounded-full flex items-center justify-center shadow-lg shadow-black/20 dark:shadow-[#58ff48]/20 absolute -top-8 left-1/2 -translate-x-1/2">
+                  <UserIcon className="w-6 h-6 text-white dark:text-black" />
+                </div>
+              ) : (
+                <UserIcon className="w-6 h-6 text-gray-400" />
+              )}
+            </div>
+            <span className={`text-[10px] font-bold mt-1 ${activeTab === "profile" ? "text-black dark:text-[#58ff48] mt-6" : "text-gray-400"}`}>Profile</span>
+          </button>
+
+        </div>
+      </nav>
+
     </div>
   );
 }
