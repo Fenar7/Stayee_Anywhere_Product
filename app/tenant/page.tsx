@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Loader2, LogOut, Clock, Building2, BedSingle, AlertCircle, CheckCircle, Upload, UtensilsCrossed, Calendar, CalendarDays, CreditCard, Download, X, User } from "lucide-react";
+import { Loader2, Building2, BedSingle, AlertCircle, Upload, UtensilsCrossed, CalendarDays, CreditCard, Download, X, User, TrendingUp, Clock, CheckCircle2, ChevronRight, Utensils, Users, ArrowUpRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { notify } from "@/lib/toast";
@@ -97,30 +96,152 @@ function formatDate(dateStr: string) {
   });
 }
 
+function formatCurrency(amount: number) {
+  return `₹${amount.toLocaleString("en-IN")}`;
+}
+
 function getInitials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase();
 }
 
-// Helper components for layout
-const DataRow = ({ label, value, icon: Icon }: { label: string, value: string | React.ReactNode, icon?: any }) => (
-  <div className="flex items-center justify-between py-2.5">
-    <div className="text-[13px] font-medium text-[#767676] dark:text-[#a0a0a0] flex items-center gap-2">
-      {Icon && <Icon className="size-4" />}
+function getDaysRemaining(endDate: string): number {
+  const end = new Date(endDate);
+  const now = new Date();
+  return Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+const MetricBlock = ({
+  label,
+  value,
+  sub,
+  accent,
+  urgent,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  accent?: boolean;
+  urgent?: boolean;
+}) => (
+  <div className="flex flex-col gap-1.5 p-5 border-r border-[#dedede] dark:border-white/10 last:border-r-0">
+    <span className="text-[11px] font-semibold uppercase tracking-widest text-[#767676] dark:text-[#a0a0a0]">
       {label}
-    </div>
-    <div className="text-[14px] font-semibold text-[#222222] dark:text-white text-right break-words">
+    </span>
+    <span
+      className={`text-[22px] font-bold leading-tight tracking-tight ${
+        urgent
+          ? "text-red-600 dark:text-red-400"
+          : accent
+          ? "text-[#222222] dark:text-white"
+          : "text-[#222222] dark:text-white"
+      }`}
+    >
       {value}
-    </div>
+    </span>
+    {sub && (
+      <span className="text-[12px] text-[#767676] dark:text-[#a0a0a0] font-medium">
+        {sub}
+      </span>
+    )}
   </div>
 );
 
-const SectionHeader = ({ title, icon: Icon }: { title: string, icon: any }) => (
-  <div className="bg-[#fcfcfc] dark:bg-white/5 border-b border-[#dedede] dark:border-white/10 px-6 py-4">
-    <h3 className="font-bold text-[14px] text-[#222222] dark:text-white uppercase tracking-wider flex items-center gap-2">
-      <Icon className="size-4 text-[#767676] dark:text-[#a0a0a0]" /> {title}
-    </h3>
+const StatusPill = ({ status }: { status: string }) => {
+  const map: Record<string, { label: string; cls: string; dot: string }> = {
+    ACTIVE: {
+      label: "Active",
+      cls: "bg-[#58ff48]/10 text-[#1a8a10] dark:text-[#58ff48] border-[#58ff48]/30",
+      dot: "bg-[#58ff48]",
+    },
+    ONBOARDING_PENDING: {
+      label: "Pending Review",
+      cls: "bg-amber-50 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+      dot: "bg-amber-500",
+    },
+    APPROVED_AWAITING_PAYMENT: {
+      label: "Awaiting Payment",
+      cls: "bg-blue-50 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+      dot: "bg-blue-500",
+    },
+  };
+  const cfg = map[status] ?? {
+    label: status,
+    cls: "bg-[#f5f5f5] text-[#767676] border-[#dedede]",
+    dot: "bg-[#767676]",
+  };
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] border text-[12px] font-semibold ${cfg.cls}`}
+    >
+      <span className={`size-1.5 rounded-full ${cfg.dot}`} />
+      {cfg.label}
+    </span>
+  );
+};
+
+const PaymentStatusBadge = ({
+  status,
+  isRefund,
+}: {
+  status: string;
+  isRefund?: boolean;
+}) => {
+  if (isRefund)
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] border text-[11px] font-bold uppercase tracking-wider bg-red-50 dark:bg-red-950/20 text-red-600 border-red-200 dark:border-red-800">
+        Refunded
+      </span>
+    );
+  const map: Record<string, string> = {
+    PAID: "bg-[#58ff48]/10 text-[#1a8a10] dark:text-[#58ff48] border-[#58ff48]/30",
+    PENDING:
+      "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+    PARTIALLY_PAID:
+      "bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+  };
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-[3px] border text-[11px] font-bold uppercase tracking-wider ${
+        map[status] ?? "bg-[#f5f5f5] text-[#767676] border-[#dedede]"
+      }`}
+    >
+      {status.replace(/_/g, " ")}
+    </span>
+  );
+};
+
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  <div className="px-5 py-3 border-b border-[#dedede] dark:border-white/10 bg-[#fafafa] dark:bg-white/[0.02]">
+    <span className="text-[11px] font-bold uppercase tracking-widest text-[#767676] dark:text-[#a0a0a0]">
+      {children}
+    </span>
   </div>
 );
+
+const InfoRow = ({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value: React.ReactNode;
+  highlight?: boolean;
+}) => (
+  <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#dedede]/60 dark:border-white/5 last:border-0">
+    <span className="text-[13px] text-[#767676] dark:text-[#a0a0a0] font-medium">{label}</span>
+    <span
+      className={`text-[13px] font-semibold ${
+        highlight ? "text-[#222222] dark:text-white" : "text-[#444444] dark:text-[#dddddd]"
+      }`}
+    >
+      {value}
+    </span>
+  </div>
+);
+
+// ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function TenantDashboardPage() {
   const router = useRouter();
@@ -138,20 +259,16 @@ export default function TenantDashboardPage() {
   const [paymentConfig, setHostelPaymentConfig] = useState<import("@prisma/client").HostelPaymentConfig | null>(null);
   const [homeNotifications, setHomeNotifications] = useState<any[]>([]);
 
-  // Upload Payment State
   const [uploadAmount, setUploadAmount] = useState("");
   const [uploadRef, setUploadRef] = useState("");
   const [uploading, setUploading] = useState(false);
 
-  // Tabs state
-  const [activeTab, setActiveTab] = useState("mystay");
+  const [activeTab, setActiveTab] = useState("overview");
 
   const fetchStayDetails = async () => {
     try {
       const response = await fetch("/api/tenant/stay");
-      if (!response.ok) {
-        throw new Error("Failed to load dashboard details");
-      }
+      if (!response.ok) throw new Error("Failed to load dashboard details");
       const data: ApiResponse = await response.json();
       setTenant(data.tenant || null);
       setStay(data.stay);
@@ -165,14 +282,11 @@ export default function TenantDashboardPage() {
       if (data.hostel?.id) {
         try {
           const pcRes = await fetch(`/api/public/hostels/${data.hostel.id}/payment-config`);
-          if (pcRes.ok) {
-            const pcData = await pcRes.json();
-            setHostelPaymentConfig(pcData);
-          }
+          if (pcRes.ok) setHostelPaymentConfig(await pcRes.json());
         } catch { /* non-critical */ }
       }
-    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
-      notify.error(errorMsg || "An unexpected error occurred");
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -183,25 +297,22 @@ export default function TenantDashboardPage() {
       const res = await fetch("/api/tenant/notifications");
       if (res.ok) {
         const json = await res.json();
-        const filtered = (json.notifications || []).filter(
-          (n: any) => !n.read && !n.dismissedFromHome
+        setHomeNotifications(
+          (json.notifications || []).filter((n: any) => !n.read && !n.dismissedFromHome)
         );
-        setHomeNotifications(filtered);
       }
     } catch { /* non-critical */ }
   };
 
   const handleDismissNotification = async (id: string) => {
+    setHomeNotifications((prev) => prev.filter((n) => n.id !== id));
     try {
-      setHomeNotifications((prev) => prev.filter((n) => n.id !== id));
       await fetch(`/api/tenant/notifications/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dismissedFromHome: true }),
       });
-    } catch (err) {
-      console.error("Failed to dismiss notification", err);
-    }
+    } catch { /* non-critical */ }
   };
 
   useEffect(() => {
@@ -209,25 +320,13 @@ export default function TenantDashboardPage() {
     fetchHomeNotifications();
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/login");
-    } catch (err) {
-      console.error("Logout failed", err);
-    }
-  };
-
   const handleUploadPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stay) return;
     setUploading(true);
     try {
       const amountPaise = Math.round(parseFloat(uploadAmount) * 100);
-      if (isNaN(amountPaise) || amountPaise <= 0) {
-        throw new Error("Please enter a valid amount.");
-      }
-
+      if (isNaN(amountPaise) || amountPaise <= 0) throw new Error("Please enter a valid amount.");
       const res = await fetch("/api/tenant/payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -238,18 +337,16 @@ export default function TenantDashboardPage() {
           transactionRefNo: uploadRef.trim() || null,
         }),
       });
-
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Failed to submit payment");
       }
-
       notify.success("Payment submitted for verification");
       setUploadAmount("");
       setUploadRef("");
       fetchStayDetails();
-    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
-      notify.error(errorMsg);
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : "Failed to submit");
     } finally {
       setUploading(false);
     }
@@ -257,436 +354,681 @@ export default function TenantDashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-transparent">
+      <div className="flex min-h-screen items-center justify-center">
         <DashboardSkeleton />
       </div>
     );
   }
 
+  // ─── Computed values ─────────────────────────────────────────────────────
+
   const verifiedPaid = payments
     .filter((p) => p.paymentStatus === "PAID" || p.paymentStatus === "PARTIALLY_PAID")
     .reduce((sum, p) => sum + p.amountPaid, 0);
-
   const remainingBalance = stay ? stay.totalPayable - verifiedPaid : 0;
-
   const pendingRequests = pendingServiceRequests.filter((r) => r.status === "PENDING_PAYMENT");
   const revokedRequests = pendingServiceRequests.filter((r) => r.status === "REVOKED");
-
-  let daysUntilDue = null;
+  const daysRemaining = stay ? getDaysRemaining(stay.endDate) : null;
+  let daysUntilDue: number | null = null;
   if (nextDueDate) {
-    const due = new Date(nextDueDate);
-    const now = new Date();
-    const diffTime = due.getTime() - now.getTime();
-    daysUntilDue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diff = new Date(nextDueDate).getTime() - new Date().getTime();
+    daysUntilDue = Math.ceil(diff / (1000 * 60 * 60 * 24));
   }
+  const paymentProgress = stay ? Math.min(100, Math.round((verifiedPaid / stay.totalPayable) * 100)) : 0;
 
-  return (
-    <div className="min-h-screen bg-transparent pb-16">
+  // ─── Empty / Pending states ───────────────────────────────────────────────
 
-      <main className="w-full px-4 md:px-6 xl:px-8 py-6 space-y-6">
-        
-        {/* Notifications */}
-        {homeNotifications.length > 0 && (
-          <div className="space-y-3">
-            {homeNotifications.map((notif) => (
-              <div key={notif.id} className="relative flex items-start gap-4 p-4 premium-card border-l-4 border-l-[#222222] dark:border-l-white">
-                <div className="flex-1 pr-8">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-[14px] text-[#222222] dark:text-white">{notif.title}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-sm border font-bold uppercase tracking-wider bg-[#f5f5f5] dark:bg-white/5 text-[#767676] dark:text-[#a0a0a0]">
-                      {notif.type.replace(/_/g, " ")}
-                    </span>
-                  </div>
-                  <p className="text-[13px] text-[#767676] dark:text-[#a0a0a0]">{notif.message}</p>
-                </div>
-                <button
-                  onClick={() => handleDismissNotification(notif.id)}
-                  className="absolute top-3 right-3 text-[#767676] hover:text-[#222222] dark:hover:text-white"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
+  if (!stay) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-8">
+        <div className="premium-card max-w-sm w-full p-10 text-center space-y-5">
+          <div className="mx-auto size-16 rounded-sm bg-[#f5f5f5] dark:bg-white/5 flex items-center justify-center text-3xl">
+            🏠
           </div>
-        )}
-
-        {!stay ? (
-          <div className="premium-card p-10 text-center space-y-4 max-w-md mx-auto mt-12">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#f5f5f5] dark:bg-white/5 text-[#767676] text-3xl">
-              🏠
-            </div>
-            <h2 className="text-[20px] font-bold text-[#222222] dark:text-white">Welcome to Anywhere Node!</h2>
-            <p className="text-[14px] text-[#767676] dark:text-[#a0a0a0]">
-              You are logged in, but there is no active stay registered for your account. Please contact your warden.
+          <div className="space-y-2">
+            <h2 className="text-[18px] font-bold text-[#222222] dark:text-white">No Active Stay</h2>
+            <p className="text-[13px] text-[#767676] leading-relaxed">
+              You are logged in, but no active stay is registered. Please contact your warden.
             </p>
           </div>
-        ) : stay.status === "ONBOARDING_PENDING" ? (
-          <div className="premium-card p-10 text-center space-y-6 max-w-2xl mx-auto mt-12">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-sm bg-amber-50 dark:bg-amber-900/10 text-amber-600 border border-amber-200 dark:border-amber-900/30">
-              <Clock className="h-8 w-8" />
+        </div>
+      </div>
+    );
+  }
+
+  if (stay.status === "ONBOARDING_PENDING") {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-8">
+        <div className="premium-card max-w-md w-full overflow-hidden">
+          <div className="p-8 text-center space-y-4">
+            <div className="mx-auto size-14 rounded-sm bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 flex items-center justify-center">
+              <Clock className="size-7 text-amber-600 dark:text-amber-400" />
             </div>
-            <div className="space-y-3">
-              <h2 className="text-[24px] font-bold text-[#222222] dark:text-white">Application Under Review</h2>
-              <p className="text-[14px] text-[#767676] dark:text-[#a0a0a0] max-w-md mx-auto">
-                Your documents and details are submitted successfully. The warden is currently verifying them.
+            <div className="space-y-2">
+              <h2 className="text-[20px] font-bold text-[#222222] dark:text-white">
+                Under Review
+              </h2>
+              <p className="text-[13px] text-[#767676] leading-relaxed max-w-xs mx-auto">
+                Your documents are submitted. The warden is verifying them. You'll receive a
+                notification once approved.
               </p>
-              <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 text-[12px] font-bold text-amber-700 dark:text-amber-500 uppercase tracking-wider">
-                <Building2 className="h-4 w-4" /> {hostel?.name} &middot; Bed {bed?.roomNumber}-{bed?.label}
-              </div>
             </div>
           </div>
-        ) : stay.status === "APPROVED_AWAITING_PAYMENT" ? (
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <InitialPaymentForm
-                hostel={hostel}
-                paymentConfig={paymentConfig}
-                remainingBalance={remainingBalance}
-                onSuccess={(msg) => { notify.success(msg); fetchStayDetails(); }}
-                onError={(msg) => notify.error(msg)}
-              />
+          <div className="border-t border-[#dedede] dark:border-white/10 px-6 py-4 bg-[#fafafa] dark:bg-white/[0.02] flex items-center gap-3">
+            <Building2 className="size-4 text-[#767676]" />
+            <span className="text-[13px] font-semibold text-[#222222] dark:text-white">
+              {hostel?.name}
+            </span>
+            <span className="text-[#dedede] dark:text-white/20">·</span>
+            <span className="text-[13px] text-[#767676]">
+              Bed {bed?.roomNumber}-{bed?.label}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (stay.status === "APPROVED_AWAITING_PAYMENT") {
+    return (
+      <div className="p-4 md:p-6 xl:p-8">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <InitialPaymentForm
+              hostel={hostel}
+              paymentConfig={paymentConfig}
+              remainingBalance={remainingBalance}
+              onSuccess={(msg) => { notify.success(msg); fetchStayDetails(); }}
+              onError={(msg) => notify.error(msg)}
+            />
+          </div>
+          <div className="premium-card overflow-hidden h-fit">
+            <SectionLabel>Stay Summary</SectionLabel>
+            <InfoRow label="Hostel" value={hostel?.name} />
+            <InfoRow label="Bed" value={`${bed?.roomNumber} - ${bed?.label}`} />
+            <div className="border-t border-[#dedede] dark:border-white/10 mt-1" />
+            <InfoRow label="Admission Fee" value={formatCurrency(stay.admissionFee)} />
+            <InfoRow label="Rent" value={formatCurrency(stay.monthlyRent)} />
+            <InfoRow label="Security Deposit" value={formatCurrency(stay.securityDeposit)} />
+            {stay.discount > 0 && (
+              <InfoRow label="Discount" value={`− ${formatCurrency(stay.discount)}`} />
+            )}
+            <div className="px-5 py-4 border-t border-[#dedede] dark:border-white/10 flex justify-between">
+              <span className="text-[14px] font-bold text-[#222222] dark:text-white">Total Due</span>
+              <span className="text-[16px] font-bold text-[#222222] dark:text-white">
+                {formatCurrency(stay.totalPayable)}
+              </span>
             </div>
-            <div>
-              <div className="premium-card flex flex-col divide-y divide-[#dedede] dark:divide-white/10">
-                <SectionHeader title="Stay Billing" icon={AlertCircle} />
-                <div className="p-6 space-y-3">
-                  <div className="flex justify-between text-[14px] font-medium">
-                    <span className="text-[#767676]">Hostel</span>
-                    <span className="text-[#222222] dark:text-white">{hostel?.name}</span>
-                  </div>
-                  <div className="flex justify-between text-[14px] font-medium">
-                    <span className="text-[#767676]">Bed</span>
-                    <span className="text-[#222222] dark:text-white">{bed?.roomNumber} - {bed?.label}</span>
-                  </div>
-                  <div className="flex justify-between text-[14px] font-medium pt-3 border-t border-[#dedede] dark:border-white/10">
-                    <span className="text-[#767676]">Admission Fee</span>
-                    <span className="text-[#222222] dark:text-white">₹ {stay.admissionFee.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="flex justify-between text-[14px] font-medium">
-                    <span className="text-[#767676]">Stay Rent</span>
-                    <span className="text-[#222222] dark:text-white">₹ {stay.monthlyRent.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="flex justify-between text-[14px] font-medium">
-                    <span className="text-[#767676]">Security Deposit</span>
-                    <span className="text-[#222222] dark:text-white">₹ {stay.securityDeposit.toLocaleString("en-IN")}</span>
-                  </div>
-                  {stay.discount > 0 && (
-                    <div className="flex justify-between text-[14px] font-medium text-red-600">
-                      <span>Discount Applied</span>
-                      <span>- ₹ {stay.discount.toLocaleString("en-IN")}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-[16px] font-bold pt-3 border-t border-[#dedede] dark:border-white/10">
-                    <span className="text-[#222222] dark:text-white">Total Due</span>
-                    <span className="text-[#222222] dark:text-white">₹ {stay.totalPayable.toLocaleString("en-IN")}</span>
-                  </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Active Dashboard ────────────────────────────────────────────────────
+
+  const tabs = [
+    { id: "overview", label: "Overview" },
+    { id: "payments", label: "Payments" },
+    { id: "food", label: "Food Plan" },
+    { id: "roommates", label: "Roommates" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#fafafa] dark:bg-[#0a0a0a]">
+
+      {/* ── Alert Banners ── */}
+      {(pendingRequests.length > 0 || revokedRequests.length > 0 || homeNotifications.length > 0) && (
+        <div className="px-4 md:px-6 xl:px-8 pt-5 space-y-2.5">
+          {pendingRequests.map((req) => (
+            <div
+              key={req.id}
+              className="flex items-center justify-between gap-4 p-3.5 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/50 rounded-sm"
+            >
+              <div className="flex items-center gap-3">
+                <AlertCircle className="size-4 text-orange-600 dark:text-orange-400 shrink-0" />
+                <span className="text-[13px] font-semibold text-orange-900 dark:text-orange-200">
+                  Payment pending · {req.type.replace(/_/g, " ")} ·{" "}
+                  <span className="font-bold">₹{req.amount}</span>
+                </span>
+              </div>
+              <Link
+                href={`/tenant/service-requests/${req.id}`}
+                className="shrink-0 text-[12px] font-bold text-orange-700 dark:text-orange-400 flex items-center gap-1 hover:gap-2 transition-all"
+              >
+                Pay now <ArrowUpRight className="size-3.5" />
+              </Link>
+            </div>
+          ))}
+          {revokedRequests.map((req) => (
+            <div
+              key={req.id}
+              className="flex items-center gap-3 p-3.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/50 rounded-sm"
+            >
+              <AlertCircle className="size-4 text-red-600 shrink-0" />
+              <span className="text-[13px] font-medium text-red-800 dark:text-red-200">
+                Food plan revoked · Refund of{" "}
+                <strong className="font-bold">₹{req.amount}</strong> processed.
+                {req.metadata?.revocation?.reason && ` Reason: ${req.metadata.revocation.reason}`}
+              </span>
+            </div>
+          ))}
+          {homeNotifications.map((notif) => (
+            <div
+              key={notif.id}
+              className="flex items-start justify-between gap-4 p-3.5 bg-white dark:bg-white/5 border border-[#dedede] dark:border-white/10 border-l-2 border-l-[#222222] dark:border-l-white rounded-sm"
+            >
+              <div className="flex-1 min-w-0">
+                <span className="text-[13px] font-semibold text-[#222222] dark:text-white">
+                  {notif.title}
+                </span>
+                <p className="text-[12px] text-[#767676] mt-0.5 truncate">{notif.message}</p>
+              </div>
+              <button
+                onClick={() => handleDismissNotification(notif.id)}
+                className="text-[#767676] hover:text-[#222222] dark:hover:text-white transition-colors shrink-0"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Hero Identity Block ── */}
+      <div className="px-4 md:px-6 xl:px-8 pt-6">
+        <div className="bg-white dark:bg-[#111111] border border-[#dedede] dark:border-white/10 rounded-sm overflow-hidden">
+          
+          {/* Top section: Avatar + Name + Badge */}
+          <div className="p-5 md:p-6 flex items-center gap-4 border-b border-[#dedede] dark:border-white/10">
+            {/* Avatar */}
+            <div className="shrink-0">
+              {tenant?.photoUrl ? (
+                <img
+                  src={tenant.photoUrl}
+                  alt="Profile"
+                  className="size-[52px] rounded-[6px] border border-[#dedede] dark:border-white/10 object-cover"
+                />
+              ) : (
+                <div className="size-[52px] rounded-[6px] border border-[#dedede] dark:border-white/10 bg-[#f5f5f5] dark:bg-white/5 flex items-center justify-center">
+                  <span className="text-[18px] font-bold text-[#767676] dark:text-[#a0a0a0] leading-none">
+                    {tenant?.fullName ? getInitials(tenant.fullName) : <User className="size-5" />}
+                  </span>
                 </div>
+              )}
+            </div>
+
+            {/* Name + location */}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-[20px] font-bold text-[#222222] dark:text-white tracking-tight leading-tight truncate">
+                {tenant?.fullName || "Tenant"}
+              </h1>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="flex items-center gap-1.5 text-[12px] text-[#767676] dark:text-[#a0a0a0] font-medium">
+                  <Building2 className="size-3.5 shrink-0" />
+                  {hostel?.name}
+                </span>
+                <span className="text-[#dedede] dark:text-white/20 select-none">·</span>
+                <span className="flex items-center gap-1.5 text-[12px] text-[#767676] dark:text-[#a0a0a0] font-medium">
+                  <BedSingle className="size-3.5 shrink-0" />
+                  Bed {bed?.roomNumber}–{bed?.label}
+                </span>
               </div>
             </div>
+
+            {/* Status badge */}
+            <div className="shrink-0 hidden sm:block">
+              <StatusPill status={stay.status} />
+            </div>
           </div>
-        ) : (
-          <div className="space-y-6">
+
+          {/* Metrics strip */}
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-[#dedede] dark:divide-white/10">
+            <MetricBlock
+              label="Stay Status"
+              value={stay.status === "ACTIVE" ? "Active" : stay.status.replace(/_/g, " ")}
+              sub={`Since ${formatDate(stay.joiningDate)}`}
+              accent
+            />
+            <MetricBlock
+              label="Days Remaining"
+              value={daysRemaining !== null ? `${daysRemaining}d` : "—"}
+              sub={`Until ${formatDate(stay.endDate)}`}
+              urgent={daysRemaining !== null && daysRemaining <= 30}
+            />
+            <MetricBlock
+              label="Next Payment"
+              value={nextDueDate ? formatDate(nextDueDate) : "—"}
+              sub={
+                daysUntilDue !== null
+                  ? daysUntilDue <= 0
+                    ? "Overdue"
+                    : `In ${daysUntilDue} days`
+                  : undefined
+              }
+              urgent={daysUntilDue !== null && daysUntilDue <= 7}
+            />
+            <MetricBlock
+              label="Monthly Rent"
+              value={formatCurrency(stay.monthlyRent)}
+              sub={stay.durationType}
+            />
+          </div>
+
+          {/* Payment progress bar */}
+          {stay.totalPayable > 0 && (
+            <div className="px-5 py-3.5 border-t border-[#dedede] dark:border-white/10 flex items-center gap-4 bg-[#fafafa] dark:bg-white/[0.02]">
+              <span className="text-[12px] text-[#767676] dark:text-[#a0a0a0] font-medium shrink-0">
+                Payment collected
+              </span>
+              <div className="flex-1 h-1.5 bg-[#dedede] dark:bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#222222] dark:bg-[#58ff48] rounded-full transition-all duration-700"
+                  style={{ width: `${paymentProgress}%` }}
+                />
+              </div>
+              <span className="text-[12px] font-bold text-[#222222] dark:text-white shrink-0">
+                {paymentProgress}%
+              </span>
+              <span className="text-[12px] text-[#767676] dark:text-[#a0a0a0] font-medium shrink-0 hidden sm:block">
+                {formatCurrency(verifiedPaid)} of {formatCurrency(stay.totalPayable)}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Tab Navigation ── */}
+      <div className="px-4 md:px-6 xl:px-8 mt-5">
+        <div className="flex items-center gap-0.5 border-b border-[#dedede] dark:border-white/10 overflow-x-auto no-scrollbar">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-1 pb-3 mr-5 text-[14px] font-medium whitespace-nowrap transition-all border-b-2 relative top-[1px] ${
+                activeTab === tab.id
+                  ? "border-[#222222] dark:border-white text-[#222222] dark:text-white font-semibold"
+                  : "border-transparent text-[#767676] dark:text-[#a0a0a0] hover:text-[#222222] dark:hover:text-white"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Tab Content ── */}
+      <div className="px-4 md:px-6 xl:px-8 py-5 pb-16">
+
+        {/* OVERVIEW TAB */}
+        {activeTab === "overview" && (
+          <div className="grid gap-4 lg:grid-cols-2">
             
-            {/* Action Banners */}
-            {pendingRequests.map((req) => (
-              <div key={req.id} className="premium-card bg-orange-50/50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900/50 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* Stay Details */}
+            <div className="bg-white dark:bg-[#111111] border border-[#dedede] dark:border-white/10 rounded-sm overflow-hidden">
+              <SectionLabel>Stay Details</SectionLabel>
+              <InfoRow label="Joining Date" value={formatDate(stay.joiningDate)} />
+              <InfoRow label="End Date" value={formatDate(stay.endDate)} />
+              <InfoRow label="Duration Type" value={stay.durationType} />
+              <InfoRow
+                label="Sharing"
+                value={bed?.sharingType?.replace(/_/g, " ") ?? "—"}
+              />
+              <InfoRow label="Room" value={`${bed?.roomNumber} · Bed ${bed?.label}`} />
+            </div>
+
+            {/* Billing Summary */}
+            <div className="bg-white dark:bg-[#111111] border border-[#dedede] dark:border-white/10 rounded-sm overflow-hidden">
+              <SectionLabel>Billing Summary</SectionLabel>
+              <InfoRow label="Monthly Rent" value={formatCurrency(stay.monthlyRent)} highlight />
+              {stay.foodCharges > 0 && (
+                <InfoRow label="Food Charges" value={formatCurrency(stay.foodCharges)} />
+              )}
+              <InfoRow label="Security Deposit" value={formatCurrency(stay.securityDeposit)} />
+              {stay.admissionFee > 0 && (
+                <InfoRow label="Admission Fee" value={formatCurrency(stay.admissionFee)} />
+              )}
+              {stay.discount > 0 && (
+                <InfoRow label="Discount Applied" value={`− ${formatCurrency(stay.discount)}`} />
+              )}
+              <div className="px-5 py-4 border-t border-[#dedede] dark:border-white/10 flex justify-between items-center bg-[#fafafa] dark:bg-white/[0.02]">
+                <span className="text-[13px] font-semibold text-[#767676]">Total Payable</span>
+                <span className="text-[16px] font-bold text-[#222222] dark:text-white">
+                  {formatCurrency(stay.totalPayable)}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick actions */}
+            <div className="lg:col-span-2 grid sm:grid-cols-3 gap-3">
+              <button
+                onClick={() => setActiveTab("payments")}
+                className="bg-white dark:bg-[#111111] border border-[#dedede] dark:border-white/10 rounded-sm p-4 flex items-center justify-between gap-3 hover:bg-[#fafafa] dark:hover:bg-white/5 transition-colors text-left group"
+              >
                 <div className="flex items-center gap-3">
-                  <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                  <div className="size-9 rounded-sm bg-[#f5f5f5] dark:bg-white/5 flex items-center justify-center">
+                    <CreditCard className="size-4 text-[#767676]" />
+                  </div>
                   <div>
-                    <h4 className="font-bold text-[14px] text-orange-900 dark:text-orange-200">Pending Payment Required</h4>
-                    <p className="text-[13px] text-orange-800/80 dark:text-orange-300/80">Unpaid {req.type.replace(/_/g, ' ').toLowerCase()} of ₹{req.amount}.</p>
+                    <p className="text-[13px] font-semibold text-[#222222] dark:text-white">Pay Rent</p>
+                    <p className="text-[11px] text-[#767676] mt-0.5">Upload payment proof</p>
                   </div>
                 </div>
-                <Link href={`/tenant/service-requests/${req.id}`} className="premium-button bg-orange-600 hover:bg-orange-700 text-white shrink-0">
-                  Pay Now
-                </Link>
-              </div>
-            ))}
+                <ChevronRight className="size-4 text-[#dedede] dark:text-white/20 group-hover:text-[#767676] transition-colors" />
+              </button>
 
-            {revokedRequests.map((req) => (
-              <div key={req.id} className="premium-card bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50 p-4 flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
-                <div>
-                  <h4 className="font-bold text-[14px] text-red-900 dark:text-red-200">Food Plan Revoked</h4>
-                  <p className="text-[13px] text-red-800/80 dark:text-red-300/80">
-                    A refund of <strong>₹{req.amount}</strong> was processed. {req.metadata?.revocation?.reason && `Reason: ${req.metadata.revocation.reason}`}
-                  </p>
-                </div>
-              </div>
-            ))}
-
-            {/* 2. Unified Master Header Card */}
-            <div className="premium-card flex flex-col md:flex-row items-stretch">
-              {/* Identity Block */}
-              <div className="p-6 md:w-2/5 border-b md:border-b-0 md:border-r border-[#dedede] dark:border-white/10 flex items-center gap-5">
-                <div className="relative shrink-0">
-                  {tenant?.photoUrl ? (
-                    <img src={tenant.photoUrl} alt="Profile" className="size-20 rounded-sm border border-[#dedede] dark:border-white/10 object-cover bg-white" />
-                  ) : (
-                    <div className="size-20 rounded-sm border border-[#dedede] dark:border-white/10 flex items-center justify-center bg-[#f5f5f5] dark:bg-white/5 text-[#767676] dark:text-[#a0a0a0]">
-                      <User className="size-8" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-[22px] font-bold text-[#222222] dark:text-white leading-tight tracking-tight">{tenant?.fullName || "Tenant User"}</h2>
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] font-semibold text-[#767676] dark:text-[#a0a0a0] uppercase tracking-wider">
-                    <span className="flex items-center gap-1.5"><Building2 className="size-3.5" /> {hostel?.name}</span>
-                    <span className="w-1 h-1 rounded-full bg-[#dedede]" />
-                    <span className="flex items-center gap-1.5"><BedSingle className="size-3.5" /> {bed?.roomNumber}-{bed?.label}</span>
+              <button
+                onClick={() => setActiveTab("food")}
+                className="bg-white dark:bg-[#111111] border border-[#dedede] dark:border-white/10 rounded-sm p-4 flex items-center justify-between gap-3 hover:bg-[#fafafa] dark:hover:bg-white/5 transition-colors text-left group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="size-9 rounded-sm bg-[#f5f5f5] dark:bg-white/5 flex items-center justify-center">
+                    <Utensils className="size-4 text-[#767676]" />
                   </div>
-                </div>
-              </div>
-
-              {/* Metrics Block */}
-              <div className="flex-1 flex items-center p-6 bg-[#fcfcfc] dark:bg-white/5">
-                <div className="flex-1">
-                  <h4 className="text-[11px] font-bold text-[#767676] dark:text-[#a0a0a0] uppercase tracking-wider mb-1">Stay Status</h4>
-                  <p className="text-[18px] font-bold text-[#222222] dark:text-white flex items-center gap-2">
-                    {stay.status}
-                    <span className="flex h-2.5 w-2.5 rounded-full bg-[#58ff48]" />
-                  </p>
-                </div>
-                {nextDueDate && (
-                  <div className="flex-1 border-l border-[#dedede] dark:border-white/10 pl-6">
-                    <h4 className="text-[11px] font-bold text-[#767676] dark:text-[#a0a0a0] uppercase tracking-wider mb-1">Next Payment</h4>
-                    <p className={`text-[18px] font-bold ${daysUntilDue !== null && daysUntilDue <= 7 ? "text-red-600" : "text-[#222222] dark:text-white"}`}>
-                      {formatDate(nextDueDate)}
+                  <div>
+                    <p className="text-[13px] font-semibold text-[#222222] dark:text-white">Food Plan</p>
+                    <p className="text-[11px] text-[#767676] mt-0.5">
+                      {stay.foodPlan === "NOT_INCLUDED" ? "Not included" : "Manage meals"}
                     </p>
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
+                <ChevronRight className="size-4 text-[#dedede] dark:text-white/20 group-hover:text-[#767676] transition-colors" />
+              </button>
 
-            {/* 3. Flat Tab Navigation */}
-            <div className="border-b border-[#dedede] dark:border-white/10 flex gap-6 overflow-x-auto no-scrollbar pt-2">
-              <button 
-                onClick={() => setActiveTab("mystay")} 
-                className={`pb-3 text-[14px] font-bold whitespace-nowrap transition-colors border-b-2 ${activeTab === "mystay" ? "border-[#222222] dark:border-white text-[#222222] dark:text-white" : "border-transparent text-[#767676] hover:text-[#222222] dark:hover:text-white"}`}
+              <button
+                onClick={() => setActiveTab("roommates")}
+                className="bg-white dark:bg-[#111111] border border-[#dedede] dark:border-white/10 rounded-sm p-4 flex items-center justify-between gap-3 hover:bg-[#fafafa] dark:hover:bg-white/5 transition-colors text-left group"
               >
-                My Stay
-              </button>
-              <button 
-                onClick={() => setActiveTab("payments")} 
-                className={`pb-3 text-[14px] font-bold whitespace-nowrap transition-colors border-b-2 ${activeTab === "payments" ? "border-[#222222] dark:border-white text-[#222222] dark:text-white" : "border-transparent text-[#767676] hover:text-[#222222] dark:hover:text-white"}`}
-              >
-                Payments Ledger
-              </button>
-              <button 
-                onClick={() => setActiveTab("food")} 
-                className={`pb-3 text-[14px] font-bold whitespace-nowrap transition-colors border-b-2 ${activeTab === "food" ? "border-[#222222] dark:border-white text-[#222222] dark:text-white" : "border-transparent text-[#767676] hover:text-[#222222] dark:hover:text-white"}`}
-              >
-                Food Plan
-              </button>
-              <button 
-                onClick={() => setActiveTab("roommates")} 
-                className={`pb-3 text-[14px] font-bold whitespace-nowrap transition-colors border-b-2 ${activeTab === "roommates" ? "border-[#222222] dark:border-white text-[#222222] dark:text-white" : "border-transparent text-[#767676] hover:text-[#222222] dark:hover:text-white"}`}
-              >
-                Roommates
-              </button>
-            </div>
-
-            {/* Tab Content */}
-            <div className="pt-2">
-              
-              {/* TAB: MY STAY */}
-              {activeTab === "mystay" && (
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="premium-card flex flex-col divide-y divide-[#dedede] dark:divide-white/10">
-                    <SectionHeader title="Stay Timeline" icon={CalendarDays} />
-                    <div className="p-6 space-y-2">
-                      <DataRow label="Joining Date" value={formatDate(stay.joiningDate)} />
-                      <DataRow label="End Date" value={formatDate(stay.endDate)} />
-                      <DataRow label="Duration Type" value={stay.durationType} />
-                    </div>
+                <div className="flex items-center gap-3">
+                  <div className="size-9 rounded-sm bg-[#f5f5f5] dark:bg-white/5 flex items-center justify-center">
+                    <Users className="size-4 text-[#767676]" />
                   </div>
-
-                  <div className="premium-card flex flex-col divide-y divide-[#dedede] dark:divide-white/10">
-                    <SectionHeader title="Billing Baseline" icon={CreditCard} />
-                    <div className="p-6 space-y-2">
-                      <DataRow label="Monthly Rent" value={`₹ ${stay.monthlyRent.toLocaleString("en-IN")}`} />
-                      <DataRow label="Food Charges" value={`₹ ${stay.foodCharges.toLocaleString("en-IN")}`} />
-                      <DataRow label="Security Deposit" value={`₹ ${stay.securityDeposit.toLocaleString("en-IN")}`} />
-                      <DataRow label="Admission Fee" value={`₹ ${stay.admissionFee.toLocaleString("en-IN")}`} />
-                      {stay.discount > 0 && <DataRow label="Discount Applied" value={`- ₹ ${stay.discount.toLocaleString("en-IN")}`} />}
-                    </div>
+                  <div>
+                    <p className="text-[13px] font-semibold text-[#222222] dark:text-white">Roommates</p>
+                    <p className="text-[11px] text-[#767676] mt-0.5">
+                      {roommates.length === 0 ? "No roommates" : `${roommates.length} sharing`}
+                    </p>
                   </div>
                 </div>
-              )}
-
-              {/* TAB: PAYMENTS */}
-              {activeTab === "payments" && (
-                <div className="grid gap-6 lg:grid-cols-3">
-                  <div className="lg:col-span-2 premium-card flex flex-col divide-y divide-[#dedede] dark:divide-white/10">
-                    <SectionHeader title="Payment History" icon={CreditCard} />
-                    <div className="overflow-x-auto">
-                      {payments.length === 0 ? (
-                        <div className="p-10 text-center text-[14px] text-[#767676] font-medium">No payments recorded yet.</div>
-                      ) : (
-                        <table className="premium-table w-full">
-                          <thead className="bg-[#fcfcfc] dark:bg-white/5">
-                            <tr>
-                              <th>Date</th>
-                              <th>Amount</th>
-                              <th>Ref No</th>
-                              <th className="text-right">Status</th>
-                              <th className="text-right">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {payments.map((p) => {
-                              const isNegative = p.amountPaid < 0;
-                              return (
-                                <tr key={p.id}>
-                                  <td className="font-medium text-[13px]">{formatDate(p.createdAt)}</td>
-                                  <td className={`font-bold text-[14px] ${isNegative ? "text-red-600" : ""}`}>
-                                    {isNegative ? `-₹ ${Math.abs(p.amountPaid).toLocaleString("en-IN")}` : `₹ ${p.amountPaid.toLocaleString("en-IN")}`}
-                                  </td>
-                                  <td className="text-[13px] text-[#767676]">
-                                    {p.transactionRefNo || "—"}
-                                    {isNegative && p.notes && <span className="block text-[11px] text-red-500 mt-1">Refund: {p.notes}</span>}
-                                  </td>
-                                  <td className="text-right">
-                                    <span className={`px-2 py-0.5 text-[10px] rounded-sm font-bold uppercase tracking-wider border ${
-                                      p.paymentStatus === "PAID" ? (isNegative ? "bg-red-50 text-red-700 border-red-200" : "bg-[#58ff48]/10 text-green-700 dark:text-[#58ff48] border-[#58ff48]/30") :
-                                      p.paymentStatus === "PENDING" ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-[#f5f5f5] text-[#767676] border-[#dedede]"
-                                    }`}>
-                                      {isNegative ? "Refunded" : p.paymentStatus}
-                                    </span>
-                                  </td>
-                                  <td className="text-right">
-                                    {p.paymentStatus === "PAID" && !isNegative && (
-                                      <a href={`/api/pdf/receipt/${p.id}`} target="_blank" rel="noopener noreferrer" className="text-[12px] font-bold text-[#222222] dark:text-white hover:underline flex items-center justify-end gap-1">
-                                        <Download className="size-3" /> Receipt
-                                      </a>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="premium-card flex flex-col divide-y divide-[#dedede] dark:divide-white/10 h-fit">
-                    <SectionHeader title="Upload Payment" icon={Upload} />
-                    <div className="p-6">
-                      <form onSubmit={handleUploadPayment} className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-[12px] font-bold text-[#767676] uppercase tracking-wider">Amount Paid (₹)</label>
-                          <input
-                            type="number"
-                            placeholder="e.g. 5000"
-                            value={uploadAmount}
-                            onChange={(e) => setUploadAmount(e.target.value)}
-                            required
-                            min="1"
-                            className="premium-input w-full"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[12px] font-bold text-[#767676] uppercase tracking-wider">Transaction Ref / UTR</label>
-                          <input
-                            type="text"
-                            placeholder="12-digit UPI Ref"
-                            value={uploadRef}
-                            onChange={(e) => setUploadRef(e.target.value)}
-                            required
-                            className="premium-input w-full"
-                          />
-                        </div>
-                        <button type="submit" className="premium-button w-full justify-center" disabled={uploading}>
-                          {uploading ? <Loader2 className="size-4 animate-spin mr-2" /> : <Upload className="size-4 mr-2" />}
-                          Submit Payment
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB: FOOD */}
-              {activeTab === "food" && (
-                <div className="premium-card p-10 text-center">
-                  {stay.foodPlan === "NOT_INCLUDED" ? (
-                    <div className="max-w-md mx-auto space-y-4">
-                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-sm bg-[#f5f5f5] dark:bg-white/5 text-[#767676]">
-                        <UtensilsCrossed className="size-8" />
-                      </div>
-                      <h2 className="text-[20px] font-bold text-[#222222] dark:text-white">Food Not Included</h2>
-                      <p className="text-[14px] text-[#767676]">Your stay plan does not include hostel food. Contact your warden to upgrade.</p>
-                    </div>
-                  ) : (
-                    <div className="max-w-md mx-auto space-y-6">
-                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-sm bg-[#f5f5f5] dark:bg-white/5 text-[#222222] dark:text-white">
-                        <UtensilsCrossed className="size-8" />
-                      </div>
-                      <div>
-                        <h2 className="text-[20px] font-bold text-[#222222] dark:text-white">Weekly Meal Plan</h2>
-                        <p className="text-[14px] text-[#767676] mt-2">Manage your breakfast, lunch, and dinner preferences for the upcoming week.</p>
-                      </div>
-                      <Link href="/tenant/food" className="premium-button justify-center w-full">
-                        Manage Food Orders
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* TAB: ROOMMATES */}
-              {activeTab === "roommates" && (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {roommates.length === 0 ? (
-                    <div className="col-span-full premium-card p-10 text-center space-y-4">
-                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-sm bg-[#f5f5f5] dark:bg-white/5 text-[#767676]">
-                        <BedSingle className="size-8" />
-                      </div>
-                      <h2 className="text-[20px] font-bold text-[#222222] dark:text-white">No Roommates</h2>
-                      <p className="text-[14px] text-[#767676]">You currently do not have any roommates in this room.</p>
-                    </div>
-                  ) : (
-                    roommates.map((rm, idx) => (
-                      <div key={idx} className="premium-card flex flex-col divide-y divide-[#dedede] dark:divide-white/10">
-                        <div className="p-6 flex items-center gap-4">
-                          {rm.photoUrl ? (
-                            <img src={rm.photoUrl} alt="RM" className="size-14 rounded-sm border border-[#dedede] object-cover" />
-                          ) : (
-                            <div className="size-14 rounded-sm border border-[#dedede] flex items-center justify-center bg-[#fcfcfc] font-bold text-[#767676]">
-                              {getInitials(rm.fullName)}
-                            </div>
-                          )}
-                          <div>
-                            <p className="font-bold text-[16px] text-[#222222] dark:text-white">{rm.fullName}</p>
-                            <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-sm border border-[#dedede] font-bold uppercase tracking-wider text-[#767676]">
-                              Bed {rm.bedLabel}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="p-4 bg-[#fcfcfc] dark:bg-white/5">
-                          {rm.occupationType === "STUDENT" ? (
-                            <div className="space-y-1">
-                              <p className="text-[11px] font-bold text-[#767676] uppercase tracking-wider">Student</p>
-                              <p className="text-[13px] font-medium text-[#222222] dark:text-white truncate">{rm.collegeName || "N/A"}</p>
-                            </div>
-                          ) : (
-                            <div className="space-y-1">
-                              <p className="text-[11px] font-bold text-[#767676] uppercase tracking-wider">Professional</p>
-                              <p className="text-[13px] font-medium text-[#222222] dark:text-white truncate">{rm.designation || "Employee"} at {rm.companyName || "N/A"}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-              
+                <ChevronRight className="size-4 text-[#dedede] dark:text-white/20 group-hover:text-[#767676] transition-colors" />
+              </button>
             </div>
           </div>
         )}
-      </main>
+
+        {/* PAYMENTS TAB */}
+        {activeTab === "payments" && (
+          <div className="grid gap-5 lg:grid-cols-3">
+            
+            {/* Payment history */}
+            <div className="lg:col-span-2 bg-white dark:bg-[#111111] border border-[#dedede] dark:border-white/10 rounded-sm overflow-hidden">
+              <SectionLabel>Payment History</SectionLabel>
+              {payments.length === 0 ? (
+                <div className="p-12 text-center">
+                  <div className="mx-auto size-12 rounded-sm bg-[#f5f5f5] dark:bg-white/5 flex items-center justify-center mb-4">
+                    <CreditCard className="size-5 text-[#767676]" />
+                  </div>
+                  <p className="text-[14px] font-semibold text-[#222222] dark:text-white mb-1">
+                    No payments yet
+                  </p>
+                  <p className="text-[13px] text-[#767676]">
+                    Your payment records will appear here.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-[13px]">
+                    <thead>
+                      <tr className="border-b border-[#dedede] dark:border-white/10 bg-[#fafafa] dark:bg-white/[0.02]">
+                        <th className="px-5 py-3 font-semibold text-[11px] uppercase tracking-widest text-[#767676]">Date</th>
+                        <th className="px-5 py-3 font-semibold text-[11px] uppercase tracking-widest text-[#767676]">Amount</th>
+                        <th className="px-5 py-3 font-semibold text-[11px] uppercase tracking-widest text-[#767676] hidden sm:table-cell">Ref No.</th>
+                        <th className="px-5 py-3 font-semibold text-[11px] uppercase tracking-widest text-[#767676]">Status</th>
+                        <th className="px-5 py-3 font-semibold text-[11px] uppercase tracking-widest text-[#767676] text-right">Receipt</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payments.map((p) => {
+                        const isNeg = p.amountPaid < 0;
+                        return (
+                          <tr
+                            key={p.id}
+                            className="border-b border-[#dedede]/60 dark:border-white/5 last:border-0 hover:bg-[#fafafa] dark:hover:bg-white/[0.02] transition-colors"
+                          >
+                            <td className="px-5 py-4 text-[#767676] dark:text-[#a0a0a0] font-medium whitespace-nowrap">
+                              {formatDate(p.createdAt)}
+                            </td>
+                            <td
+                              className={`px-5 py-4 font-bold whitespace-nowrap ${
+                                isNeg ? "text-red-600 dark:text-red-400" : "text-[#222222] dark:text-white"
+                              }`}
+                            >
+                              {isNeg
+                                ? `− ${formatCurrency(Math.abs(p.amountPaid))}`
+                                : formatCurrency(p.amountPaid)}
+                            </td>
+                            <td className="px-5 py-4 text-[#767676] hidden sm:table-cell">
+                              {p.transactionRefNo ? (
+                                <span className="font-mono text-[12px]">{p.transactionRefNo}</span>
+                              ) : (
+                                <span className="text-[#dedede] dark:text-white/20">—</span>
+                              )}
+                            </td>
+                            <td className="px-5 py-4">
+                              <PaymentStatusBadge status={p.paymentStatus} isRefund={isNeg} />
+                            </td>
+                            <td className="px-5 py-4 text-right">
+                              {p.paymentStatus === "PAID" && !isNeg ? (
+                                <a
+                                  href={`/api/pdf/receipt/${p.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#767676] hover:text-[#222222] dark:hover:text-white transition-colors"
+                                >
+                                  <Download className="size-3.5" />
+                                  <span className="hidden sm:inline">Download</span>
+                                </a>
+                              ) : (
+                                <span className="text-[#dedede] dark:text-white/20">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Upload payment */}
+            <div className="bg-white dark:bg-[#111111] border border-[#dedede] dark:border-white/10 rounded-sm overflow-hidden h-fit">
+              <SectionLabel>Submit Payment</SectionLabel>
+              <div className="p-5">
+                <form onSubmit={handleUploadPayment} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-[#767676]">
+                      Amount Paid (₹)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 15000"
+                      value={uploadAmount}
+                      onChange={(e) => setUploadAmount(e.target.value)}
+                      required
+                      min="1"
+                      className="premium-input w-full"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-[#767676]">
+                      Transaction Ref / UTR
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="12-digit UPI ref no."
+                      value={uploadRef}
+                      onChange={(e) => setUploadRef(e.target.value)}
+                      required
+                      className="premium-input w-full"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="premium-button w-full justify-center flex items-center gap-2 mt-2"
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Upload className="size-4" />
+                    )}
+                    {uploading ? "Submitting…" : "Submit Payment"}
+                  </button>
+                </form>
+              </div>
+
+              {/* Balance summary */}
+              {stay.totalPayable > 0 && (
+                <div className="border-t border-[#dedede] dark:border-white/10">
+                  <div className="px-5 py-3 flex justify-between items-center border-b border-[#dedede]/60 dark:border-white/5">
+                    <span className="text-[12px] text-[#767676]">Total payable</span>
+                    <span className="text-[13px] font-semibold text-[#222222] dark:text-white">
+                      {formatCurrency(stay.totalPayable)}
+                    </span>
+                  </div>
+                  <div className="px-5 py-3 flex justify-between items-center border-b border-[#dedede]/60 dark:border-white/5">
+                    <span className="text-[12px] text-[#767676]">Paid so far</span>
+                    <span className="text-[13px] font-semibold text-[#1a8a10] dark:text-[#58ff48]">
+                      {formatCurrency(verifiedPaid)}
+                    </span>
+                  </div>
+                  <div className="px-5 py-3 flex justify-between items-center">
+                    <span className="text-[12px] font-semibold text-[#767676]">Balance</span>
+                    <span
+                      className={`text-[14px] font-bold ${
+                        remainingBalance > 0
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-[#1a8a10] dark:text-[#58ff48]"
+                      }`}
+                    >
+                      {remainingBalance > 0
+                        ? formatCurrency(remainingBalance)
+                        : "Fully Paid"}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* FOOD TAB */}
+        {activeTab === "food" && (
+          <div>
+            {stay.foodPlan === "NOT_INCLUDED" ? (
+              <div className="bg-white dark:bg-[#111111] border border-[#dedede] dark:border-white/10 rounded-sm overflow-hidden">
+                <div className="p-12 text-center">
+                  <div className="mx-auto size-14 rounded-sm bg-[#f5f5f5] dark:bg-white/5 border border-[#dedede] dark:border-white/10 flex items-center justify-center mb-5">
+                    <UtensilsCrossed className="size-7 text-[#767676]" />
+                  </div>
+                  <h2 className="text-[17px] font-bold text-[#222222] dark:text-white mb-2">
+                    Food Not Included
+                  </h2>
+                  <p className="text-[13px] text-[#767676] max-w-xs mx-auto leading-relaxed">
+                    Your current stay plan does not include hostel food. Contact your warden to
+                    upgrade.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-[#111111] border border-[#dedede] dark:border-white/10 rounded-sm overflow-hidden">
+                <div className="p-8 text-center space-y-5">
+                  <div className="mx-auto size-14 rounded-sm bg-[#f5f5f5] dark:bg-white/5 border border-[#dedede] dark:border-white/10 flex items-center justify-center">
+                    <Utensils className="size-7 text-[#222222] dark:text-white" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <h2 className="text-[17px] font-bold text-[#222222] dark:text-white">
+                      Weekly Meal Plan
+                    </h2>
+                    <p className="text-[13px] text-[#767676] max-w-xs mx-auto leading-relaxed">
+                      Manage your breakfast, lunch, and dinner preferences for the upcoming week.
+                    </p>
+                  </div>
+                  <Link href="/tenant/food" className="premium-button inline-flex items-center gap-2">
+                    <Utensils className="size-4" />
+                    Manage Food Orders
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ROOMMATES TAB */}
+        {activeTab === "roommates" && (
+          <div>
+            {roommates.length === 0 ? (
+              <div className="bg-white dark:bg-[#111111] border border-[#dedede] dark:border-white/10 rounded-sm overflow-hidden">
+                <div className="p-12 text-center">
+                  <div className="mx-auto size-14 rounded-sm bg-[#f5f5f5] dark:bg-white/5 border border-[#dedede] dark:border-white/10 flex items-center justify-center mb-5">
+                    <Users className="size-7 text-[#767676]" />
+                  </div>
+                  <h2 className="text-[17px] font-bold text-[#222222] dark:text-white mb-2">
+                    No Roommates
+                  </h2>
+                  <p className="text-[13px] text-[#767676] leading-relaxed">
+                    You have no roommates in your room currently.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {roommates.map((rm, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-white dark:bg-[#111111] border border-[#dedede] dark:border-white/10 rounded-sm overflow-hidden"
+                  >
+                    <div className="p-5 flex items-center gap-4">
+                      {rm.photoUrl ? (
+                        <img
+                          src={rm.photoUrl}
+                          alt={rm.fullName}
+                          className="size-11 rounded-[5px] border border-[#dedede] dark:border-white/10 object-cover shrink-0"
+                        />
+                      ) : (
+                        <div className="size-11 rounded-[5px] border border-[#dedede] dark:border-white/10 bg-[#f5f5f5] dark:bg-white/5 flex items-center justify-center shrink-0">
+                          <span className="text-[14px] font-bold text-[#767676] dark:text-[#a0a0a0]">
+                            {getInitials(rm.fullName)}
+                          </span>
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-[15px] font-bold text-[#222222] dark:text-white truncate">
+                          {rm.fullName}
+                        </p>
+                        <span className="inline-block mt-1 text-[11px] px-2 py-0.5 rounded-[3px] border border-[#dedede] dark:border-white/10 font-semibold text-[#767676] dark:text-[#a0a0a0] uppercase tracking-wider">
+                          Bed {rm.bedLabel}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="px-5 py-3 border-t border-[#dedede] dark:border-white/10 bg-[#fafafa] dark:bg-white/[0.02]">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#767676] mb-1">
+                        {rm.occupationType === "STUDENT" ? "Student" : "Professional"}
+                      </p>
+                      <p className="text-[13px] font-medium text-[#222222] dark:text-white truncate">
+                        {rm.occupationType === "STUDENT"
+                          ? rm.collegeName || "N/A"
+                          : `${rm.designation || "Employee"} · ${rm.companyName || "N/A"}`}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
