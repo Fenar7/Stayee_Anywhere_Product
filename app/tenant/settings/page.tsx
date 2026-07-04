@@ -64,9 +64,14 @@ export default function TenantSettingsPage() {
   // Profile State
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  
+  // Primary Emergency Contact
   const [emergencyName, setEmergencyName] = useState("");
   const [emergencyNumber, setEmergencyNumber] = useState("");
   const [emergencyRelation, setEmergencyRelation] = useState("");
+  
+  // Additional Emergency Contacts
+  const [additionalContacts, setAdditionalContacts] = useState<{name: string, number: string, relationship: string}[]>([]);
   
   // Password State
   const [currentPassword, setCurrentPassword] = useState("");
@@ -85,6 +90,7 @@ export default function TenantSettingsPage() {
         setEmergencyName(data.tenant.emergencyContactName || "");
         setEmergencyNumber(data.tenant.emergencyContactNumber || "");
         setEmergencyRelation(data.tenant.relationship || "");
+        setAdditionalContacts(data.tenant.additionalEmergencyContacts || []);
       } catch (error) {
         notify.error("Could not load settings");
       } finally {
@@ -104,7 +110,15 @@ export default function TenantSettingsPage() {
     const hasEmergencyData = emergencyName.trim() !== "" || emergencyNumber.trim() !== "" || emergencyRelation.trim() !== "";
     if (hasEmergencyData) {
       if (!emergencyName.trim() || !emergencyNumber.trim() || !emergencyRelation.trim()) {
-        notify.error("Please fill out all emergency contact fields (Name, Number, and Relationship)");
+        notify.error("Please fill out all primary emergency contact fields (Name, Number, and Relationship)");
+        return;
+      }
+    }
+
+    for (let i = 0; i < additionalContacts.length; i++) {
+      const contact = additionalContacts[i];
+      if (!contact.name.trim() || !contact.number.trim() || !contact.relationship.trim()) {
+        notify.error(`Please fill out all fields for Additional Contact ${i + 1}`);
         return;
       }
     }
@@ -119,6 +133,7 @@ export default function TenantSettingsPage() {
           emergencyContactName: emergencyName,
           emergencyContactNumber: emergencyNumber,
           relationship: emergencyRelation,
+          additionalEmergencyContacts: additionalContacts,
         }),
       });
       if (!res.ok) {
@@ -227,7 +242,7 @@ export default function TenantSettingsPage() {
 
             <div className="h-px bg-gray-100 dark:bg-white/5 my-4"></div>
 
-            <h3 className="text-[14px] font-bold text-gray-900 dark:text-gray-100 mb-2">Emergency Contact</h3>
+            <h3 className="text-[14px] font-bold text-gray-900 dark:text-gray-100 mb-2">Primary Emergency Contact</h3>
             <div className="space-y-4">
               <InputField 
                 label="Contact Name" 
@@ -267,6 +282,84 @@ export default function TenantSettingsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Additional Contacts */}
+            {additionalContacts.map((contact, index) => (
+              <div key={index} className="pt-4 border-t border-gray-100 dark:border-white/10 space-y-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-[14px] font-bold text-gray-900 dark:text-gray-100">Additional Contact {index + 1}</h3>
+                  <button 
+                    onClick={() => {
+                      const newContacts = [...additionalContacts];
+                      newContacts.splice(index, 1);
+                      setAdditionalContacts(newContacts);
+                    }}
+                    className="text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-500/10 px-3 py-1 rounded-full"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <InputField 
+                  label="Contact Name" 
+                  value={contact.name} 
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    const newContacts = [...additionalContacts];
+                    newContacts[index].name = e.target.value;
+                    setAdditionalContacts(newContacts);
+                  }}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <InputField 
+                    label="Phone Number" 
+                    value={contact.number} 
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const newContacts = [...additionalContacts];
+                      newContacts[index].number = e.target.value;
+                      setAdditionalContacts(newContacts);
+                    }}
+                  />
+                  <div className="space-y-1.5">
+                    <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider pl-1">Relationship</label>
+                    <div className="relative">
+                      <select
+                        value={contact.relationship}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                          const newContacts = [...additionalContacts];
+                          newContacts[index].relationship = e.target.value;
+                          setAdditionalContacts(newContacts);
+                        }}
+                        className="w-full h-14 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-black dark:focus:border-white/30 outline-none transition-all pl-4 pr-4 font-medium text-[15px] appearance-none cursor-pointer"
+                      >
+                        <option value="">Select Option...</option>
+                        <option value="Father">Father</option>
+                        <option value="Mother">Mother</option>
+                        <option value="Brother">Brother</option>
+                        <option value="Sister">Sister</option>
+                        <option value="Spouse">Spouse</option>
+                        <option value="Guardian">Guardian</option>
+                        <option value="Relative">Relative</option>
+                        <option value="Friend">Friend</option>
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <button
+              onClick={() => setAdditionalContacts([...additionalContacts, { name: "", number: "", relationship: "" }])}
+              className="w-full py-3 flex items-center justify-center gap-2 text-[14px] font-bold text-black dark:text-white bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-2xl transition-colors border border-dashed border-gray-300 dark:border-white/20 mt-4"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M7 1V13M1 7H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Add Another Contact
+            </button>
 
             <div className="pt-2">
               <PillButton onClick={handleSaveProfile} disabled={savingProfile} className="w-full">

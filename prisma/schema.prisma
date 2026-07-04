@@ -74,6 +74,7 @@ model Tenant {
   emergencyContactName   String?
   relationship           String?
   emergencyContactNumber String?
+  additionalEmergencyContacts Json?
   parentGuardianName     String?
   parentGuardianContact  String?
   occupationType         OccupationType?
