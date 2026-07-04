@@ -100,6 +100,15 @@ export default function TenantSettingsPage() {
       return;
     }
     
+    // Emergency Contact Validation: If any field is filled, all must be filled
+    const hasEmergencyData = emergencyName.trim() !== "" || emergencyNumber.trim() !== "" || emergencyRelation.trim() !== "";
+    if (hasEmergencyData) {
+      if (!emergencyName.trim() || !emergencyNumber.trim() || !emergencyRelation.trim()) {
+        notify.error("Please fill out all emergency contact fields (Name, Number, and Relationship)");
+        return;
+      }
+    }
+    
     setSavingProfile(true);
     try {
       const res = await fetch("/api/tenant/settings", {
@@ -231,11 +240,31 @@ export default function TenantSettingsPage() {
                   value={emergencyNumber} 
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmergencyNumber(e.target.value)}
                 />
-                <InputField 
-                  label="Relationship" 
-                  value={emergencyRelation} 
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmergencyRelation(e.target.value)}
-                />
+                <div className="space-y-1.5">
+                  <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider pl-1">Relationship</label>
+                  <div className="relative">
+                    <select
+                      value={emergencyRelation}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setEmergencyRelation(e.target.value)}
+                      className="w-full h-14 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-black dark:focus:border-white/30 outline-none transition-all pl-4 pr-4 font-medium text-[15px] appearance-none cursor-pointer"
+                    >
+                      <option value="">Select Option...</option>
+                      <option value="Father">Father</option>
+                      <option value="Mother">Mother</option>
+                      <option value="Brother">Brother</option>
+                      <option value="Sister">Sister</option>
+                      <option value="Spouse">Spouse</option>
+                      <option value="Guardian">Guardian</option>
+                      <option value="Relative">Relative</option>
+                      <option value="Friend">Friend</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 

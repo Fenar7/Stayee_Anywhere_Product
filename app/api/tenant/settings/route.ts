@@ -47,6 +47,19 @@ const settingsUpdateSchema = z.object({
   emergencyContactNumber: z.string().max(20, "Number is too long").optional(),
   relationship: z.string().max(50, "Relationship is too long").optional(),
   photoUrl: z.string().url("Invalid URL").optional(),
+}).refine(data => {
+  const eName = (data.emergencyContactName ?? "").trim();
+  const eNum = (data.emergencyContactNumber ?? "").trim();
+  const eRel = (data.relationship ?? "").trim();
+  
+  const hasAny = eName !== "" || eNum !== "" || eRel !== "";
+  if (hasAny) {
+    return eName !== "" && eNum !== "" && eRel !== "";
+  }
+  return true;
+}, {
+  message: "All emergency contact fields (Name, Number, and Relationship) must be provided together.",
+  path: ["emergencyContactName"]
 });
 
 export async function PATCH(request: NextRequest) {
