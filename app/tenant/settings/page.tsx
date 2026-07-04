@@ -33,13 +33,15 @@ function PillButton({ children, onClick, variant = "primary", className = "", ty
   );
 }
 
-function InputField({ label, value, onChange, type = "text", disabled = false, icon: Icon }: any) {
+function InputField({ label, value, onChange, type = "text", disabled = false, icon: Icon, id }: any) {
+  const inputId = id || label.replace(/\s+/g, '-').toLowerCase();
   return (
     <div className="space-y-1.5">
-      <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider pl-1">{label}</label>
+      <label htmlFor={inputId} className="text-[12px] font-bold text-gray-500 uppercase tracking-wider pl-1">{label}</label>
       <div className="relative">
         {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />}
         <input
+          id={inputId}
           type={type}
           value={value}
           onChange={onChange}
@@ -67,6 +69,7 @@ export default function TenantSettingsPage() {
   const [emergencyRelation, setEmergencyRelation] = useState("");
   
   // Password State
+  const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -92,6 +95,11 @@ export default function TenantSettingsPage() {
   }, []);
 
   const handleSaveProfile = async () => {
+    if (email && !email.match(/^\S+@\S+\.\S+$/)) {
+      notify.error("Please enter a valid email address");
+      return;
+    }
+    
     setSavingProfile(true);
     try {
       const res = await fetch("/api/tenant/settings", {
@@ -104,16 +112,23 @@ export default function TenantSettingsPage() {
           relationship: emergencyRelation,
         }),
       });
-      if (!res.ok) throw new Error("Update failed");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Update failed");
+      }
       notify.success("Profile updated successfully");
-    } catch (error) {
-      notify.error("Failed to update profile");
+    } catch (error: any) {
+      notify.error(error.message || "Failed to update profile");
     } finally {
       setSavingProfile(false);
     }
   };
 
   const handleSavePassword = async () => {
+    if (!currentPassword) {
+      notify.error("Please enter your current password");
+      return;
+    }
     if (password !== confirmPassword) {
       notify.error("Passwords do not match");
       return;
@@ -128,14 +143,18 @@ export default function TenantSettingsPage() {
       const res = await fetch("/api/tenant/settings/password", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ currentPassword, password }),
       });
-      if (!res.ok) throw new Error("Update failed");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Update failed");
+      }
       notify.success("Password changed successfully");
+      setCurrentPassword("");
       setPassword("");
       setConfirmPassword("");
-    } catch (error) {
-      notify.error("Failed to change password");
+    } catch (error: any) {
+      notify.error(error.message || "Failed to change password");
     } finally {
       setSavingPassword(false);
     }
@@ -193,7 +212,7 @@ export default function TenantSettingsPage() {
             <InputField 
               label="Email Address" 
               value={email} 
-              onChange={(e: any) => setEmail(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               icon={Mail} 
             />
 
@@ -204,18 +223,18 @@ export default function TenantSettingsPage() {
               <InputField 
                 label="Contact Name" 
                 value={emergencyName} 
-                onChange={(e: any) => setEmergencyName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmergencyName(e.target.value)}
               />
               <div className="grid grid-cols-2 gap-4">
                 <InputField 
                   label="Phone Number" 
                   value={emergencyNumber} 
-                  onChange={(e: any) => setEmergencyNumber(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmergencyNumber(e.target.value)}
                 />
                 <InputField 
                   label="Relationship" 
                   value={emergencyRelation} 
-                  onChange={(e: any) => setEmergencyRelation(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmergencyRelation(e.target.value)}
                 />
               </div>
             </div>
@@ -242,20 +261,26 @@ export default function TenantSettingsPage() {
             </p>
 
             <InputField 
+              label="Current Password" 
+              type="password"
+              value={currentPassword} 
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
+            />
+            <InputField 
               label="New Password" 
               type="password"
               value={password} 
-              onChange={(e: any) => setPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             />
             <InputField 
               label="Confirm New Password" 
               type="password"
               value={confirmPassword} 
-              onChange={(e: any) => setConfirmPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
             />
 
             <div className="pt-2">
-              <PillButton onClick={handleSavePassword} disabled={savingPassword || !password} variant="secondary" className="w-full">
+              <PillButton onClick={handleSavePassword} disabled={savingPassword || !password || !currentPassword} variant="secondary" className="w-full">
                 {savingPassword ? <Loader2 className="w-5 h-5 animate-spin" /> : "Update Password"}
               </PillButton>
             </div>

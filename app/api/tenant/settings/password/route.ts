@@ -9,24 +9,29 @@ export async function PATCH(request: NextRequest) {
     const session = await requireRole([UserRole.TENANT]);
     const body = await request.json();
 
-    const { password } = body;
+    const { currentPassword, password } = body;
 
-    if (!password || password.length < 6) {
-      throw new ValidationError("Password must be at least 6 characters long");
+    if (!currentPassword) {
+      throw new ValidationError("Current password is required");
     }
 
-    // Since this system uses plainTextPassword and supabaseAuthId, we update both 
-    // depending on how auth is truly structured. Based on Prisma schema, plainTextPassword exists.
-    // If you're using Supabase Auth (since supabaseAuthId exists), you would ideally update it via Supabase Admin Client.
-    // But since "no crazy over-engineering" is requested, we update the local db representation for now.
-    
-    // Note: For a fully secure production environment with Supabase, you must update the user's password in Supabase Auth via:
-    // await supabase.auth.admin.updateUserById(session.user.supabaseAuthId, { password })
+    if (!password || password.length < 6) {
+      throw new ValidationError("New password must be at least 6 characters long");
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { plainTextPassword: true },
+    });
+
+    if (!user || user.plainTextPassword !== currentPassword) {
+      throw new ValidationError("Incorrect current password");
+    }
 
     await prisma.user.update({
       where: { id: session.user.id },
       data: { 
-        plainTextPassword: password, // As per existing schema design
+        plainTextPassword: password,
         passwordSetAt: new Date()
       },
     });
