@@ -509,7 +509,7 @@ export default function TenantDashboardPage() {
 
       {/* ── Fixed Bottom Navigation Bar ── */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#111111]/90 backdrop-blur-xl border-t border-gray-100 dark:border-white/5 z-50 pb-safe">
-        <div className="max-w-md mx-auto flex justify-between items-center px-8 py-3">
+        <div className="max-w-md mx-auto flex justify-between items-center px-4 py-3">
           
           <button onClick={() => setActiveTab("overview")} className="flex flex-col items-center gap-1 w-16 relative">
             <div className={`transition-all duration-300 ${activeTab === "overview" ? "-translate-y-1" : ""}`}>
@@ -536,6 +536,13 @@ export default function TenantDashboardPage() {
             </div>
             <span className={`text-[10px] font-bold mt-1 ${activeTab === "payments" ? "text-black dark:text-[#58ff48] mt-6" : "text-gray-400"}`}>Wallet</span>
           </button>
+
+          <Link href="/tenant/food" className="flex flex-col items-center gap-1 w-16 relative">
+            <div className="transition-all duration-300">
+              <Utensils className="w-6 h-6 text-gray-400 hover:text-black dark:hover:text-white transition-colors" />
+            </div>
+            <span className="text-[10px] font-bold mt-1 text-gray-400">Food</span>
+          </Link>
 
           <button onClick={() => setActiveTab("profile")} className="flex flex-col items-center gap-1 w-16 relative">
             <div className={`transition-all duration-300 ${activeTab === "profile" ? "-translate-y-1" : ""}`}>
