@@ -433,47 +433,89 @@ export default function TenantDashboardPage() {
             
             {/* Avatar overlapping the card */}
             <div className="relative flex flex-col items-center z-10">
-              <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-4 border-[#FAFAFA] dark:border-[#0A0A0A] shadow-xl z-20 -mb-16">
+              {/* Subtle glow behind avatar */}
+              <div className="absolute top-4 w-32 h-32 bg-[#58ff48]/20 blur-2xl rounded-full z-0"></div>
+              
+              <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-[6px] border-[#FAFAFA] dark:border-[#0A0A0A] shadow-xl z-20 -mb-16 relative">
                 <img 
                   src={tenant?.photoUrl || getAvatarUrl(tenant?.gender, tenant?.fullName)} 
                   alt="Profile" 
-                  className="w-full h-full object-cover bg-gradient-to-b from-blue-100 to-purple-100"
+                  className="w-full h-full object-cover bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20"
                 />
+                {/* Verified badge */}
+                <div className="absolute bottom-0 w-full bg-[#58ff48] text-black text-[10px] font-black text-center py-0.5 uppercase tracking-widest">
+                  Verified
+                </div>
               </div>
               
-              <SoftCard className="w-full pt-20 pb-8 text-center bg-white/90 dark:bg-[#121212]/90 backdrop-blur-xl relative z-10 shadow-[0_20px_40px_rgb(0,0,0,0.05)]">
+              <SoftCard className="w-full pt-20 pb-8 text-center bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl relative z-10 shadow-[0_20px_40px_rgb(0,0,0,0.05)] border-0">
                 <h2 className="text-2xl font-black mb-1">{tenant?.fullName}</h2>
-                <p className="text-gray-500 font-medium mb-6">Tenant Account</p>
+                <p className="text-gray-500 font-medium text-sm mb-6 uppercase tracking-wider">Tenant Account</p>
                 
-                <div className="flex justify-center gap-4 mb-8">
-                  <div className="bg-gray-50 dark:bg-white/5 px-4 py-2 rounded-full flex items-center gap-2 border border-gray-100 dark:border-white/10">
-                    <Building2 className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm font-bold">{hostel?.name}</span>
+                {/* Identity / Stay Progress (Mimicking Reference 3) */}
+                <div className="px-2 mb-8 text-left">
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-sm font-bold text-gray-500">Stay Completion</span>
+                    <span className="text-lg font-black">{daysLeft(stay.endDate) > 0 ? Math.round(100 - (daysLeft(stay.endDate) / 365) * 100) : 100}%</span>
                   </div>
-                  <div className="bg-gray-50 dark:bg-white/5 px-4 py-2 rounded-full flex items-center gap-2 border border-gray-100 dark:border-white/10">
-                    <BedSingle className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm font-bold">{bed?.label}</span>
+                  <div className="h-3 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-black dark:bg-[#58ff48] rounded-full" style={{ width: `${daysLeft(stay.endDate) > 0 ? Math.round(100 - (daysLeft(stay.endDate) / 365) * 100) : 100}%` }}></div>
                   </div>
                 </div>
 
-                <div className="w-full h-px bg-gray-100 dark:bg-white/10 mb-6"></div>
+                {/* Fixed the squished pills -> Clean flex blocks */}
+                <div className="flex gap-3 mb-8">
+                  <div className="flex-1 bg-gray-50 dark:bg-white/5 p-3 rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col items-center justify-center gap-1">
+                    <Building2 className="w-5 h-5 text-blue-500" />
+                    <span className="text-[13px] font-bold text-center leading-tight">{hostel?.name}</span>
+                  </div>
+                  <div className="flex-1 bg-gray-50 dark:bg-white/5 p-3 rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col items-center justify-center gap-1">
+                    <BedSingle className="w-5 h-5 text-purple-500" />
+                    <span className="text-[13px] font-bold text-center leading-tight">Bed {bed?.label}</span>
+                  </div>
+                </div>
 
-                <div className="grid grid-cols-2 gap-4 text-left px-4">
-                  <div>
-                    <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Contract Start</p>
-                    <p className="font-bold">{formatDate(stay.joiningDate)}</p>
+                <div className="w-full h-px bg-gray-100 dark:bg-white/5 mb-6"></div>
+
+                <div className="grid grid-cols-2 gap-x-4 gap-y-6 text-left px-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-500/10 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Started</p>
+                      <p className="text-[13px] font-bold">{formatDate(stay.joiningDate)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Contract End</p>
-                    <p className="font-bold">{formatDate(stay.endDate)}</p>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center shrink-0">
+                      <Clock className="w-5 h-5 text-orange-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Ends</p>
+                      <p className="text-[13px] font-bold">{formatDate(stay.endDate)}</p>
+                    </div>
                   </div>
-                  <div className="mt-4">
-                    <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Duration</p>
-                    <p className="font-bold capitalize">{stay.durationType.toLowerCase()}</p>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0">
+                      <Building2 className="w-5 h-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Duration</p>
+                      <p className="text-[13px] font-bold capitalize">{stay.durationType.toLowerCase()}</p>
+                    </div>
                   </div>
-                  <div className="mt-4">
-                    <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Roommates</p>
-                    <p className="font-bold">{roommates.length}</p>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-pink-50 dark:bg-pink-500/10 flex items-center justify-center shrink-0">
+                      <UserIcon className="w-5 h-5 text-pink-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Roommates</p>
+                      <p className="text-[13px] font-bold">{roommates.length} People</p>
+                    </div>
                   </div>
                 </div>
               </SoftCard>
