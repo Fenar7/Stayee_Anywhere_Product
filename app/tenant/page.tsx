@@ -509,52 +509,51 @@ export default function TenantDashboardPage() {
 
       {/* ── Fixed Bottom Navigation Bar ── */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#111111]/90 backdrop-blur-xl border-t border-gray-100 dark:border-white/5 z-50 pb-safe">
-        <div className="max-w-md mx-auto flex justify-between items-center px-4 py-3">
+        <div className="max-w-md mx-auto flex justify-between items-center px-6 py-3">
           
-          <button onClick={() => setActiveTab("overview")} className="flex flex-col items-center gap-1 w-16 relative">
-            <div className={`transition-all duration-300 ${activeTab === "overview" ? "-translate-y-1" : ""}`}>
-              {activeTab === "overview" ? (
-                <div className="w-12 h-12 bg-black dark:bg-[#58ff48] rounded-full flex items-center justify-center shadow-lg shadow-black/20 dark:shadow-[#58ff48]/20 absolute -top-8 left-1/2 -translate-x-1/2">
-                  <Home className="w-6 h-6 text-white dark:text-black" />
-                </div>
-              ) : (
-                <Home className="w-6 h-6 text-gray-400" />
-              )}
-            </div>
-            <span className={`text-[10px] font-bold mt-1 ${activeTab === "overview" ? "text-black dark:text-[#58ff48] mt-6" : "text-gray-400"}`}>Home</span>
+          <button onClick={() => setActiveTab("overview")} className="relative">
+            {activeTab === "overview" ? (
+              <div className="flex items-center gap-2 px-5 py-2.5 bg-black dark:bg-[#58ff48] rounded-full shadow-md animate-in zoom-in-95 duration-200">
+                <Home className="w-5 h-5 text-white dark:text-black" />
+                <span className="text-[13px] font-bold text-white dark:text-black">Home</span>
+              </div>
+            ) : (
+              <div className="p-3">
+                <Home className="w-6 h-6 text-gray-400 hover:text-gray-600 transition-colors" />
+              </div>
+            )}
           </button>
 
-          <button onClick={() => setActiveTab("payments")} className="flex flex-col items-center gap-1 w-16 relative">
-            <div className={`transition-all duration-300 ${activeTab === "payments" ? "-translate-y-1" : ""}`}>
-              {activeTab === "payments" ? (
-                <div className="w-12 h-12 bg-black dark:bg-[#58ff48] rounded-full flex items-center justify-center shadow-lg shadow-black/20 dark:shadow-[#58ff48]/20 absolute -top-8 left-1/2 -translate-x-1/2">
-                  <Wallet className="w-6 h-6 text-white dark:text-black" />
-                </div>
-              ) : (
-                <Wallet className="w-6 h-6 text-gray-400" />
-              )}
-            </div>
-            <span className={`text-[10px] font-bold mt-1 ${activeTab === "payments" ? "text-black dark:text-[#58ff48] mt-6" : "text-gray-400"}`}>Wallet</span>
+          <button onClick={() => setActiveTab("payments")} className="relative">
+            {activeTab === "payments" ? (
+              <div className="flex items-center gap-2 px-5 py-2.5 bg-black dark:bg-[#58ff48] rounded-full shadow-md animate-in zoom-in-95 duration-200">
+                <Wallet className="w-5 h-5 text-white dark:text-black" />
+                <span className="text-[13px] font-bold text-white dark:text-black">Wallet</span>
+              </div>
+            ) : (
+              <div className="p-3">
+                <Wallet className="w-6 h-6 text-gray-400 hover:text-gray-600 transition-colors" />
+              </div>
+            )}
           </button>
 
-          <Link href="/tenant/food" className="flex flex-col items-center gap-1 w-16 relative">
-            <div className="transition-all duration-300">
-              <Utensils className="w-6 h-6 text-gray-400 hover:text-black dark:hover:text-white transition-colors" />
+          <Link href="/tenant/food" className="relative">
+            <div className="p-3">
+              <Utensils className="w-6 h-6 text-gray-400 hover:text-gray-600 transition-colors" />
             </div>
-            <span className="text-[10px] font-bold mt-1 text-gray-400">Food</span>
           </Link>
 
-          <button onClick={() => setActiveTab("profile")} className="flex flex-col items-center gap-1 w-16 relative">
-            <div className={`transition-all duration-300 ${activeTab === "profile" ? "-translate-y-1" : ""}`}>
-              {activeTab === "profile" ? (
-                <div className="w-12 h-12 bg-black dark:bg-[#58ff48] rounded-full flex items-center justify-center shadow-lg shadow-black/20 dark:shadow-[#58ff48]/20 absolute -top-8 left-1/2 -translate-x-1/2">
-                  <UserIcon className="w-6 h-6 text-white dark:text-black" />
-                </div>
-              ) : (
-                <UserIcon className="w-6 h-6 text-gray-400" />
-              )}
-            </div>
-            <span className={`text-[10px] font-bold mt-1 ${activeTab === "profile" ? "text-black dark:text-[#58ff48] mt-6" : "text-gray-400"}`}>Profile</span>
+          <button onClick={() => setActiveTab("profile")} className="relative">
+            {activeTab === "profile" ? (
+              <div className="flex items-center gap-2 px-5 py-2.5 bg-black dark:bg-[#58ff48] rounded-full shadow-md animate-in zoom-in-95 duration-200">
+                <UserIcon className="w-5 h-5 text-white dark:text-black" />
+                <span className="text-[13px] font-bold text-white dark:text-black">Profile</span>
+              </div>
+            ) : (
+              <div className="p-3">
+                <UserIcon className="w-6 h-6 text-gray-400 hover:text-gray-600 transition-colors" />
+              </div>
+            )}
           </button>
 
         </div>

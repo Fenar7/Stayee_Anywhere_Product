@@ -323,36 +323,31 @@ export default function TenantFoodPage() {
 
       {/* ── Fixed Bottom Navigation Bar (Copied to persist state visually) ── */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#111111]/90 backdrop-blur-xl border-t border-gray-100 dark:border-white/5 z-50 pb-safe">
-        <div className="max-w-md mx-auto flex justify-between items-center px-4 py-3">
+        <div className="max-w-md mx-auto flex justify-between items-center px-6 py-3">
           
-          <Link href="/tenant" className="flex flex-col items-center gap-1 w-16 relative">
-            <div className="transition-all duration-300">
-              <Home className="w-6 h-6 text-gray-400 hover:text-black dark:hover:text-white transition-colors" />
+          <Link href="/tenant" className="relative">
+            <div className="p-3">
+              <Home className="w-6 h-6 text-gray-400 hover:text-gray-600 transition-colors" />
             </div>
-            <span className="text-[10px] font-bold mt-1 text-gray-400">Home</span>
           </Link>
 
-          <Link href="/tenant" className="flex flex-col items-center gap-1 w-16 relative">
-            <div className="transition-all duration-300">
-              <Wallet className="w-6 h-6 text-gray-400 hover:text-black dark:hover:text-white transition-colors" />
+          <Link href="/tenant" className="relative">
+            <div className="p-3">
+              <Wallet className="w-6 h-6 text-gray-400 hover:text-gray-600 transition-colors" />
             </div>
-            <span className="text-[10px] font-bold mt-1 text-gray-400">Wallet</span>
           </Link>
 
-          <button className="flex flex-col items-center gap-1 w-16 relative cursor-default">
-            <div className="-translate-y-1 transition-all duration-300">
-              <div className="w-12 h-12 bg-black dark:bg-[#58ff48] rounded-full flex items-center justify-center shadow-lg shadow-black/20 dark:shadow-[#58ff48]/20 absolute -top-8 left-1/2 -translate-x-1/2">
-                <Utensils className="w-6 h-6 text-white dark:text-black" />
-              </div>
+          <button className="relative cursor-default">
+            <div className="flex items-center gap-2 px-5 py-2.5 bg-black dark:bg-[#58ff48] rounded-full shadow-md animate-in zoom-in-95 duration-200">
+              <Utensils className="w-5 h-5 text-white dark:text-black" />
+              <span className="text-[13px] font-bold text-white dark:text-black">Food</span>
             </div>
-            <span className="text-[10px] font-bold mt-7 text-black dark:text-[#58ff48]">Food</span>
           </button>
 
-          <Link href="/tenant" className="flex flex-col items-center gap-1 w-16 relative">
-            <div className="transition-all duration-300">
-              <UserIcon className="w-6 h-6 text-gray-400 hover:text-black dark:hover:text-white transition-colors" />
+          <Link href="/tenant" className="relative">
+            <div className="p-3">
+              <UserIcon className="w-6 h-6 text-gray-400 hover:text-gray-600 transition-colors" />
             </div>
-            <span className="text-[10px] font-bold mt-1 text-gray-400">Profile</span>
           </Link>
 
         </div>
