@@ -71,6 +71,7 @@ const NAV_CONFIG: Record<Role, NavGroup[]> = {
         { label: "Food Dashboard", href: "/warden/food", icon: Utensils },
         { label: "Occupancy", href: "/warden/occupancy", icon: Map },
         { label: "Worklists", href: "/warden/worklists", icon: List },
+        { label: "Notifications", href: "/admin/notifications", icon: Bell },
       ],
     },
   ],
@@ -86,7 +87,7 @@ const NAV_CONFIG: Record<Role, NavGroup[]> = {
         { label: "Invoices", href: "/warden/onboard", icon: FileText }, // Placeholder
         { label: "Incidents", href: "/warden/worklists", icon: Shield }, // Placeholder
         { label: "House Keeping", href: "/warden/food", icon: Utensils }, // Placeholder
-        { label: "Referrals", href: "/warden", icon: Users }, // Placeholder
+        { label: "Notifications", href: "/warden/notifications", icon: Bell }, 
       ],
     },
   ],

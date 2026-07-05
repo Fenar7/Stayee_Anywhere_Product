@@ -6,7 +6,7 @@ import { UserRole } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.TENANT]);
+    const session = await requireRole([UserRole.TENANT, UserRole.WARDEN, UserRole.MAIN_ADMIN]);
 
     const notifications = await prisma.notification.findMany({
       where: { userId: session.user.id },
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.TENANT]);
+    const session = await requireRole([UserRole.TENANT, UserRole.WARDEN, UserRole.MAIN_ADMIN]);
     const body = await request.json();
     const { read, dismissedFromHome } = body;
 
