@@ -6,8 +6,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -39,8 +37,8 @@ export function DashboardHeader() {
             )}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64 p-2 bg-white rounded-xl shadow-lg border border-gray-100 mt-2">
-            <DropdownMenuLabel className="font-semibold text-gray-900 pb-2">Notifications</DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-gray-100" />
+            <div className="px-2 pt-1 pb-2 font-semibold text-gray-900 text-sm">Notifications</div>
+            <div className="h-px bg-gray-100 my-1 mx-2" />
             <DropdownMenuItem className="py-3 text-sm text-gray-500 text-center flex justify-center hover:bg-transparent cursor-default">
               {counts.unreadNotifications > 0 
                 ? `You have ${counts.unreadNotifications} unread notification(s). View them in the Notifications panel.` 
