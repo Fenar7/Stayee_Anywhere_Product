@@ -161,34 +161,34 @@ export default function TenantTicketsPage() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#111111] rounded-3xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-black dark:text-white">Raise a Ticket</h2>
+          <div className="bg-white dark:bg-[#111111] rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 sm:p-8 pb-2 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-black dark:text-white">Raise a Ticket</h2>
               <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors text-gray-500">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider pl-1">Issue Title</label>
+            <form onSubmit={handleSubmit} className="p-6 sm:p-8 pt-4 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[13px] font-bold text-gray-700 dark:text-gray-300 pl-1">Issue Title</label>
                 <input 
                   type="text" 
                   required
                   placeholder="e.g. Broken pipe in bathroom"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  className="w-full h-12 rounded-xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-4 font-medium text-black dark:text-white placeholder:text-gray-400 outline-none transition-all"
+                  className="w-full h-14 rounded-2xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-5 font-medium text-black dark:text-white placeholder:text-gray-400 outline-none transition-all"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider pl-1">Category</label>
+                <div className="space-y-2">
+                  <label className="text-[13px] font-bold text-gray-700 dark:text-gray-300 pl-1">Category</label>
                   <div className="relative">
                     <select 
                       value={category}
                       onChange={e => setCategory(e.target.value)}
-                      className="w-full h-12 rounded-xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-4 pr-10 font-medium text-black dark:text-white outline-none transition-all appearance-none cursor-pointer"
+                      className="w-full h-14 rounded-2xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-5 pr-12 font-medium text-black dark:text-white outline-none transition-all appearance-none cursor-pointer"
                     >
                       <option value="MAINTENANCE">Maintenance</option>
                       <option value="CLEANING">Cleaning</option>
@@ -196,44 +196,44 @@ export default function TenantTicketsPage() {
                       <option value="PLUMBING">Plumbing</option>
                       <option value="OTHER">Other</option>
                     </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                   </div>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider pl-1">Priority</label>
+                <div className="space-y-2">
+                  <label className="text-[13px] font-bold text-gray-700 dark:text-gray-300 pl-1">Priority</label>
                   <div className="relative">
                     <select 
                       value={priority}
                       onChange={e => setPriority(e.target.value)}
-                      className="w-full h-12 rounded-xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-4 pr-10 font-medium text-black dark:text-white outline-none transition-all appearance-none cursor-pointer"
+                      className="w-full h-14 rounded-2xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-5 pr-12 font-medium text-black dark:text-white outline-none transition-all appearance-none cursor-pointer"
                     >
                       <option value="LOW">Low</option>
                       <option value="NORMAL">Normal</option>
                       <option value="HIGH">High</option>
                       <option value="CRITICAL">Critical</option>
                     </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider pl-1">Description</label>
+              <div className="space-y-2">
+                <label className="text-[13px] font-bold text-gray-700 dark:text-gray-300 pl-1">Description</label>
                 <textarea 
                   required
                   rows={4}
                   placeholder="Provide as much detail as possible..."
                   value={description}
                   onChange={e => setDescription(e.target.value)}
-                  className="w-full rounded-xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 p-4 font-medium text-black dark:text-white placeholder:text-gray-400 outline-none transition-all resize-none"
+                  className="w-full rounded-2xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 p-5 font-medium text-black dark:text-white placeholder:text-gray-400 outline-none transition-all resize-none"
                 />
               </div>
 
-              <div className="pt-4">
+              <div className="pt-2">
                 <button 
                   type="submit"
                   disabled={submitting}
-                  className="w-full h-12 rounded-xl font-bold text-[14px] bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+                  className="w-full h-14 rounded-2xl font-bold text-[15px] bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 flex items-center justify-center gap-2 transition-transform active:scale-[0.98] shadow-lg shadow-black/10 dark:shadow-white/10"
                 >
                   {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit Ticket"}
                 </button>
