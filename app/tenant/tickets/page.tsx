@@ -165,7 +165,7 @@ export default function TenantTicketsPage() {
                   placeholder="e.g. Broken pipe in bathroom"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  className="w-full h-12 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-4 font-medium outline-none transition-all"
+                  className="w-full h-12 rounded-xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-4 font-medium text-black dark:text-white placeholder:text-gray-400 outline-none transition-all"
                 />
               </div>
 
@@ -175,7 +175,7 @@ export default function TenantTicketsPage() {
                   <select 
                     value={category}
                     onChange={e => setCategory(e.target.value)}
-                    className="w-full h-12 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-4 font-medium outline-none transition-all appearance-none cursor-pointer"
+                    className="w-full h-12 rounded-xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-4 font-medium text-black dark:text-white outline-none transition-all appearance-none cursor-pointer"
                   >
                     <option value="MAINTENANCE">Maintenance</option>
                     <option value="CLEANING">Cleaning</option>
@@ -189,7 +189,7 @@ export default function TenantTicketsPage() {
                   <select 
                     value={priority}
                     onChange={e => setPriority(e.target.value)}
-                    className="w-full h-12 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-4 font-medium outline-none transition-all appearance-none cursor-pointer"
+                    className="w-full h-12 rounded-xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-4 font-medium text-black dark:text-white outline-none transition-all appearance-none cursor-pointer"
                   >
                     <option value="LOW">Low</option>
                     <option value="NORMAL">Normal</option>
@@ -207,7 +207,7 @@ export default function TenantTicketsPage() {
                   placeholder="Provide as much detail as possible..."
                   value={description}
                   onChange={e => setDescription(e.target.value)}
-                  className="w-full rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 p-4 font-medium outline-none transition-all resize-none"
+                  className="w-full rounded-xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 p-4 font-medium text-black dark:text-white placeholder:text-gray-400 outline-none transition-all resize-none"
                 />
               </div>
 
