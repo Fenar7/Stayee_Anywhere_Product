@@ -1,4 +1,5 @@
 import HostelFoodView from "@/components/hostel-management/HostelFoodView";
+import { prisma } from "@/lib/db";
 
 export default async function AdminHostelFoodPage({
   params,
@@ -6,5 +7,9 @@ export default async function AdminHostelFoodPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <HostelFoodView hostelId={id} baseRoute={`/admin/hostels/${id}`} />;
+  const hostel = await prisma.hostel.findUnique({
+    where: { id },
+    select: { name: true },
+  });
+  return <HostelFoodView hostelId={id} hostelName={hostel?.name} baseRoute={`/admin/hostels/${id}`} />;
 }

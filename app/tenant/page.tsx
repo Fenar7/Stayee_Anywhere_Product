@@ -1,117 +1,104 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Loader2, LogOut, Clock, CalendarDays, Building2, BedSingle, AlertCircle, CheckCircle, Upload, UtensilsCrossed, Calendar, CreditCard, Download, X } from "lucide-react";
+import {
+  Loader2, Building2, AlertCircle, Upload, Download,
+  UtensilsCrossed, CreditCard, ChevronRight, CheckCircle2,
+  XCircle, Clock, ArrowUpRight, LogOut, Utensils,
+  MapPin, BedSingle, Search, Bell, Settings, User as UserIcon,
+  Home, Wallet, UploadCloud, Image as ImageIcon
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { notify } from "@/lib/toast";
 import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
 import { InitialPaymentForm } from "@/components/tenant/InitialPaymentForm";
 
-// -- Interfaces --
+// ─── Interfaces ───────────────────────────────────────────────────────────────
 
-interface TenantDetails {
-  fullName: string;
-  photoUrl: string | null;
-}
-
+interface TenantDetails { fullName: string; photoUrl: string | null; gender?: "MALE" | "FEMALE" | "OTHER"; }
 interface PaymentItem {
-  id: string;
-  amountPaid: number;
-  paymentMode: string;
-  transactionRefNo: string | null;
-  notes?: string | null;
-  paymentStatus: string;
-  createdAt: string;
+  id: string; amountPaid: number; paymentMode: string;
+  transactionRefNo: string | null; notes?: string | null;
+  paymentStatus: string; createdAt: string;
 }
-
 interface StayDetails {
-  id: string;
-  status: string;
-  durationType: string;
-  joiningDate: string;
-  endDate: string;
-  admissionFee: number;
-  monthlyRent: number;
-  securityDeposit: number;
-  foodCharges: number;
-  foodPlan: string;
-  totalPayable: number;
-  discount: number;
+  id: string; status: string; durationType: string;
+  joiningDate: string; endDate: string; admissionFee: number;
+  monthlyRent: number; securityDeposit: number; foodCharges: number;
+  foodPlan: string; totalPayable: number; discount: number;
 }
-
-interface HostelDetails {
-  id: string;
-  name: string;
-  address: string;
-}
-
-interface BedDetails {
-  id: string;
-  label: string;
-  roomNumber: string;
-  sharingType: string;
-}
-
+interface HostelDetails { id: string; name: string; address: string; }
+interface BedDetails { id: string; label: string; roomNumber: string; sharingType: string; }
 interface RoommateDetails {
-  fullName: string;
-  photoUrl: string | null;
-  occupationType: string;
-  collegeName: string | null;
-  companyName: string | null;
-  designation: string | null;
-  bedLabel: string;
+  fullName: string; photoUrl: string | null; occupationType: string;
+  collegeName: string | null; companyName: string | null;
+  designation: string | null; bedLabel: string;
 }
-
-interface HostelPaymentConfig {
-  upiId: string | null;
-  qrCodeUrl: string | null;
-}
-
 interface ServiceRequestItem {
-  id: string;
-  type: string;
-  amount: number;
-  status: string;
-  createdAt: string;
-  metadata?: any;
+  id: string; type: string; amount: number; status: string;
+  createdAt: string; metadata?: any;
 }
-
 interface ApiResponse {
-  tenant: TenantDetails | null;
-  stay: StayDetails | null;
-  hostel: HostelDetails | null;
-  bed: BedDetails | null;
-  payments: PaymentItem[];
-  roommates: RoommateDetails[];
-  nextDueDate: string | null;
-  pendingServiceRequests?: ServiceRequestItem[];
+  tenant: TenantDetails | null; stay: StayDetails | null;
+  hostel: HostelDetails | null; bed: BedDetails | null;
+  payments: PaymentItem[]; roommates: RoommateDetails[];
+  nextDueDate: string | null; pendingServiceRequests?: ServiceRequestItem[];
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
+// ─── Formatting Helpers ──────────────────────────────────────────────────────
 
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+}
+function formatCurrency(n: number) {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
+}
 function getInitials(name: string) {
-  return name.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase();
+  return name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
 }
+function daysLeft(end: string) {
+  return Math.max(0, Math.ceil((new Date(end).getTime() - Date.now()) / 86400000));
+}
+
+// ─── Micro-Components (Consumer/Fintech Style) ───────────────────────────────
+
+function SoftCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`bg-white dark:bg-[#121212] rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.02)] border border-[#f0f0f0] dark:border-white/5 p-6 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function PillButton({ children, onClick, variant = "primary", className = "", type = "button", disabled = false }: any) {
+  const base = "h-14 px-8 rounded-full font-bold text-[15px] flex items-center justify-center gap-2 transition-all duration-200 w-full active:scale-[0.98]";
+  const variants = {
+    primary: "bg-[#111111] dark:bg-[#58ff48] text-white dark:text-black hover:bg-black/90",
+    secondary: "bg-[#f5f5f5] dark:bg-white/10 text-[#111111] dark:text-white hover:bg-[#eeeeee]",
+    outline: "bg-transparent border-[1.5px] border-[#dedede] dark:border-white/20 text-[#111111] dark:text-white hover:border-[#111111]",
+    danger: "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100",
+  };
+  return (
+    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${variants[variant as keyof typeof variants]} ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${className}`}>
+      {children}
+    </button>
+  );
+}
+
+function getAvatarUrl(gender?: string, name?: string) {
+  const seed = name || "User";
+  if (gender === "FEMALE") {
+    return `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}&hair=long14,long15,long16,long02&hairColor=000000,85c2c6`;
+  }
+  return `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}&hair=short01,short02,short03&hairColor=000000`;
+}
+
+// ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function TenantDashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-
   const [tenant, setTenant] = useState<TenantDetails | null>(null);
   const [stay, setStay] = useState<StayDetails | null>(null);
   const [hostel, setHostel] = useState<HostelDetails | null>(null);
@@ -120,22 +107,19 @@ export default function TenantDashboardPage() {
   const [roommates, setRoommates] = useState<RoommateDetails[]>([]);
   const [nextDueDate, setNextDueDate] = useState<string | null>(null);
   const [pendingServiceRequests, setPendingServiceRequests] = useState<ServiceRequestItem[]>([]);
-
   const [paymentConfig, setHostelPaymentConfig] = useState<import("@prisma/client").HostelPaymentConfig | null>(null);
-  const [homeNotifications, setHomeNotifications] = useState<any[]>([]);
-
-  // Upload Payment State
   const [uploadAmount, setUploadAmount] = useState("");
-  const [uploadRef, setUploadRef] = useState("");
+  const [paymentMode, setPaymentMode] = useState<"UPI" | "CASH">("UPI");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "payments" | "profile">("overview");
 
-  const fetchStayDetails = async () => {
+  const load = async () => {
     try {
-      const response = await fetch("/api/tenant/stay");
-      if (!response.ok) {
-        throw new Error("Failed to load dashboard details");
-      }
-      const data: ApiResponse = await response.json();
+      const res = await fetch("/api/tenant/stay");
+      if (!res.ok) throw new Error("Failed to load");
+      const data: ApiResponse = await res.json();
       setTenant(data.tenant || null);
       setStay(data.stay);
       setHostel(data.hostel);
@@ -144,610 +128,585 @@ export default function TenantDashboardPage() {
       setRoommates(data.roommates || []);
       setNextDueDate(data.nextDueDate || null);
       setPendingServiceRequests(data.pendingServiceRequests || []);
-
       if (data.hostel?.id) {
         try {
-          const pcRes = await fetch(`/api/public/hostels/${data.hostel.id}/payment-config`);
-          if (pcRes.ok) {
-            const pcData = await pcRes.json();
-            setHostelPaymentConfig(pcData);
-          }
-        } catch { /* non-critical */ }
+          const pr = await fetch(`/api/public/hostels/${data.hostel.id}/payment-config`);
+          if (pr.ok) setHostelPaymentConfig(await pr.json());
+        } catch {}
       }
-    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
-      notify.error(errorMsg || "An unexpected error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchHomeNotifications = async () => {
-    try {
-      const res = await fetch("/api/tenant/notifications");
-      if (res.ok) {
-        const json = await res.json();
-        const filtered = (json.notifications || []).filter(
-          (n: any) => !n.read && !n.dismissedFromHome
-        );
-        setHomeNotifications(filtered);
-      }
-    } catch { /* non-critical */ }
-  };
-
-  const handleDismissNotification = async (id: string) => {
-    try {
-      setHomeNotifications((prev) => prev.filter((n) => n.id !== id));
-      await fetch(`/api/tenant/notifications/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dismissedFromHome: true }),
-      });
     } catch (err) {
-      console.error("Failed to dismiss notification", err);
-    }
+      notify.error(err instanceof Error ? err.message : "Error");
+    } finally { setLoading(false); }
   };
-
-  useEffect(() => {
-    fetchStayDetails();
-    fetchHomeNotifications();
-  }, []);
 
   const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/login");
-    } catch (err) {
-      console.error("Logout failed", err);
-    }
+    try { await fetch("/api/auth/logout", { method: "POST" }); } catch {}
+    router.push("/login");
   };
 
   const handleUploadPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stay) return;
+    if (paymentMode === "UPI" && !uploadFile) {
+      notify.error("Please upload a payment screenshot");
+      return;
+    }
     setUploading(true);
     try {
-      const amountPaise = Math.round(parseFloat(uploadAmount) * 100);
-      if (isNaN(amountPaise) || amountPaise <= 0) {
-        throw new Error("Please enter a valid amount.");
+      const amountNum = parseFloat(uploadAmount);
+      if (isNaN(amountNum) || amountNum <= 0) throw new Error("Enter a valid amount.");
+      
+      const formData = new FormData();
+      formData.append("amountPaid", uploadAmount);
+      formData.append("paymentMode", paymentMode);
+      if (paymentMode === "UPI" && uploadFile) {
+        formData.append("screenshot", uploadFile);
       }
-
-      const res = await fetch("/api/tenant/payment", {
+      
+      const r = await fetch("/api/tenant/payment/screenshot", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          stayId: stay.id,
-          amountPaidPaise: amountPaise,
-          paymentMode: "UPI",
-          transactionRefNo: uploadRef.trim() || null,
-        }),
+        body: formData,
       });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to submit payment");
-      }
-
-      notify.success("Payment submitted for verification");
-      setUploadAmount("");
-      setUploadRef("");
-      fetchStayDetails();
-    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
-      notify.error(errorMsg);
-    } finally {
-      setUploading(false);
-    }
+      if (!r.ok) { const err = await r.json(); throw new Error(err.error || "Failed"); }
+      notify.success(paymentMode === "UPI" ? "Payment submitted for verification" : "Cash payment reported to Warden");
+      setUploadAmount(""); setUploadFile(null); setPreviewUrl(null); load();
+    } catch (err) { notify.error(err instanceof Error ? err.message : "Error"); }
+    finally { setUploading(false); }
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <DashboardSkeleton />
-      </div>
-    );
-  }
+  useEffect(() => { load(); }, []);
+
+  if (loading) return <div className="p-8"><DashboardSkeleton /></div>;
+
+  // ─── Computed Data ───────────────────────────────────────────────────────
 
   const verifiedPaid = payments
-    .filter((p) => p.paymentStatus === "PAID" || p.paymentStatus === "PARTIALLY_PAID")
-    .reduce((sum, p) => sum + p.amountPaid, 0);
+    .filter(p => p.paymentStatus === "PAID" || p.paymentStatus === "PARTIALLY_PAID")
+    .reduce((s, p) => s + p.amountPaid, 0);
+  const remaining = stay ? Math.max(0, stay.totalPayable - verifiedPaid) : 0;
+  const progress = stay?.totalPayable ? Math.min(100, Math.round((verifiedPaid / stay.totalPayable) * 100)) : 0;
+  const pendingReqs = pendingServiceRequests.filter(r => r.status === "PENDING_PAYMENT");
+  const revokedReqs = pendingServiceRequests.filter(r => r.status === "REVOKED");
 
-  const remainingBalance = stay ? stay.totalPayable - verifiedPaid : 0;
+  // ─── Edge States (No Stay / Pending) ─────────────────────────────────────
 
-  const pendingRequests = pendingServiceRequests.filter((r) => r.status === "PENDING_PAYMENT");
-  const revokedRequests = pendingServiceRequests.filter((r) => r.status === "REVOKED");
+  if (!stay) return (
+    <div className="max-w-md mx-auto p-6 md:p-10 min-h-screen flex items-center justify-center">
+      <SoftCard className="text-center w-full py-12">
+        <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-full mx-auto flex items-center justify-center mb-6">
+          <Building2 className="w-8 h-8 text-gray-400" />
+        </div>
+        <h2 className="text-2xl font-bold text-black dark:text-white mb-2">No Active Stay</h2>
+        <p className="text-gray-500 mb-8 leading-relaxed">
+          You aren't linked to a property yet. Check with your warden for onboarding.
+        </p>
+        <PillButton onClick={handleLogout} variant="outline">Sign Out</PillButton>
+      </SoftCard>
+    </div>
+  );
 
-  let daysUntilDue = null;
-  if (nextDueDate) {
-    const due = new Date(nextDueDate);
-    const now = new Date();
-    const diffTime = due.getTime() - now.getTime();
-    daysUntilDue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  }
+  if (stay.status === "ONBOARDING_PENDING") return (
+    <div className="max-w-md mx-auto p-6 md:p-10 min-h-screen flex items-center justify-center">
+      <SoftCard className="text-center w-full py-12 border-amber-100 shadow-[0_20px_40px_rgb(245,158,11,0.05)]">
+        <div className="w-20 h-20 bg-amber-50 dark:bg-amber-500/10 rounded-full mx-auto flex items-center justify-center mb-6">
+          <Clock className="w-8 h-8 text-amber-500" />
+        </div>
+        <h2 className="text-2xl font-bold text-black dark:text-white mb-2">Under Review</h2>
+        <p className="text-gray-500 mb-8 leading-relaxed">
+          Your request for <strong>{hostel?.name}</strong> is being processed. We'll notify you soon.
+        </p>
+        <PillButton onClick={handleLogout} variant="outline">Sign Out</PillButton>
+      </SoftCard>
+    </div>
+  );
+
+  if (stay.status === "APPROVED_AWAITING_PAYMENT") return (
+    <div className="max-w-lg mx-auto p-6 md:p-10 pt-12">
+      <h1 className="text-3xl font-bold mb-8">Welcome! 🎉<br/><span className="text-gray-500 text-xl font-medium">Let's settle your first invoice.</span></h1>
+      <SoftCard className="mb-6 bg-gradient-to-br from-blue-50 to-white dark:from-blue-900/10 dark:to-[#121212] border-blue-100 dark:border-blue-900/30">
+        <div className="flex justify-between items-center mb-6">
+          <span className="text-gray-500 font-medium">Total Due</span>
+          <span className="text-3xl font-bold">{formatCurrency(stay.totalPayable)}</span>
+        </div>
+        <div className="space-y-3 mb-6">
+          <div className="flex justify-between text-sm"><span className="text-gray-500">Rent</span><span className="font-semibold">{formatCurrency(stay.monthlyRent)}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-gray-500">Deposit</span><span className="font-semibold">{formatCurrency(stay.securityDeposit)}</span></div>
+          <div className="flex justify-between text-sm"><span className="text-gray-500">Admission</span><span className="font-semibold">{formatCurrency(stay.admissionFee)}</span></div>
+        </div>
+      </SoftCard>
+      <InitialPaymentForm hostel={hostel} paymentConfig={paymentConfig} remainingBalance={remaining} onSuccess={m => { notify.success(m); load(); }} onError={m => notify.error(m)} />
+    </div>
+  );
+
+  // ─── Main Dashboard (Consumer / Fintech Vibe) ─────────────────────────────
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <header className="border-b bg-white/70 dark:bg-slate-900/70 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-              Anywhere Node
-            </span>
-            <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider">Tenant</Badge>
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-32 text-[#111111] dark:text-white font-sans relative">
+      
+      {/* ── Top App Bar ── */}
+      <header className="px-6 pt-12 pb-6 flex items-center justify-between sticky top-0 bg-[#FAFAFA]/90 dark:bg-[#0A0A0A]/90 backdrop-blur-xl z-40">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 shadow-inner">
+            <img 
+              src={tenant?.photoUrl || getAvatarUrl(tenant?.gender, tenant?.fullName)} 
+              alt="Profile" 
+              className="w-full h-full object-cover"
+            />
           </div>
-          <Button onClick={handleLogout} variant="ghost" size="sm" className="flex items-center gap-2 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950">
-            <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">Log Out</span>
-          </Button>
+          <div>
+            <p className="text-[13px] font-semibold text-gray-500 tracking-wide uppercase">Welcome back</p>
+            <h1 className="text-[20px] font-bold leading-tight">{tenant?.fullName?.split(" ")[0] || "Guest"}</h1>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link href="/tenant/notifications" className="w-12 h-12 rounded-full bg-white dark:bg-[#1A1A1A] shadow-sm border border-gray-100 dark:border-white/5 flex items-center justify-center relative hover:scale-105 transition-transform">
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-[#1A1A1A]"></span>
+          </Link>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-8 space-y-8">
-        {homeNotifications.length > 0 && (
-          <div className="space-y-3">
-            {homeNotifications.map((notif) => (
-              <div
-                key={notif.id}
-                className="relative flex items-start gap-4 p-4 rounded-xl border bg-card shadow-sm border-l-4 border-l-primary"
-              >
-                <div className="flex-1 pr-8">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm">{notif.title}</span>
-                    <Badge variant="secondary" className="text-[9px] py-0 px-1.5 uppercase font-medium">
-                      {notif.type.replace(/_/g, " ").toLowerCase()}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{notif.message}</p>
+      <main className="px-6">
+        
+        {/* ─────────────────────────────────────────────────────────────────────── */}
+        {/* TAB: OVERVIEW (Finance App Vibe)                                        */}
+        {/* ─────────────────────────────────────────────────────────────────────── */}
+        {activeTab === "overview" && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            
+            {/* Hero Card */}
+            <div className="bg-[#111111] dark:bg-[#1A1A1A] text-white rounded-[32px] p-8 shadow-[0_20px_40px_rgb(0,0,0,0.15)] relative overflow-hidden">
+              <div className="absolute -right-20 -top-20 w-64 h-64 bg-[#58ff48]/10 blur-3xl rounded-full"></div>
+              
+              <div className="relative z-10">
+                <p className="text-white/60 font-medium mb-1">Monthly Rent</p>
+                <h2 className="text-5xl font-black tracking-tight mb-8">{formatCurrency(stay.monthlyRent)}</h2>
+                
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-sm font-semibold text-white/80">Payment Progress</span>
+                  <span className="text-sm font-bold text-[#58ff48] ml-auto">{progress}%</span>
                 </div>
-                <button
-                  onClick={() => handleDismissNotification(notif.id)}
-                  className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
-                  aria-label="Dismiss"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                
+                <div className="h-3 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#58ff48] rounded-full transition-all duration-1000" style={{ width: `${progress}%` }} />
+                </div>
+                
+                <div className="mt-6 flex gap-4 pt-6 border-t border-white/10">
+                  <div className="flex-1">
+                    <p className="text-xs text-white/50 font-semibold uppercase mb-1">Status</p>
+                    <p className="text-sm font-bold text-[#58ff48] flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4"/> Active</p>
+                  </div>
+                  <div className="flex-1 border-l border-white/10 pl-4">
+                    <p className="text-xs text-white/50 font-semibold uppercase mb-1">Next Due</p>
+                    <p className="text-sm font-bold">{nextDueDate ? formatDate(nextDueDate) : "—"}</p>
+                  </div>
+                </div>
               </div>
-            ))}
+            </div>
+
+            {/* Quick Actions / Stats Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <SoftCard className="p-5 flex flex-col items-center justify-center text-center gap-3 hover:scale-[1.02] transition-transform">
+                <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-500 rounded-full flex items-center justify-center">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase">Days Left</p>
+                  <p className="text-xl font-bold">{daysLeft(stay.endDate)}</p>
+                </div>
+              </SoftCard>
+              
+              <SoftCard className="p-5 flex flex-col items-center justify-center text-center gap-3 hover:scale-[1.02] transition-transform">
+                <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/20 text-purple-500 rounded-full flex items-center justify-center">
+                  <BedSingle className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase">Bed</p>
+                  <p className="text-[16px] font-bold">{bed?.roomNumber}-{bed?.label}</p>
+                </div>
+              </SoftCard>
+            </div>
+
+            {/* Stay Info List */}
+            <div className="mt-8">
+              <h3 className="text-lg font-bold mb-4 px-2">Your Location</h3>
+              <SoftCard className="p-0 overflow-hidden">
+                <div className="p-5 flex items-center gap-4 border-b border-gray-100 dark:border-white/5">
+                  <div className="w-12 h-12 bg-gray-100 dark:bg-white/5 rounded-2xl flex items-center justify-center shrink-0">
+                    <Building2 className="w-6 h-6 text-[#111111] dark:text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-[16px]">{hostel?.name}</p>
+                    <p className="text-sm text-gray-500 truncate mt-0.5">{hostel?.address}</p>
+                  </div>
+                </div>
+                <div className="p-5 flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gray-100 dark:bg-white/5 rounded-2xl flex items-center justify-center shrink-0">
+                    <Utensils className="w-6 h-6 text-[#111111] dark:text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-[16px]">Food Plan</p>
+                    <p className="text-sm text-gray-500 mt-0.5">{stay.foodPlan === "NOT_INCLUDED" ? "No plan active" : "Weekly meals included"}</p>
+                  </div>
+                  {stay.foodPlan !== "NOT_INCLUDED" && (
+                    <Link href="/tenant/food" className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                      <ChevronRight className="w-5 h-5" />
+                    </Link>
+                  )}
+                </div>
+              </SoftCard>
+            </div>
+
           </div>
         )}
-        {!stay ? (
-          <div className="max-w-md mx-auto border rounded-2xl bg-card p-10 shadow-sm text-center space-y-4">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted text-muted-foreground text-3xl">
-              🏠
-            </div>
-            <h2 className="text-2xl font-bold">Welcome to Anywhere Node!</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              You are currently logged in, but there is no active stay registered for your account. Please contact your hostel warden to initiate onboarding.
-            </p>
-          </div>
-        ) : stay.status === "ONBOARDING_PENDING" ? (
-          <div className="max-w-2xl mx-auto border rounded-2xl bg-card p-10 shadow-lg text-center space-y-6">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-yellow-500/10 text-yellow-500 ring-8 ring-yellow-500/5">
-              <Clock className="h-10 w-10 animate-pulse" />
-            </div>
-            <div className="space-y-3">
-              <h2 className="text-3xl font-extrabold">Application Under Review</h2>
-              <p className="text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
-                Thank you! Your profile documents and self-registration details have been submitted successfully.
-              </p>
-              <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-yellow-100 px-4 py-1.5 text-sm font-semibold text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
-                <Building2 className="h-4 w-4" /> {hostel?.name} &middot; Bed {bed?.roomNumber}-{bed?.label}
-              </div>
-            </div>
-          </div>
-        ) : stay.status === "APPROVED_AWAITING_PAYMENT" ? (
-          <div className="grid gap-8 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-6">
-              <InitialPaymentForm
-                hostel={hostel}
-                paymentConfig={paymentConfig}
-                remainingBalance={remainingBalance}
-                onSuccess={(msg) => {
-                  notify.success(msg);
-                  fetchStayDetails();
-                }}
-                onError={(msg) => {
-                  notify.error(msg);
-                }}
-              />
-            </div>
-            <div className="space-y-6">
-              <Card className="shadow-md border-border/50">
-                <CardHeader className="bg-muted/30 pb-4 border-b">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-primary" /> Stay Billing
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6 space-y-4 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Hostel:</span>
-                    <span className="font-medium text-right">{hostel?.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Bed:</span>
-                    <span className="font-semibold">{bed?.roomNumber} - {bed?.label}</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-3">
-                    <span className="text-muted-foreground">Admission Fee:</span>
-                    <span>₹ {stay.admissionFee.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Stay Rent:</span>
-                    <span>₹ {stay.monthlyRent.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Security Deposit:</span>
-                    <span>₹ {stay.securityDeposit.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="flex justify-between text-red-600">
-                    <span>Discount Applied:</span>
-                    <span>- ₹ {stay.discount.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-3 font-bold text-lg">
-                    <span>Total Due:</span>
-                    <span className="text-primary">₹ {stay.totalPayable.toLocaleString("en-IN")}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        ) : (
+
+        {/* ─────────────────────────────────────────────────────────────────────── */}
+        {/* TAB: PAYMENTS                                                           */}
+        {/* ─────────────────────────────────────────────────────────────────────── */}
+        {activeTab === "payments" && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* PENDING SERVICE REQUESTS BANNER */}
-            {pendingRequests.map((req) => (
-              <div key={req.id} className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-                <div className="flex items-center gap-3 text-orange-800 dark:text-orange-300">
-                  <AlertCircle className="h-6 w-6 shrink-0" />
-                  <div>
-                    <h4 className="font-semibold">Pending Payment Required</h4>
-                    <p className="text-sm">You have an unpaid {req.type.replace(/_/g, ' ').toLowerCase()} of ₹{req.amount}. Please clear this immediately.</p>
-                  </div>
+            
+            {/* Balance Overview */}
+            <div className="bg-gradient-to-br from-green-500 to-emerald-600 dark:from-green-600 dark:to-emerald-900 rounded-[32px] p-8 text-white shadow-xl shadow-green-500/20 relative overflow-hidden">
+              {/* Decorative background shapes */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-black opacity-10 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4"></div>
+              
+              <div className="relative z-10 flex justify-between items-start mb-2">
+                <div>
+                  <p className="text-white/80 font-bold text-[14px] uppercase tracking-wider mb-1">Balance Due</p>
+                  <h2 className="text-5xl font-black tracking-tight">{formatCurrency(remaining)}</h2>
                 </div>
-                <Link href={`/tenant/service-requests/${req.id}`} className={buttonVariants({ variant: "default", className: "shrink-0 bg-orange-600 hover:bg-orange-700 text-white shadow-sm" })}>
-                  Pay Now
-                </Link>
+                {remaining > 0 && <span className="bg-white text-green-600 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest shadow-sm">PENDING</span>}
               </div>
-            ))}
+            </div>
 
-            {/* REVOKED SERVICE REQUESTS BANNER */}
-            {revokedRequests.map((req) => (
-              <div key={req.id} className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl p-4 flex items-start gap-3 shadow-sm">
-                <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-                <div className="flex-1 text-red-800 dark:text-red-300">
-                  <h4 className="font-semibold">Food Plan Revoked</h4>
-                  <p className="text-sm mt-0.5">
-                    Your request for a food plan upgrade has been revoked. A refund of <strong>₹{req.amount}</strong> was processed.
-                  </p>
-                  {req.metadata?.revocation?.reason && (
-                    <p className="text-xs mt-1.5 opacity-80 italic">
-                      Reason: {req.metadata.revocation.reason}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {/* HERO CARD */}
-            <Card className="overflow-hidden border-0 shadow-xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 ring-1 ring-border/50">
-              <div className="h-32 bg-gradient-to-r from-primary/80 to-blue-600/80"></div>
-              <CardContent className="p-6 sm:p-8 pt-0 relative">
-                <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-                  <Avatar className="h-28 w-28 border-4 border-background shadow-lg -mt-14 bg-white">
-                    <AvatarImage src={tenant?.photoUrl || undefined} className="object-cover" />
-                    <AvatarFallback className="text-3xl font-light text-primary">{tenant?.fullName ? getInitials(tenant.fullName) : "TN"}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 text-center sm:text-left pt-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-foreground">{tenant?.fullName || "Tenant User"}</h1>
-                        <div className="mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2 text-sm text-muted-foreground font-medium">
-                          <span className="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 rounded-md">
-                            <Building2 className="h-4 w-4" /> {hostel?.name}
-                          </span>
-                          <span className="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 rounded-md">
-                            <BedSingle className="h-4 w-4" /> {bed?.roomNumber}-{bed?.label} ({bed?.sharingType})
-                          </span>
-                        </div>
-                      </div>
-                      <Badge variant="default" className="w-fit mx-auto sm:mx-0 px-3 py-1 bg-green-500 hover:bg-green-600 shadow-sm text-xs uppercase tracking-widest font-bold">
-                        {stay.status}
-                      </Badge>
+            {remaining > 0 && (
+              <div className="bg-white dark:bg-[#111111] p-6 sm:p-8 rounded-[32px] shadow-sm border border-gray-100 dark:border-white/5">
+                <h3 className="font-bold text-[18px] mb-6 flex items-center gap-2">
+                  <UploadCloud className="w-5 h-5 text-green-500" />
+                  Submit Payment Proof
+                </h3>
+                
+                  <form onSubmit={handleUploadPayment} className="space-y-5">
+                    {/* Payment Mode Toggle */}
+                    <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-xl mb-4">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMode("UPI")}
+                        className={`flex-1 py-2 text-[14px] font-bold rounded-lg transition-all ${
+                          paymentMode === "UPI"
+                            ? "bg-white dark:bg-[#1A1A1A] text-black dark:text-white shadow-sm"
+                            : "text-gray-500 hover:text-black dark:hover:text-white"
+                        }`}
+                      >
+                        Online (UPI)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMode("CASH")}
+                        className={`flex-1 py-2 text-[14px] font-bold rounded-lg transition-all ${
+                          paymentMode === "CASH"
+                            ? "bg-white dark:bg-[#1A1A1A] text-black dark:text-white shadow-sm"
+                            : "text-gray-500 hover:text-black dark:hover:text-white"
+                        }`}
+                      >
+                        Cash to Warden
+                      </button>
                     </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* TABS */}
-            <Tabs defaultValue="mystay" className="w-full">
-              <TabsList className="grid w-full max-w-xl grid-cols-4 mx-auto mb-8 h-12 bg-muted/50 p-1 rounded-xl">
-                <TabsTrigger value="mystay" className="rounded-lg font-medium text-sm data-[state=active]:shadow-sm">My Stay</TabsTrigger>
-                <TabsTrigger value="payments" className="rounded-lg font-medium text-sm data-[state=active]:shadow-sm">Payments</TabsTrigger>
-                <TabsTrigger value="food" className="rounded-lg font-medium text-sm data-[state=active]:shadow-sm">Food</TabsTrigger>
-                <TabsTrigger value="roommates" className="rounded-lg font-medium text-sm data-[state=active]:shadow-sm">Roommates</TabsTrigger>
-              </TabsList>
-
-              {/* TAB: MY STAY */}
-              <TabsContent value="mystay" className="space-y-6 focus-visible:outline-none">
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  
-                  {/* Next Due Highlight */}
-                  {nextDueDate && (
-                    <Card className={`lg:col-span-3 border-l-4 ${daysUntilDue !== null && daysUntilDue <= 7 ? "border-l-red-500 bg-red-50/50 dark:bg-red-950/20" : "border-l-primary bg-primary/5"} shadow-sm`}>
-                      <CardContent className="flex items-center justify-between p-6">
-                        <div className="flex items-center gap-4">
-                          <div className={`p-3 rounded-full ${daysUntilDue !== null && daysUntilDue <= 7 ? "bg-red-100 text-red-600 dark:bg-red-900" : "bg-primary/20 text-primary"}`}>
-                            <Calendar className="h-6 w-6" />
+                    {paymentMode === "UPI" ? (
+                      /* Image Upload Area */
+                      <div className="relative border-2 border-dashed border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-[24px] p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors overflow-hidden group">
+                        <input 
+                          type="file" 
+                          accept="image/png, image/jpeg" 
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setUploadFile(file);
+                              setPreviewUrl(URL.createObjectURL(file));
+                            }
+                          }}
+                        />
+                        {previewUrl ? (
+                          <div className="relative w-full h-48 rounded-2xl overflow-hidden">
+                            <img src={previewUrl} className="w-full h-full object-cover" alt="Payment Proof Preview" />
+                            <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <UploadCloud className="w-10 h-10 text-white mb-2" />
+                              <span className="text-white font-bold text-[15px]">Change Screenshot</span>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Next Payment Due</p>
-                            <p className="text-xl font-bold">{formatDate(nextDueDate)}</p>
+                        ) : (
+                          <div className="py-6">
+                            <div className="w-16 h-16 rounded-full bg-white dark:bg-white/10 shadow-sm flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                              <ImageIcon className="w-7 h-7 text-green-500 dark:text-green-400" />
+                            </div>
+                            <p className="font-bold text-[16px] text-gray-900 dark:text-white">Upload Screenshot</p>
+                            <p className="text-[14px] text-gray-500 dark:text-white/60 mt-1">Tap to browse (JPG, PNG)</p>
                           </div>
-                        </div>
-                        {daysUntilDue !== null && daysUntilDue <= 7 && daysUntilDue > 0 && (
-                          <Badge variant="destructive" className="px-3 py-1.5 text-sm font-bold shadow-sm animate-pulse">
-                            Due in {daysUntilDue} day{daysUntilDue !== 1 ? 's' : ''}
-                          </Badge>
                         )}
-                        {daysUntilDue !== null && daysUntilDue <= 0 && (
-                          <Badge variant="destructive" className="px-3 py-1.5 text-sm font-bold shadow-sm">
-                            Overdue
-                          </Badge>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  <Card className="shadow-sm">
-                    <CardHeader className="pb-3 border-b border-muted/50 mb-4">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <CalendarDays className="h-5 w-5 text-muted-foreground" /> Stay Timeline
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Joining Date</p>
-                        <p className="font-semibold text-lg">{formatDate(stay.joiningDate)}</p>
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">End Date</p>
-                        <p className="font-semibold text-lg">{formatDate(stay.endDate)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Duration Type</p>
-                        <p className="font-medium inline-block bg-muted px-2 py-0.5 rounded text-sm mt-1">{stay.durationType}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="shadow-sm">
-                    <CardHeader className="pb-3 border-b border-muted/50 mb-4">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <CreditCard className="h-5 w-5 text-muted-foreground" /> Billing Details
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Monthly Rent</span>
-                        <span className="font-medium">₹ {stay.monthlyRent.toLocaleString("en-IN")}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Food Charges</span>
-                        <span className="font-medium">₹ {stay.foodCharges.toLocaleString("en-IN")}</span>
-                      </div>
-                      <div className="flex justify-between border-t pt-2">
-                        <span className="text-muted-foreground">Security Deposit</span>
-                        <span className="font-medium">₹ {stay.securityDeposit.toLocaleString("en-IN")}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Admission Fee</span>
-                        <span className="font-medium">₹ {stay.admissionFee.toLocaleString("en-IN")}</span>
-                      </div>
-                      <div className="flex justify-between text-red-600">
-                        <span>Discount</span>
-                        <span>- ₹ {stay.discount.toLocaleString("en-IN")}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-
-              {/* TAB: PAYMENTS */}
-              <TabsContent value="payments" className="space-y-6 focus-visible:outline-none">
-                <div className="grid gap-6 lg:grid-cols-3">
-                  <Card className="lg:col-span-2 shadow-sm order-2 lg:order-1">
-                    <CardHeader>
-                      <CardTitle className="text-xl">Payment History</CardTitle>
-                      <CardDescription>A record of all your transactions.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {payments.length === 0 ? (
-                        <div className="text-center py-10 text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
-                          <p>No payments recorded yet.</p>
-                        </div>
-                      ) : (
-                        <div className="rounded-md border overflow-hidden">
-                          <Table>
-                            <TableHeader className="bg-muted/50">
-                              <TableRow>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Amount</TableHead>
-                                <TableHead>Ref No</TableHead>
-                                <TableHead className="text-right">Status</TableHead>
-                                <TableHead className="text-right"></TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {payments.map((p) => {
-                                const isNegative = p.amountPaid < 0;
-                                return (
-                                  <TableRow key={p.id}>
-                                    <TableCell className="font-medium text-xs whitespace-nowrap">{formatDate(p.createdAt)}</TableCell>
-                                    <TableCell className={isNegative ? "text-red-600 dark:text-red-400 font-semibold" : ""}>
-                                      {isNegative ? `-₹ ${Math.abs(p.amountPaid).toLocaleString("en-IN")}` : `₹ ${p.amountPaid.toLocaleString("en-IN")}`}
-                                    </TableCell>
-                                    <TableCell className="text-xs text-muted-foreground">
-                                      {p.transactionRefNo || "-"}
-                                      {isNegative && p.notes && (
-                                        <span className="block text-[10px] text-red-500 dark:text-red-400 mt-0.5 font-medium">
-                                          (Refund: {p.notes})
-                                        </span>
-                                      )}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      {p.paymentStatus === "PAID" ? (
-                                        <Badge variant="outline" className={isNegative ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/20 dark:text-red-300 dark:border-red-900" : "bg-green-50 text-green-700 border-green-200"}>
-                                          {isNegative ? "Refunded" : "Verified"}
-                                        </Badge>
-                                      ) : p.paymentStatus === "PENDING" ? (
-                                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Verifying</Badge>
-                                      ) : (
-                                        <Badge variant="outline">{p.paymentStatus}</Badge>
-                                      )}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      {p.paymentStatus === "PAID" && !isNegative && (
-                                        <a 
-                                          href={`/api/pdf/receipt/${p.id}`} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="text-xs font-medium text-primary hover:underline flex items-center justify-end gap-1"
-                                        >
-                                          <Download className="h-3 w-3" />
-                                          Receipt
-                                        </a>
-                                      )}
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Card className="shadow-md border-primary/20 order-1 lg:order-2 bg-gradient-to-b from-card to-muted/10">
-                    <CardHeader>
-                      <CardTitle className="text-xl">Upload Payment</CardTitle>
-                      <CardDescription>Submit transaction details after paying via UPI.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <form onSubmit={handleUploadPayment} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="amount">Amount Paid (₹)</Label>
-                          <Input
-                            id="amount"
-                            type="number"
-                            placeholder="e.g. 5000"
-                            value={uploadAmount}
-                            onChange={(e) => setUploadAmount(e.target.value)}
-                            required
-                            min="1"
-                            className="bg-background"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="ref">Transaction Ref / UTR</Label>
-                          <Input
-                            id="ref"
-                            type="text"
-                            placeholder="12-digit UPI Ref"
-                            value={uploadRef}
-                            onChange={(e) => setUploadRef(e.target.value)}
-                            required
-                            className="bg-background"
-                          />
-                        </div>
-                        <Button type="submit" className="w-full font-bold shadow-sm" disabled={uploading}>
-                          {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                          Submit Payment
-                        </Button>
-                      </form>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-
-              {/* TAB: FOOD */}
-              <TabsContent value="food" className="focus-visible:outline-none">
-                {stay.foodPlan === "NOT_INCLUDED" ? (
-                  <div className="py-16 text-center text-muted-foreground bg-muted/20 rounded-2xl border border-dashed">
-                    <UtensilsCrossed className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                    <p className="text-lg font-medium text-foreground">Food Not Included</p>
-                    <p className="max-w-xs mx-auto text-sm mt-1">
-                      Your stay plan does not include hostel food. Contact your warden to upgrade your plan.
-                    </p>
-                  </div>
-                ) : (
-                  <Card className="border-0 shadow-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 overflow-hidden relative">
-                    <div className="absolute right-0 top-0 opacity-10 pointer-events-none">
-                      <UtensilsCrossed className="w-64 h-64 -mt-10 -mr-10" />
-                    </div>
-                    <CardContent className="p-10 flex flex-col items-center text-center relative z-10 space-y-6">
-                      <div className="p-4 bg-white dark:bg-slate-900 rounded-full shadow-sm mb-2">
-                        <UtensilsCrossed className="h-10 w-10 text-amber-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-3xl font-bold tracking-tight text-amber-900 dark:text-amber-100">Weekly Meal Plan</h3>
-                        <p className="text-amber-700 dark:text-amber-400 max-w-md mx-auto mt-3 text-lg">
-                          Manage your breakfast, lunch, and dinner preferences for the upcoming week.
+                    ) : (
+                      <div className="bg-orange-50 dark:bg-orange-900/20 p-5 rounded-[20px] border border-orange-100 dark:border-orange-900/30 text-center">
+                        <AlertCircle className="w-8 h-8 text-orange-500 mx-auto mb-2" />
+                        <p className="text-[14px] text-orange-800 dark:text-orange-300 font-medium">
+                          Please hand over the exact cash amount directly to your warden. They will verify and approve this payment manually.
                         </p>
                       </div>
-                      <Link href="/tenant/food" className={buttonVariants({ size: "lg", className: "bg-amber-600 hover:bg-amber-700 text-white rounded-full px-8 shadow-md mt-4 text-base font-semibold" })}>
-                        Manage Food Orders
-                      </Link>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
+                    )}
 
-              {/* TAB: ROOMMATES */}
-              <TabsContent value="roommates" className="focus-visible:outline-none">
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {roommates.length === 0 ? (
-                    <div className="col-span-full py-16 text-center text-muted-foreground bg-muted/20 rounded-2xl border border-dashed">
-                      <BedSingle className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                      <p className="text-lg font-medium text-foreground">No Roommates</p>
-                      <p>You currently do not have any roommates in this room.</p>
+                    <div>
+                      <label className="block text-[13px] font-bold text-gray-500 dark:text-white/50 mb-1.5 ml-2">Amount Paid</label>
+                      <input
+                        type="number" required min="1" value={uploadAmount} onChange={e => setUploadAmount(e.target.value)}
+                        className="w-full h-14 px-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl text-[16px] font-bold text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+                        placeholder="e.g. 15000"
+                      />
                     </div>
-                  ) : (
-                    roommates.map((rm, idx) => (
-                      <Card key={idx} className="shadow-sm hover:shadow-md transition-shadow group border-border/50">
-                        <CardContent className="p-6">
-                          <div className="flex flex-col items-center text-center space-y-4">
-                            <Avatar className="h-20 w-20 border-2 border-background shadow-sm group-hover:scale-105 transition-transform">
-                              <AvatarImage src={rm.photoUrl || undefined} className="object-cover" />
-                              <AvatarFallback className="text-2xl font-light text-primary bg-primary/10">
-                                {getInitials(rm.fullName)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-bold text-lg">{rm.fullName}</p>
-                              <Badge variant="secondary" className="mt-1.5 font-medium">Bed {rm.bedLabel}</Badge>
-                            </div>
-                            <div className="text-sm text-muted-foreground bg-muted/30 w-full rounded-lg p-3">
-                              {rm.occupationType === "STUDENT" ? (
-                                <div className="space-y-1">
-                                  <p className="font-semibold text-foreground text-xs uppercase tracking-wider">Student</p>
-                                  <p className="truncate">{rm.collegeName || "N/A"}</p>
-                                </div>
-                              ) : (
-                                <div className="space-y-1">
-                                  <p className="font-semibold text-foreground text-xs uppercase tracking-wider">Professional</p>
-                                  <p className="truncate">{rm.designation || "Employee"} at {rm.companyName || "N/A"}</p>
-                                </div>
-                              )}
-                            </div>
+                    
+                    <button 
+                      type="submit" 
+                      disabled={uploading || (paymentMode === "UPI" && !uploadFile)} 
+                      className={`mt-4 w-full h-14 rounded-2xl font-bold text-[16px] flex items-center justify-center gap-2 transition-all shadow-xl
+                        ${(uploading || (paymentMode === "UPI" && !uploadFile)) 
+                          ? "bg-gray-100 dark:bg-white/10 text-gray-400 dark:text-white/30 shadow-none cursor-not-allowed" 
+                          : "bg-[#111111] dark:bg-white text-white dark:text-black hover:scale-[1.02] active:scale-[0.98] shadow-black/10 dark:shadow-white/10"
+                        }
+                      `}
+                    >
+                      {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit Payment Details"}
+                    </button>
+                  </form>
+              </div>
+            )}
+
+            <div>
+              <div className="flex justify-between items-center mb-4 px-2">
+                <h3 className="text-lg font-bold">Recent Transactions</h3>
+                <span className="text-sm font-bold text-gray-500 cursor-pointer hover:text-black">See all</span>
+              </div>
+              
+              <div className="space-y-3">
+                {payments.length === 0 ? (
+                  <SoftCard className="text-center py-10">
+                    <p className="text-gray-500 font-medium">No transactions yet.</p>
+                  </SoftCard>
+                ) : (
+                  payments.map((p) => {
+                    const isNeg = p.amountPaid < 0;
+                    return (
+                      <SoftCard key={p.id} className="p-4 flex items-center justify-between hover:scale-[1.01] transition-transform cursor-pointer">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isNeg ? "bg-red-50 text-red-500" : "bg-[#58ff48]/20 text-[#1a8a10] dark:text-[#58ff48]"}`}>
+                            {isNeg ? <Download className="w-6 h-6 rotate-180" /> : <ArrowUpRight className="w-6 h-6" />}
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
+                          <div>
+                            <p className="font-bold text-[16px] leading-tight">{isNeg ? "Refund" : "Rent Payment"}</p>
+                            <p className="text-[13px] text-gray-500 font-medium mt-0.5">{formatDate(p.createdAt)}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`font-black text-[16px] ${isNeg ? "text-red-500" : "text-black dark:text-white"}`}>
+                            {isNeg ? `−${formatCurrency(Math.abs(p.amountPaid))}` : `+${formatCurrency(p.amountPaid)}`}
+                          </p>
+                          <p className="text-[12px] font-bold text-gray-400 mt-1 uppercase">{p.paymentStatus.replace("_", " ")}</p>
+                        </div>
+                      </SoftCard>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           </div>
         )}
+
+        {/* ─────────────────────────────────────────────────────────────────────── */}
+        {/* TAB: PROFILE (Glassmorphism / Overlapping Avatar)                       */}
+        {/* ─────────────────────────────────────────────────────────────────────── */}
+        {activeTab === "profile" && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pt-16">
+            
+            {/* Avatar overlapping the card */}
+            <div className="relative flex flex-col items-center z-10">
+              {/* Subtle glow behind avatar */}
+              <div className="absolute top-4 w-32 h-32 bg-[#58ff48]/20 blur-2xl rounded-full z-0"></div>
+              
+              <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-[6px] border-[#FAFAFA] dark:border-[#0A0A0A] shadow-xl z-20 -mb-16 relative">
+                <img 
+                  src={tenant?.photoUrl || getAvatarUrl(tenant?.gender, tenant?.fullName)} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20"
+                />
+                {/* Verified badge */}
+                <div className="absolute bottom-0 w-full bg-[#58ff48] text-black text-[10px] font-black text-center py-0.5 uppercase tracking-widest">
+                  Verified
+                </div>
+              </div>
+              
+              <SoftCard className="w-full pt-20 pb-8 text-center bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl relative z-10 shadow-[0_20px_40px_rgb(0,0,0,0.05)] border-0">
+                <h2 className="text-2xl font-black mb-1">{tenant?.fullName}</h2>
+                <p className="text-gray-500 font-medium text-sm mb-6 uppercase tracking-wider">Tenant Account</p>
+                
+                {/* Identity / Stay Progress (Mimicking Reference 3) */}
+                <div className="px-2 mb-8 text-left">
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-sm font-bold text-gray-500">Stay Completion</span>
+                    <span className="text-lg font-black">{daysLeft(stay.endDate) > 0 ? Math.round(100 - (daysLeft(stay.endDate) / 365) * 100) : 100}%</span>
+                  </div>
+                  <div className="h-3 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-black dark:bg-[#58ff48] rounded-full" style={{ width: `${daysLeft(stay.endDate) > 0 ? Math.round(100 - (daysLeft(stay.endDate) / 365) * 100) : 100}%` }}></div>
+                  </div>
+                </div>
+
+                {/* Fixed the squished pills -> Clean flex blocks */}
+                <div className="flex gap-3 mb-8">
+                  <div className="flex-1 bg-gray-50 dark:bg-white/5 p-3 rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col items-center justify-center gap-1">
+                    <Building2 className="w-5 h-5 text-blue-500" />
+                    <span className="text-[13px] font-bold text-center leading-tight">{hostel?.name}</span>
+                  </div>
+                  <div className="flex-1 bg-gray-50 dark:bg-white/5 p-3 rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col items-center justify-center gap-1">
+                    <BedSingle className="w-5 h-5 text-purple-500" />
+                    <span className="text-[13px] font-bold text-center leading-tight">Bed {bed?.label}</span>
+                  </div>
+                </div>
+
+                <div className="w-full h-px bg-gray-100 dark:bg-white/5 mb-6"></div>
+
+                <div className="grid grid-cols-2 gap-x-4 gap-y-6 text-left px-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-500/10 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Started</p>
+                      <p className="text-[13px] font-bold">{formatDate(stay.joiningDate)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center shrink-0">
+                      <Clock className="w-5 h-5 text-orange-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Ends</p>
+                      <p className="text-[13px] font-bold">{formatDate(stay.endDate)}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0">
+                      <Building2 className="w-5 h-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Duration</p>
+                      <p className="text-[13px] font-bold capitalize">{stay.durationType.toLowerCase()}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-pink-50 dark:bg-pink-500/10 flex items-center justify-center shrink-0">
+                      <UserIcon className="w-5 h-5 text-pink-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Roommates</p>
+                      <p className="text-[13px] font-bold">{roommates.length} People</p>
+                    </div>
+                  </div>
+                </div>
+              </SoftCard>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <SoftCard className="p-0 overflow-hidden shadow-sm">
+                <Link href="/tenant/tickets" className="w-full p-5 flex items-center justify-between border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-gray-100 dark:bg-white/10 rounded-full flex items-center justify-center">
+                      <AlertCircle className="w-5 h-5 text-black dark:text-white" />
+                    </div>
+                    <span className="font-bold text-[16px]">Help & Support</span>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400" />
+                </Link>
+                <Link href="/tenant/settings" className="w-full p-5 flex items-center justify-between border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-gray-100 dark:bg-white/10 rounded-full flex items-center justify-center">
+                      <Settings className="w-5 h-5 text-black dark:text-white" />
+                    </div>
+                    <span className="font-bold text-[16px]">Account Settings</span>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400" />
+                </Link>
+                <button onClick={handleLogout} className="w-full p-5 flex items-center justify-between hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <LogOut className="w-5 h-5 text-red-500" />
+                    </div>
+                    <span className="font-bold text-[16px] text-red-500">Sign Out</span>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-red-300" />
+                </button>
+              </SoftCard>
+            </div>
+
+          </div>
+        )}
+
       </main>
+
+      {/* ── Fixed Bottom Navigation Bar ── */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#111111]/90 backdrop-blur-xl border-t border-gray-100 dark:border-white/5 z-50 pb-safe">
+        <div className="max-w-md mx-auto flex justify-between items-center px-6 py-3">
+          
+          <button onClick={() => setActiveTab("overview")} className="relative">
+            {activeTab === "overview" ? (
+              <div className="flex items-center gap-2 px-5 py-2.5 bg-black dark:bg-[#58ff48] rounded-full shadow-md animate-in zoom-in-95 duration-200">
+                <Home className="w-5 h-5 text-white dark:text-black" />
+                <span className="text-[13px] font-bold text-white dark:text-black">Home</span>
+              </div>
+            ) : (
+              <div className="p-3">
+                <Home className="w-6 h-6 text-gray-400 hover:text-gray-600 transition-colors" />
+              </div>
+            )}
+          </button>
+
+          <button onClick={() => setActiveTab("payments")} className="relative">
+            {activeTab === "payments" ? (
+              <div className="flex items-center gap-2 px-5 py-2.5 bg-black dark:bg-[#58ff48] rounded-full shadow-md animate-in zoom-in-95 duration-200">
+                <Wallet className="w-5 h-5 text-white dark:text-black" />
+                <span className="text-[13px] font-bold text-white dark:text-black">Wallet</span>
+              </div>
+            ) : (
+              <div className="p-3">
+                <Wallet className="w-6 h-6 text-gray-400 hover:text-gray-600 transition-colors" />
+              </div>
+            )}
+          </button>
+
+          <Link href="/tenant/food" className="relative">
+            <div className="p-3">
+              <Utensils className="w-6 h-6 text-gray-400 hover:text-gray-600 transition-colors" />
+            </div>
+          </Link>
+
+          <button onClick={() => setActiveTab("profile")} className="relative">
+            {activeTab === "profile" ? (
+              <div className="flex items-center gap-2 px-5 py-2.5 bg-black dark:bg-[#58ff48] rounded-full shadow-md animate-in zoom-in-95 duration-200">
+                <UserIcon className="w-5 h-5 text-white dark:text-black" />
+                <span className="text-[13px] font-bold text-white dark:text-black">Profile</span>
+              </div>
+            ) : (
+              <div className="p-3">
+                <UserIcon className="w-6 h-6 text-gray-400 hover:text-gray-600 transition-colors" />
+              </div>
+            )}
+          </button>
+
+        </div>
+      </nav>
+
     </div>
   );
 }

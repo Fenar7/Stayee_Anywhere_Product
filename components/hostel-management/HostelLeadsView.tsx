@@ -24,6 +24,8 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 
+import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
+
 interface LeadNote {
   note: string;
   createdAt: string;
@@ -42,7 +44,7 @@ interface Lead {
 
 type StatusFilter = "ALL" | "NEW" | "CONTACTED" | "FOLLOW_UP" | "CONVERTED" | "DROPPED";
 
-export default function HostelLeadsView({ hostelId, baseRoute }: { hostelId: string | null; baseRoute: string }) {
+export default function HostelLeadsView({ hostelId, hostelName, baseRoute }: { hostelId: string | null; hostelName?: string; baseRoute: string }) {
   const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,63 +181,63 @@ export default function HostelLeadsView({ hostelId, baseRoute }: { hostelId: str
     }
 
     return (
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Phone / Contact</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Source</TableHead>
-              <TableHead>Latest Note</TableHead>
-              <TableHead>Created</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      <div className="w-full overflow-x-auto">
+        <table className="premium-table">
+          <thead>
+            <tr>
+              <th>Phone / Contact</th>
+              <th>Status</th>
+              <th>Source</th>
+              <th>Latest Note</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
             {items.map((lead) => {
               const latestNote = lead.notes[0];
               const noteText = latestNote ? latestNote.note : "No notes";
               return (
-                <TableRow 
+                <tr 
                   key={lead.id} 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="cursor-pointer transition-colors"
                   onClick={() => openLeadDetails(lead)}
                 >
-                  <TableCell className="font-medium">
+                  <td className="font-semibold text-black dark:text-white">
                     <div className="flex items-center gap-2">
                       <span className="font-mono">{lead.phone}</span>
                       <a 
                         href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`} 
                         target="_blank" 
                         rel="noreferrer"
-                        className="text-emerald-600 hover:text-emerald-700 p-1"
+                        className="text-[#58ff48] p-1"
                         onClick={(e) => e.stopPropagation()}
                         title="WhatsApp"
                       >
-                        <MessageCircle className="h-4 w-4" />
+                        <MessageCircle className="size-4" />
                       </a>
                     </div>
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td>
                     <Badge variant="outline" className={LEAD_STATUS_COLORS[lead.status] || ""}>
                       {LEAD_STATUS_LABELS[lead.status] || lead.status}
                     </Badge>
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td>
                     <Badge variant="outline" className={`text-[10px] uppercase tracking-wider ${LEAD_SOURCE_COLORS[lead.status] || "bg-muted"}`}>
                       {lead.source.replace("_", " ")}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
+                  </td>
+                  <td className="max-w-[200px] truncate text-[13px] text-[#767676] font-medium">
                     {noteText}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  </td>
+                  <td className="text-[13px] text-[#767676] font-medium">
                     {formatDate(lead.createdAt)}
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               );
             })}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
     );
   };
@@ -246,47 +248,50 @@ export default function HostelLeadsView({ hostelId, baseRoute }: { hostelId: str
   const convertedLeads = leads.filter(l => l.status === "CONVERTED");
   const droppedLeads = leads.filter(l => l.status === "DROPPED");
 
+  const Actions = (
+    <button className="flex items-center justify-center gap-2 premium-button whitespace-nowrap" onClick={() => setShowLogModal(true)}>
+      <Plus className="mr-1.5 h-4 w-4" /> Log Enquiry
+    </button>
+  );
+
   return (
-    <div className="flex flex-col min-h-full">
-      <PageHeader
-        title="Hostel Leads"
-        description="Track and manage prospective tenants."
-        actions={
-          <Button size="sm" onClick={() => setShowLogModal(true)}>
-            <Plus className="mr-1 h-4 w-4" /> Log Enquiry
-          </Button>
-        }
-      />
-      <div className="p-6">
+    <HostelWorkspaceLayout
+      hostelId={hostelId || ""}
+      hostelName={hostelName}
+      title="Hostel Leads"
+      subtitle="Track and manage prospective tenants"
+      actions={Actions}
+    >
+      <div className="w-full">
         {loading ? (
           <TableSkeleton />
         ) : (
           <Tabs defaultValue="ALL" className="w-full">
-            <TabsList className="mb-6 overflow-x-auto flex-nowrap w-full justify-start h-auto p-1 bg-muted/50">
-              <TabsTrigger value="ALL">All Leads ({leads.length})</TabsTrigger>
-              <TabsTrigger value="NEW">New ({newLeads.length})</TabsTrigger>
-              <TabsTrigger value="CONTACTED">Contacted ({contactedLeads.length})</TabsTrigger>
-              <TabsTrigger value="FOLLOW_UP">Follow Up ({followUpLeads.length})</TabsTrigger>
-              <TabsTrigger value="CONVERTED">Converted ({convertedLeads.length})</TabsTrigger>
-              <TabsTrigger value="DROPPED">Dropped ({droppedLeads.length})</TabsTrigger>
+            <TabsList className="premium-tab-list bg-transparent h-auto p-0 mb-6 rounded-none">
+              <TabsTrigger value="ALL" className="premium-tab data-[state=active]:active data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-0">All Leads ({leads.length})</TabsTrigger>
+              <TabsTrigger value="NEW" className="premium-tab data-[state=active]:active data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-0">New ({newLeads.length})</TabsTrigger>
+              <TabsTrigger value="CONTACTED" className="premium-tab data-[state=active]:active data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-0">Contacted ({contactedLeads.length})</TabsTrigger>
+              <TabsTrigger value="FOLLOW_UP" className="premium-tab data-[state=active]:active data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-0">Follow Up ({followUpLeads.length})</TabsTrigger>
+              <TabsTrigger value="CONVERTED" className="premium-tab data-[state=active]:active data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-0">Converted ({convertedLeads.length})</TabsTrigger>
+              <TabsTrigger value="DROPPED" className="premium-tab data-[state=active]:active data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-0">Dropped ({droppedLeads.length})</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="ALL" className="m-0">
+            <TabsContent value="ALL" className="m-0 bg-white dark:bg-[#0a0a0a] border border-[#dedede] dark:border-white/10 rounded-sm">
               {renderTable(leads, "No leads have been captured yet.")}
             </TabsContent>
-            <TabsContent value="NEW" className="m-0">
+            <TabsContent value="NEW" className="m-0 bg-white dark:bg-[#0a0a0a] border border-[#dedede] dark:border-white/10 rounded-sm">
               {renderTable(newLeads, "No new leads.")}
             </TabsContent>
-            <TabsContent value="CONTACTED" className="m-0">
+            <TabsContent value="CONTACTED" className="m-0 bg-white dark:bg-[#0a0a0a] border border-[#dedede] dark:border-white/10 rounded-sm">
               {renderTable(contactedLeads, "No contacted leads.")}
             </TabsContent>
-            <TabsContent value="FOLLOW_UP" className="m-0">
+            <TabsContent value="FOLLOW_UP" className="m-0 bg-white dark:bg-[#0a0a0a] border border-[#dedede] dark:border-white/10 rounded-sm">
               {renderTable(followUpLeads, "No leads require follow-up.")}
             </TabsContent>
-            <TabsContent value="CONVERTED" className="m-0">
+            <TabsContent value="CONVERTED" className="m-0 bg-white dark:bg-[#0a0a0a] border border-[#dedede] dark:border-white/10 rounded-sm">
               {renderTable(convertedLeads, "No leads converted yet.")}
             </TabsContent>
-            <TabsContent value="DROPPED" className="m-0">
+            <TabsContent value="DROPPED" className="m-0 bg-white dark:bg-[#0a0a0a] border border-[#dedede] dark:border-white/10 rounded-sm">
               {renderTable(droppedLeads, "No dropped leads.")}
             </TabsContent>
           </Tabs>
@@ -429,6 +434,6 @@ export default function HostelLeadsView({ hostelId, baseRoute }: { hostelId: str
           </div>
         </div>
       )}
-    </div>
+    </HostelWorkspaceLayout>
   );
 }

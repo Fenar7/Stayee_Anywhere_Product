@@ -9,7 +9,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireRole([UserRole.TENANT]);
+    const session = await requireRole([UserRole.TENANT, UserRole.WARDEN, UserRole.MAIN_ADMIN]);
     const { id } = await params;
     const body = await request.json();
     const { read, dismissedFromHome } = body;

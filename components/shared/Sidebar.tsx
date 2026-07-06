@@ -21,8 +21,16 @@ import {
   UserPlus,
   Bed,
   Bell,
+  Search,
+  ChevronDown,
+  HelpCircle,
+  Settings,
+  ArrowLeft,
+  LayoutGrid,
+  AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -44,52 +52,42 @@ interface NavGroup {
 const NAV_CONFIG: Record<Role, NavGroup[]> = {
   MAIN_ADMIN: [
     {
-      label: "Overview",
       items: [
-        { label: "Dashboard", href: "/admin", icon: Home },
+        { label: "Dashboard", href: "/admin", icon: LayoutGrid },
         { label: "Hostels", href: "/admin/hostels", icon: Building2 },
         { label: "All Users", href: "/admin/users", icon: Users },
         { label: "Wardens", href: "/admin/wardens", icon: Shield },
+        { label: "Complaints", href: "/admin/tickets", icon: AlertCircle },
       ],
     },
     {
-      label: "Operations",
       items: [
         { label: "Onboards", href: "/admin/onboards", icon: FileText },
         { label: "Leads", href: "/admin/leads", icon: UserSquare },
       ],
     },
     {
-      label: "Hostel Tools",
       items: [
         { label: "Food Dashboard", href: "/warden/food", icon: Utensils },
         { label: "Occupancy", href: "/warden/occupancy", icon: Map },
         { label: "Worklists", href: "/warden/worklists", icon: List },
+        { label: "Notifications", href: "/admin/notifications", icon: Bell },
       ],
     },
   ],
   WARDEN: [
     {
-      label: "Overview",
       items: [
-        { label: "Dashboard", href: "/warden", icon: Home },
-        { label: "Onboard Tenant", href: "/warden/onboard", icon: UserPlus },
-      ],
-    },
-    {
-      label: "Applications",
-      items: [
-        { label: "Onboards", href: "/warden/onboards", icon: FileText },
-        { label: "Leads", href: "/warden/leads", icon: UserSquare },
-      ],
-    },
-    {
-      label: "Hostel",
-      items: [
-        { label: "Occupancy", href: "/warden/occupancy", icon: Map },
-        { label: "Food Dashboard", href: "/warden/food", icon: Utensils },
-        { label: "Worklists", href: "/warden/worklists", icon: List },
-        { label: "Stays", href: "/warden/stays", icon: Bed },
+        { label: "Dashboard", href: "/warden", icon: LayoutGrid },
+        { label: "Beds", href: "/warden/occupancy", icon: Bed },
+        { label: "Bookings", href: "/warden/onboards", icon: FileText },
+        { label: "Tenants", href: "/warden/stays", icon: Users },
+        { label: "Complaints", href: "/warden/tickets", icon: AlertCircle },
+        { label: "Rent", href: "/warden/leads", icon: UserSquare }, // Placeholder
+        { label: "Invoices", href: "/warden/onboard", icon: FileText }, // Placeholder
+        { label: "Incidents", href: "/warden/worklists", icon: Shield }, // Placeholder
+        { label: "House Keeping", href: "/warden/food", icon: Utensils }, // Placeholder
+        { label: "Notifications", href: "/warden/notifications", icon: Bell }, 
       ],
     },
   ],
@@ -116,12 +114,6 @@ const ROLE_HOME: Record<Role, string> = {
   TENANT: "/tenant",
 };
 
-const ROLE_COLORS: Record<Role, string> = {
-  MAIN_ADMIN: "bg-rose-500/15 text-rose-700 dark:text-rose-400",
-  WARDEN: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  TENANT: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-};
-
 // ─── SidebarNavItem ───────────────────────────────────────────────────────────
 
 function SidebarNavItem({
@@ -136,11 +128,6 @@ function SidebarNavItem({
   badge?: number;
 }) {
   const Icon = item.icon;
-  /**
-   * Exact match for root dashboards (/admin, /warden, /tenant),
-   * prefix match for everything else — prevents Dashboard from
-   * staying "active" on every sub-page.
-   */
   const isActive =
     item.href === "/admin" || item.href === "/warden" || item.href === "/tenant"
       ? pathname === item.href
@@ -151,16 +138,16 @@ function SidebarNavItem({
       href={item.href}
       title={collapsed ? item.label : undefined}
       className={cn(
-        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
+        "group flex items-center gap-3 px-3 py-[11px] text-[14px] font-medium transition-all duration-150 rounded-[7px]",
         isActive
-          ? "bg-primary/10 text-primary"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          ? "border border-[#dedede] text-black shadow-sm bg-white font-semibold"
+          : "text-black border border-transparent hover:bg-gray-50"
       )}
     >
       <Icon
         className={cn(
-          "h-4 w-4 shrink-0 transition-colors",
-          isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+          "h-5 w-5 shrink-0 transition-colors",
+          isActive ? "text-black" : "text-black group-hover:text-black"
         )}
       />
       {!collapsed && (
@@ -193,7 +180,7 @@ function SidebarContent({
   const pathname = usePathname();
   const router = useRouter();
   const groups = NAV_CONFIG[role] ?? [];
-  const { data: counts = { pendingReviews: 0, pendingPayments: 0, rentDueSoon: 0 } } = useSWR(
+  const { data: counts = { pendingReviews: 0, pendingPayments: 0, rentDueSoon: 0, openTickets: 0, unreadNotifications: 0 } } = useSWR(
     role === "WARDEN" || role === "MAIN_ADMIN" ? "/api/warden/action-counts" : null,
     (url: string) => fetch(url).then(res => res.json()),
     { refreshInterval: 60000, dedupingInterval: 10000 }
@@ -206,8 +193,6 @@ function SidebarContent({
   );
   const unreadCount = tenantNotifications?.notifications?.filter((n: any) => !n.read).length ?? 0;
 
-
-
   const handleLogout = useCallback(async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
@@ -218,74 +203,98 @@ function SidebarContent({
   }, [router]);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-white">
       {/* ── Header ── */}
       <div
         className={cn(
-          "flex items-center border-b px-4 py-4",
-          collapsed ? "justify-center" : "justify-between"
+          "flex pt-8 pb-6",
+          collapsed ? "flex-col items-center gap-4 px-2" : "flex-row items-center justify-between px-5"
         )}
       >
         {!collapsed && (
           <Link
             href={ROLE_HOME[role] || "/login"}
-            className="flex items-center gap-2.5 min-w-0"
+            className="flex items-center gap-3 min-w-0"
           >
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary">
-              <span className="text-[11px] font-extrabold text-primary-foreground leading-none">
-                NH
+            <Image
+              src="/anywhere-node-squre-icon.png"
+              alt="Anywhere Node Logo"
+              width={48}
+              height={48}
+              className="rounded-[10px] shrink-0"
+            />
+            <div className="flex items-center gap-1">
+              <span className="text-[17px] font-semibold text-black tracking-tight truncate">
+                Anywhere Node
               </span>
+              <ChevronDown className="size-4 text-black" />
             </div>
-            <span className="text-base font-extrabold tracking-tight truncate">
-              Anywhere Node
-            </span>
           </Link>
         )}
         {collapsed && (
           <Link href={ROLE_HOME[role] || "/login"}>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-              <span className="text-[11px] font-extrabold text-primary-foreground leading-none">
-                NH
-              </span>
-            </div>
+            <Image
+              src="/anywhere-node-squre-icon.png"
+              alt="Anywhere Node Logo"
+              width={48}
+              height={48}
+              className="rounded-[10px] shrink-0"
+            />
           </Link>
         )}
         {/* Desktop collapse toggle */}
-        {onCollapse && (
+        {onCollapse && !collapsed && (
           <button
             onClick={onCollapse}
-            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="rounded-[6px] border border-[#dedede] p-2 hover:bg-gray-50 transition-colors shrink-0"
+            title="Collapse sidebar"
           >
-            <ChevronLeft
-              className={cn(
-                "h-4 w-4 transition-transform duration-200",
-                collapsed && "rotate-180"
-              )}
-            />
+            <ArrowLeft className="h-5 w-5 text-black" />
+          </button>
+        )}
+        {onCollapse && collapsed && (
+          <button
+            onClick={onCollapse}
+            className="rounded-[6px] border border-[#dedede] p-2 hover:bg-gray-50 transition-colors shrink-0"
+            title="Expand sidebar"
+          >
+            <ChevronLeft className="h-5 w-5 text-black rotate-180" />
           </button>
         )}
         {/* Mobile close button */}
         {onClose && (
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="rounded-[6px] border border-[#dedede] p-2 hover:bg-gray-50 transition-colors shrink-0"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5 text-black" />
           </button>
         )}
       </div>
 
+      {!collapsed && (
+        <div className="px-5 pb-6">
+          <div className="flex items-center gap-2 border border-[#dedede] rounded-[7px] px-3 h-11 w-full bg-white">
+            <Search className="size-5 text-[#767676]" />
+            <input 
+              type="text" 
+              placeholder="Search." 
+              className="flex-1 bg-transparent border-none outline-none text-[15px] placeholder:text-[#767676] text-black"
+            />
+          </div>
+        </div>
+      )}
+
       {/* ── Navigation ── */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+      <nav className="flex-1 overflow-y-auto px-5 space-y-1 pb-4">
         {groups.map((group, gi) => (
           <div key={gi}>
             {group.label && !collapsed && (
-              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+              <p className="mb-2 px-4 text-[12px] font-semibold uppercase tracking-widest text-[#767676] mt-4">
                 {group.label}
               </p>
             )}
-            <div className="space-y-0.5">
+            <div className="space-y-1">
               {group.items.map((item) => (
                 <SidebarNavItem
                   key={item.href}
@@ -295,6 +304,7 @@ function SidebarContent({
                   badge={
                     item.label === "Onboards" ? counts.pendingReviews + counts.pendingPayments :
                     item.label === "Worklists" ? counts.rentDueSoon :
+                    item.label === "Complaints" ? counts.openTickets :
                     item.label === "Notifications" ? unreadCount : 0
                   }
                 />
@@ -305,39 +315,36 @@ function SidebarContent({
       </nav>
 
       {/* ── Footer ── */}
-      <div className={cn("border-t px-3 py-4 space-y-2")}>
-        {!collapsed && (
-          <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/50">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted-foreground/15 text-muted-foreground">
-              <span className="text-[11px] font-bold uppercase leading-none">
-                {userName.slice(-2)}
-              </span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-foreground">{userName}</p>
-              <span
-                className={cn(
-                  "mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold",
-                  ROLE_COLORS[role]
-                )}
-              >
-                {ROLE_LABELS[role]}
-              </span>
+      <div className="px-5 pb-8 space-y-6">
+        <div className="flex flex-col gap-4 px-2">
+          <button className="flex items-center text-black hover:opacity-70 transition-opacity">
+            <HelpCircle className="size-[28px]" />
+          </button>
+          <button className="flex items-center text-black hover:opacity-70 transition-opacity">
+            <Settings className="size-[28px]" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="size-12 shrink-0 rounded-full bg-gray-200 overflow-hidden">
+             {/* Fallback to initials if no image is available */}
+            <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600 font-bold">
+              {userName.slice(0, 2).toUpperCase()}
             </div>
           </div>
-        )}
-
-        <button
-          onClick={handleLogout}
-          title={collapsed ? "Logout" : undefined}
-          className={cn(
-            "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors",
-            collapsed && "justify-center"
+          {!collapsed && (
+            <div className="min-w-0 flex-1 flex flex-col justify-center">
+              <p className="truncate text-[16px] font-semibold text-black leading-tight">Next Home Calicut</p>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 text-[14px] text-[#767676] hover:text-black transition-colors mt-0.5"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </button>
+            </div>
           )}
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>Logout</span>}
-        </button>
+        </div>
       </div>
     </div>
   );
@@ -354,14 +361,12 @@ export function Sidebar({ role, userName }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Close mobile drawer on route change
   const pathname = usePathname();
   useEffect(() => {
     // eslint-disable-next-line
     setMobileOpen(false);
   }, [pathname]);
 
-  // Prevent body scroll when mobile drawer is open
   useEffect(() => {
     if (mobileOpen) {
       document.body.style.overflow = "hidden";
@@ -378,10 +383,10 @@ export function Sidebar({ role, userName }: SidebarProps) {
       {/* ── Mobile Hamburger Button ── */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-40 flex h-9 w-9 items-center justify-center rounded-lg border bg-background shadow-sm lg:hidden"
+        className="fixed left-4 top-4 z-40 flex h-9 w-9 items-center justify-center rounded-lg border bg-white shadow-sm lg:hidden"
         aria-label="Open navigation"
       >
-        <Menu className="h-4 w-4" />
+        <Menu className="h-4 w-4 text-black" />
       </button>
 
       {/* ── Mobile Backdrop ── */}
@@ -396,7 +401,7 @@ export function Sidebar({ role, userName }: SidebarProps) {
       {/* ── Mobile Drawer ── */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 border-r bg-background shadow-xl transition-transform duration-300 lg:hidden",
+          "fixed inset-y-0 left-0 z-50 w-72 border-r border-[#dedede] bg-white shadow-xl transition-transform duration-300 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
         aria-label="Mobile navigation"
@@ -412,8 +417,8 @@ export function Sidebar({ role, userName }: SidebarProps) {
       {/* ── Desktop Sidebar ── */}
       <aside
         className={cn(
-          "hidden lg:flex lg:flex-col lg:shrink-0 border-r bg-background transition-all duration-200",
-          collapsed ? "lg:w-[60px]" : "lg:w-60"
+          "hidden lg:flex lg:flex-col lg:shrink-0 bg-white border-r border-[#dedede] transition-all duration-200",
+          collapsed ? "lg:w-[90px]" : "lg:w-72"
         )}
         aria-label="Desktop navigation"
       >

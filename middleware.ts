@@ -1,7 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { prisma } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 
 const ROLE_HIERARCHY: Record<string, UserRole> = {
@@ -13,7 +12,7 @@ const ROLE_HIERARCHY: Record<string, UserRole> = {
   "/api/tenant": UserRole.TENANT,
 };
 
-const PUBLIC_ROUTES = ["/login", "/set-password"];
+const PUBLIC_ROUTES = ["/login", "/admin-login", "/set-password"];
 
 function getRequiredRole(pathname: string): UserRole | null {
   for (const [prefix, role] of Object.entries(ROLE_HIERARCHY)) {
@@ -25,11 +24,14 @@ function getRequiredRole(pathname: string): UserRole | null {
 }
 
 function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+  // Wrap response in a mutable object so setAll can update the reference
+  const responseRef = {
+    current: NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    })
+  };
 
   const rememberMeCookie = request.cookies.get("remember_me");
   const maxAge = rememberMeCookie ? 30 * 24 * 60 * 60 : undefined;
@@ -44,12 +46,14 @@ function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({
+          
+          responseRef.current = NextResponse.next({
             request,
           });
+          
           cookiesToSet.forEach(({ name, value, options }) => {
             const finalMaxAge = options.maxAge === 0 ? 0 : (maxAge !== undefined ? maxAge : options.maxAge);
-            supabaseResponse.cookies.set(name, value, {
+            responseRef.current.cookies.set(name, value, {
               ...options,
               maxAge: finalMaxAge,
             })
@@ -59,11 +63,13 @@ function updateSession(request: NextRequest) {
     }
   );
 
-  return { supabase, supabaseResponse };
+  return { supabase, responseRef };
 }
 
 function redirectToLogin(request: NextRequest): NextResponse {
-  const loginUrl = new URL("/login", request.url);
+  const isStaffRoute = request.nextUrl.pathname.startsWith("/admin") || request.nextUrl.pathname.startsWith("/warden");
+  const loginPath = isStaffRoute ? "/admin-login" : "/login";
+  const loginUrl = new URL(loginPath, request.url);
   loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
   const response = NextResponse.redirect(loginUrl);
   // Clear the remember_me cookie. We rely on the /login page mounting to call supabase.auth.signOut() to clear the chunked session cookies properly.
@@ -75,15 +81,15 @@ function jsonError(status: number, message: string, code: string): NextResponse 
   return NextResponse.json({ error: message, code }, { status });
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isApiRoute = pathname.startsWith("/api/");
   const requiredRole = getRequiredRole(pathname);
 
-  console.log(`[Proxy Log] pathname: ${pathname}, isApiRoute: ${isApiRoute}, requiredRole: ${requiredRole}`);
+  console.log(`[Middleware Log] pathname: ${pathname}, isApiRoute: ${isApiRoute}, requiredRole: ${requiredRole}`);
 
   if (!requiredRole && !isApiRoute) {
-    console.log(`[Proxy Log] Allowing route because it has no required role and is not api: ${pathname}`);
+    console.log(`[Middleware Log] Allowing route because it has no required role and is not api: ${pathname}`);
     return NextResponse.next();
   }
 
@@ -92,7 +98,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const { supabase, supabaseResponse } = updateSession(request);
+  const { supabase, responseRef } = updateSession(request);
 
   let supabaseUserId: string | null = null;
   try {
@@ -108,25 +114,43 @@ export async function proxy(request: NextRequest) {
       }
       return redirectToLogin(request);
     }
-    return supabaseResponse;
+    return responseRef.current;
   }
 
   if (!requiredRole) {
-    return supabaseResponse;
+    return responseRef.current;
   }
 
   let dbUser: { role: UserRole; passwordSetAt: Date | null } | null = null;
   try {
-    dbUser = await prisma.user.findUnique({
-      where: { supabaseAuthId: supabaseUserId },
-      select: { role: true, passwordSetAt: true },
+    const res = await fetch(`${request.nextUrl.origin}/api/internal/auth-check`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({ userId: supabaseUserId }),
     });
-  } catch {
-    return supabaseResponse;
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.dbUser) {
+        dbUser = {
+          role: data.dbUser.role as UserRole,
+          passwordSetAt: data.dbUser.passwordSetAt ? new Date(data.dbUser.passwordSetAt) : null,
+        };
+      }
+    } else {
+      console.error(`[Middleware Log] internal auth-check failed: ${res.status}`);
+      return responseRef.current;
+    }
+  } catch (err) {
+    console.error(`[Middleware Log] internal auth-check error:`, err);
+    return responseRef.current;
   }
 
   if (!dbUser) {
-    console.log(`[Proxy Log] dbUser not found, redirecting to login. pathname: ${pathname}`);
+    console.log(`[Middleware Log] dbUser not found, redirecting to login. pathname: ${pathname}`);
     if (isApiRoute) {
       return jsonError(401, "Unauthorized", "UNAUTHORIZED");
     }
@@ -135,34 +159,34 @@ export async function proxy(request: NextRequest) {
 
   // Force first-time password setup if passwordSetAt is null
   if (dbUser.passwordSetAt === null && pathname !== "/set-password") {
-    console.log(`[Proxy Log] Force password setup required. passwordSetAt: ${dbUser.passwordSetAt}, pathname: ${pathname}`);
+    console.log(`[Middleware Log] Force password setup required. passwordSetAt: ${dbUser.passwordSetAt}, pathname: ${pathname}`);
     if (isApiRoute) {
       if (pathname !== "/api/auth/set-password" && pathname !== "/api/auth/logout") {
-        console.log(`[Proxy Log] Blocking API request due to password setup requirement: ${pathname}`);
+        console.log(`[Middleware Log] Blocking API request due to password setup requirement: ${pathname}`);
         return jsonError(403, "Password setup required", "PASSWORD_SETUP_REQUIRED");
       }
     } else {
-      console.log(`[Proxy Log] Redirecting to /set-password from: ${pathname}`);
+      console.log(`[Middleware Log] Redirecting to /set-password from: ${pathname}`);
       return NextResponse.redirect(new URL("/set-password", request.url));
     }
   }
 
   // MAIN_ADMIN is a superuser — treat as having all role permissions
   if (dbUser.role === UserRole.MAIN_ADMIN) {
-    console.log(`[Proxy Log] Main Admin bypass for route: ${pathname}`);
-    return supabaseResponse;
+    console.log(`[Middleware Log] Main Admin bypass for route: ${pathname}`);
+    return responseRef.current;
   }
 
   if (dbUser.role !== requiredRole) {
-    console.log(`[Proxy Log] Role mismatch. User role: ${dbUser.role}, required: ${requiredRole}, pathname: ${pathname}`);
+    console.log(`[Middleware Log] Role mismatch. User role: ${dbUser.role}, required: ${requiredRole}, pathname: ${pathname}`);
     if (isApiRoute) {
       return jsonError(403, "Forbidden", "FORBIDDEN");
     }
     return redirectToLogin(request);
   }
 
-  console.log(`[Proxy Log] Allowing route to proceed: ${pathname}`);
-  return supabaseResponse;
+  console.log(`[Middleware Log] Allowing route to proceed: ${pathname}`);
+  return responseRef.current;
 }
 
 export const config = {

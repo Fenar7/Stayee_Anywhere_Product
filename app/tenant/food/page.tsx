@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Loader2, ChevronLeft, ChevronRight,
-  Coffee, Sun, Moon, CalendarDays, Lock, UtensilsCrossed
+  Coffee, Sun, Moon, CalendarDays, Lock, UtensilsCrossed,
+  Home, Wallet, User as UserIcon, Utensils
 } from "lucide-react";
 import Link from "next/link";
 import { notify } from "@/lib/toast";
 import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
+
+// ─── Interfaces ───────────────────────────────────────────────────────────────
 
 interface FoodOrderDay {
   forDate: string;
@@ -55,6 +56,33 @@ function toISODate(date: Date): string {
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
+
+// ─── Micro-Components (Consumer/Fintech Style) ───────────────────────────────
+
+function SoftCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`bg-white dark:bg-[#121212] rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.02)] border border-[#f0f0f0] dark:border-white/5 p-6 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function PillButton({ children, onClick, variant = "primary", className = "", type = "button", disabled = false }: any) {
+  const base = "h-14 px-8 rounded-full font-bold text-[15px] flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]";
+  const variants = {
+    primary: "bg-[#111111] dark:bg-[#58ff48] text-white dark:text-black hover:bg-black/90",
+    secondary: "bg-[#f5f5f5] dark:bg-white/10 text-[#111111] dark:text-white hover:bg-[#eeeeee]",
+    outline: "bg-transparent border-[1.5px] border-[#dedede] dark:border-white/20 text-[#111111] dark:text-white hover:border-[#111111]",
+    danger: "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100",
+  };
+  return (
+    <button type={type} onClick={onClick} disabled={disabled} className={`${base} w-full ${variants[variant as keyof typeof variants]} ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${className}`}>
+      {children}
+    </button>
+  );
+}
+
+// ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function TenantFoodPage() {
   const [data, setData] = useState<FoodOrdersResponse | null>(null);
@@ -141,168 +169,190 @@ export default function TenantFoodPage() {
   const goToday = () => setWeekStart(getMonday(new Date()));
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-8">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-32 text-[#111111] dark:text-white font-sans relative">
+      
+      {/* ── Top App Bar ── */}
+      <header className="px-6 pt-12 pb-6 sticky top-0 bg-[#FAFAFA]/90 dark:bg-[#0A0A0A]/90 backdrop-blur-xl z-40">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight mb-1">Meal Plan</h1>
+          <p className="text-gray-500 font-medium">Manage your daily food preferences</p>
+        </div>
+      </header>
+
+      <main className="px-6 space-y-6">
         
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b pb-6">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">Meal Plan</h1>
-            <p className="text-muted-foreground mt-1 text-sm">Manage your daily food preferences</p>
+        {/* Date Navigator */}
+        <SoftCard className="p-2 flex items-center justify-between shadow-sm">
+          <button onClick={prevWeek} className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+            <ChevronLeft className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          </button>
+          
+          <div className="flex flex-col items-center">
+            <span className="text-[14px] font-bold text-black dark:text-white">
+              {formatDateShort(weekStart.toISOString())} - {formatDateShort(weekEnd.toISOString())}
+            </span>
+            <button onClick={goToday} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider hover:text-black dark:hover:text-white mt-1">
+              Go to Today
+            </button>
           </div>
           
-          <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-1.5 rounded-lg border shadow-sm w-fit">
-            <Button variant="ghost" size="sm" onClick={prevWeek} className="h-8 w-8 p-0">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex items-center gap-2 px-3 text-sm font-semibold">
-              <CalendarDays className="h-4 w-4 text-primary" />
-              <span>{formatDateShort(weekStart.toISOString())}</span>
-              <span className="text-muted-foreground font-normal">to</span>
-              <span>{formatDateShort(weekEnd.toISOString())}</span>
-            </div>
-            <Button variant="ghost" size="sm" onClick={nextWeek} className="h-8 w-8 p-0">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <div className="w-px h-5 bg-border mx-1"></div>
-            <Button variant="ghost" size="sm" onClick={goToday} className="h-8 px-3 text-xs font-bold uppercase tracking-wider">
-              Today
-            </Button>
-          </div>
-        </div>
+          <button onClick={nextWeek} className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+            <ChevronRight className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          </button>
+        </SoftCard>
 
         {loading ? (
           <DashboardSkeleton />
         ) : foodNotIncluded ? (
-          <div className="max-w-2xl mx-auto mt-12 text-center space-y-6 bg-card border shadow-sm p-10 rounded-2xl">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-950">
-              <UtensilsCrossed className="h-10 w-10 text-amber-500" />
+          <SoftCard className="text-center py-12">
+            <div className="w-20 h-20 bg-amber-50 dark:bg-amber-500/10 rounded-full mx-auto flex items-center justify-center mb-6">
+              <UtensilsCrossed className="w-8 h-8 text-amber-500" />
             </div>
-            <div className="space-y-3">
-              <h2 className="text-2xl font-bold">Food Plan Not Included</h2>
-              <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
-                Your current stay plan does not include hostel food services. If you'd like to subscribe to meals, please contact your warden to upgrade your plan.
-              </p>
-            </div>
-            <div className="pt-4">
-              <Link href="/tenant" className={buttonVariants({ variant: "outline" })}>Back to Dashboard</Link>
-            </div>
-          </div>
+            <h2 className="text-2xl font-bold text-black dark:text-white mb-3">Food Plan Not Included</h2>
+            <p className="text-gray-500 leading-relaxed mb-8">
+              Your current stay plan does not include hostel food services. If you'd like to subscribe to meals, please contact your warden to upgrade your plan.
+            </p>
+            <Link href="/tenant">
+              <PillButton variant="outline">Back to Dashboard</PillButton>
+            </Link>
+          </SoftCard>
         ) : data ? (
-          <div className="space-y-6">
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {data.days.map((day) => {
-                const d = new Date(day.forDate);
-                const dayLabel = DAY_LABELS[d.getDay()];
-                const isToday = toISODate(d) === toISODate(new Date());
+          <div className="space-y-4">
+            {data.days.map((day) => {
+              const d = new Date(day.forDate);
+              const dayLabel = DAY_LABELS[d.getDay()];
+              const isToday = toISODate(d) === toISODate(new Date());
 
-                return (
-                  <Card
-                    key={day.forDate}
-                    className={`overflow-hidden transition-all duration-200 border-2 ${
-                      isToday
-                        ? "border-primary shadow-md shadow-primary/10 ring-1 ring-primary/20 scale-[1.02] z-10"
-                        : "border-transparent border-border/50 hover:border-border hover:shadow-md"
-                    } ${!day.isEditable ? "opacity-75 bg-slate-50/50 dark:bg-slate-900/50" : "bg-card"}`}
-                  >
-                    <div className={`h-2 ${isToday ? "bg-primary" : "bg-muted"}`}></div>
-                    
-                    <CardHeader className="pb-4 pt-5 px-5">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className={`text-xs font-bold uppercase tracking-wider ${isToday ? "text-primary" : "text-muted-foreground"}`}>
-                            {dayLabel}
-                          </p>
-                          <h3 className="text-xl font-bold mt-1">
-                            {d.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                          </h3>
-                        </div>
-                        {isToday && (
-                          <span className="bg-primary text-primary-foreground text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
-                            Today
-                          </span>
-                        )}
-                        {!day.isEditable && !isToday && (
-                          <div className="bg-muted p-2 rounded-full" title="Locked">
-                            <Lock className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        )}
+              return (
+                <SoftCard 
+                  key={day.forDate} 
+                  className={`p-0 overflow-hidden border-2 transition-all ${
+                    isToday ? "border-[#58ff48] shadow-lg shadow-[#58ff48]/10" : "border-transparent"
+                  }`}
+                >
+                  <div className={`h-2 w-full ${isToday ? "bg-[#58ff48]" : "bg-gray-100 dark:bg-white/5"}`} />
+                  
+                  <div className="p-5">
+                    <div className="flex justify-between items-start mb-5">
+                      <div>
+                        <p className={`text-[12px] font-bold uppercase tracking-wider ${isToday ? "text-[#1a8a10] dark:text-[#58ff48]" : "text-gray-400"}`}>
+                          {dayLabel} {isToday && "(Today)"}
+                        </p>
+                        <h3 className="text-xl font-black mt-1">
+                          {d.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                        </h3>
                       </div>
-                    </CardHeader>
-
-                    <CardContent className="px-5 pb-6 space-y-3">
-                      {/* Breakfast Toggle */}
-                      <Button
-                        variant={day.breakfast ? "default" : "outline"}
-                        className={`w-full justify-start h-12 px-4 shadow-none ${
-                          day.breakfast 
-                            ? "bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-200 dark:bg-amber-900/40 dark:text-amber-100 dark:border-amber-800" 
-                            : "bg-transparent"
-                        } ${!day.isEditable ? "cursor-not-allowed opacity-80" : ""}`}
-                        onClick={() => handleToggle(day.forDate, "breakfast", day.breakfast)}
-                        disabled={!day.isEditable || saving === `${day.forDate}-breakfast`}
-                      >
-                        {saving === `${day.forDate}-breakfast` ? (
-                          <Loader2 className="h-5 w-5 mr-3 animate-spin opacity-50" />
-                        ) : (
-                          <Coffee className={`h-5 w-5 mr-3 ${day.breakfast ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`} />
-                        )}
-                        <span className="font-semibold text-base">Breakfast</span>
-                      </Button>
-
-                      {/* Lunch Toggle */}
-                      <Button
-                        variant={day.lunch ? "default" : "outline"}
-                        className={`w-full justify-start h-12 px-4 shadow-none ${
-                          day.lunch 
-                            ? "bg-orange-100 hover:bg-orange-200 text-orange-900 border-orange-200 dark:bg-orange-900/40 dark:text-orange-100 dark:border-orange-800" 
-                            : "bg-transparent"
-                        } ${!day.isEditable ? "cursor-not-allowed opacity-80" : ""}`}
-                        onClick={() => handleToggle(day.forDate, "lunch", day.lunch)}
-                        disabled={!day.isEditable || saving === `${day.forDate}-lunch`}
-                      >
-                        {saving === `${day.forDate}-lunch` ? (
-                          <Loader2 className="h-5 w-5 mr-3 animate-spin opacity-50" />
-                        ) : (
-                          <Sun className={`h-5 w-5 mr-3 ${day.lunch ? "text-orange-500" : "text-muted-foreground"}`} />
-                        )}
-                        <span className="font-semibold text-base">Lunch</span>
-                      </Button>
-
-                      {/* Dinner Toggle */}
-                      <Button
-                        variant={day.dinner ? "default" : "outline"}
-                        className={`w-full justify-start h-12 px-4 shadow-none ${
-                          day.dinner 
-                            ? "bg-indigo-100 hover:bg-indigo-200 text-indigo-900 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-100 dark:border-indigo-800" 
-                            : "bg-transparent"
-                        } ${!day.isEditable ? "cursor-not-allowed opacity-80" : ""}`}
-                        onClick={() => handleToggle(day.forDate, "dinner", day.dinner)}
-                        disabled={!day.isEditable || saving === `${day.forDate}-dinner`}
-                      >
-                        {saving === `${day.forDate}-dinner` ? (
-                          <Loader2 className="h-5 w-5 mr-3 animate-spin opacity-50" />
-                        ) : (
-                          <Moon className={`h-5 w-5 mr-3 ${day.dinner ? "text-indigo-500 dark:text-indigo-400" : "text-muted-foreground"}`} />
-                        )}
-                        <span className="font-semibold text-base">Dinner</span>
-                      </Button>
-
-                      {/* Locked message */}
-                      {!day.isEditable && (
-                        <div className="flex items-center justify-center gap-1.5 mt-4 text-[11px] font-medium text-muted-foreground">
-                          <Lock className="h-3 w-3" />
-                          <span>Orders closed at 10 PM</span>
+                      {!day.isEditable && !isToday && (
+                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center">
+                          <Lock className="w-4 h-4 text-gray-400" />
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {/* Breakfast Toggle */}
+                      <button
+                        onClick={() => handleToggle(day.forDate, "breakfast", day.breakfast)}
+                        disabled={!day.isEditable || saving === `${day.forDate}-breakfast`}
+                        className={`w-full h-14 px-5 rounded-[16px] flex items-center font-bold text-[15px] transition-all ${
+                          day.breakfast 
+                            ? "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-300 border-2 border-amber-200 dark:border-amber-800" 
+                            : "bg-gray-50 text-gray-500 dark:bg-white/5 dark:text-gray-400 border-2 border-transparent"
+                        } ${!day.isEditable ? "opacity-60 cursor-not-allowed" : "hover:scale-[1.01]"}`}
+                      >
+                        {saving === `${day.forDate}-breakfast` ? (
+                          <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                        ) : (
+                          <Coffee className={`w-5 h-5 mr-3 ${day.breakfast ? "text-amber-600 dark:text-amber-400" : "text-gray-400"}`} />
+                        )}
+                        Breakfast
+                        {day.breakfast && <span className="ml-auto text-amber-600 dark:text-amber-400">✓</span>}
+                      </button>
+
+                      {/* Lunch Toggle */}
+                      <button
+                        onClick={() => handleToggle(day.forDate, "lunch", day.lunch)}
+                        disabled={!day.isEditable || saving === `${day.forDate}-lunch`}
+                        className={`w-full h-14 px-5 rounded-[16px] flex items-center font-bold text-[15px] transition-all ${
+                          day.lunch 
+                            ? "bg-orange-100 text-orange-900 dark:bg-orange-900/40 dark:text-orange-300 border-2 border-orange-200 dark:border-orange-800" 
+                            : "bg-gray-50 text-gray-500 dark:bg-white/5 dark:text-gray-400 border-2 border-transparent"
+                        } ${!day.isEditable ? "opacity-60 cursor-not-allowed" : "hover:scale-[1.01]"}`}
+                      >
+                        {saving === `${day.forDate}-lunch` ? (
+                          <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                        ) : (
+                          <Sun className={`w-5 h-5 mr-3 ${day.lunch ? "text-orange-600 dark:text-orange-400" : "text-gray-400"}`} />
+                        )}
+                        Lunch
+                        {day.lunch && <span className="ml-auto text-orange-600 dark:text-orange-400">✓</span>}
+                      </button>
+
+                      {/* Dinner Toggle */}
+                      <button
+                        onClick={() => handleToggle(day.forDate, "dinner", day.dinner)}
+                        disabled={!day.isEditable || saving === `${day.forDate}-dinner`}
+                        className={`w-full h-14 px-5 rounded-[16px] flex items-center font-bold text-[15px] transition-all ${
+                          day.dinner 
+                            ? "bg-indigo-100 text-indigo-900 dark:bg-indigo-900/40 dark:text-indigo-300 border-2 border-indigo-200 dark:border-indigo-800" 
+                            : "bg-gray-50 text-gray-500 dark:bg-white/5 dark:text-gray-400 border-2 border-transparent"
+                        } ${!day.isEditable ? "opacity-60 cursor-not-allowed" : "hover:scale-[1.01]"}`}
+                      >
+                        {saving === `${day.forDate}-dinner` ? (
+                          <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                        ) : (
+                          <Moon className={`w-5 h-5 mr-3 ${day.dinner ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400"}`} />
+                        )}
+                        Dinner
+                        {day.dinner && <span className="ml-auto text-indigo-600 dark:text-indigo-400">✓</span>}
+                      </button>
+
+                      {!day.isEditable && (
+                        <p className="text-center text-[12px] font-bold text-gray-400 mt-4 flex items-center justify-center gap-1">
+                          <Lock className="w-3 h-3" /> Orders locked
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </SoftCard>
+              );
+            })}
           </div>
         ) : null}
-      </div>
+      </main>
+
+      {/* ── Fixed Bottom Navigation Bar (Copied to persist state visually) ── */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#111111]/90 backdrop-blur-xl border-t border-gray-100 dark:border-white/5 z-50 pb-safe">
+        <div className="max-w-md mx-auto flex justify-between items-center px-6 py-3">
+          
+          <Link href="/tenant" className="relative">
+            <div className="p-3">
+              <Home className="w-6 h-6 text-gray-400 hover:text-gray-600 transition-colors" />
+            </div>
+          </Link>
+
+          <Link href="/tenant" className="relative">
+            <div className="p-3">
+              <Wallet className="w-6 h-6 text-gray-400 hover:text-gray-600 transition-colors" />
+            </div>
+          </Link>
+
+          <button className="relative cursor-default">
+            <div className="flex items-center gap-2 px-5 py-2.5 bg-black dark:bg-[#58ff48] rounded-full shadow-md animate-in zoom-in-95 duration-200">
+              <Utensils className="w-5 h-5 text-white dark:text-black" />
+              <span className="text-[13px] font-bold text-white dark:text-black">Food</span>
+            </div>
+          </button>
+
+          <Link href="/tenant" className="relative">
+            <div className="p-3">
+              <UserIcon className="w-6 h-6 text-gray-400 hover:text-gray-600 transition-colors" />
+            </div>
+          </Link>
+
+        </div>
+      </nav>
+
     </div>
   );
 }

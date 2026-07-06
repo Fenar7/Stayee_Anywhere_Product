@@ -1,0 +1,76 @@
+@reference "../../app/globals.css";
+
+@import 'variables';
+@import 'mixins';
+
+// We map these variables to CSS custom properties so they can also be used in Tailwind v4 if needed, 
+// and generally available in the DOM.
+:root {
+  --carbon-black: #{$carbon-black};
+  --black: #{$black};
+  --hash-grey-2: #{$hash-grey-2};
+  --cloud-grey: #{$cloud-grey};
+  --stroke-grey: #{$stroke-grey};
+  --cta-green: #{$cta-green};
+  --light-white: #{$light-white};
+  --white: #{$white};
+}
+
+body {
+  font-family: $font-family-base;
+  color: $carbon-black;
+  background-color: $light-white;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: $black;
+    color: $white;
+  }
+}
+
+/* Premium Dashboard Utility Classes */
+.premium-card {
+  @apply bg-white dark:bg-[#0a0a0a] border border-[#dedede] dark:border-white/10 rounded-sm;
+  transition: all 0.2s ease-in-out;
+}
+
+.premium-card-glass {
+  @apply bg-white/80 dark:bg-black/60 backdrop-blur-md border border-[#dedede] dark:border-white/10 rounded-sm;
+}
+
+.premium-table {
+  @apply w-full text-left text-sm border-collapse;
+}
+
+.premium-table th {
+  @apply border-b border-[#dedede] dark:border-white/10 py-3 px-4 font-semibold text-[#767676] dark:text-[#a0a0a0] uppercase tracking-wider text-xs;
+}
+
+.premium-table td {
+  @apply border-b border-[#dedede] dark:border-white/10 py-4 px-4 text-black dark:text-white;
+}
+
+.premium-table tbody tr:hover {
+  @apply bg-[#f5f5f5]/50 dark:bg-white/5;
+}
+
+.premium-tab-list {
+  @apply flex gap-6 w-full overflow-x-auto scrollbar-none;
+}
+
+.premium-tab {
+  @apply py-3.5 px-1 font-medium text-[14px] text-[#767676] dark:text-[#a0a0a0] transition-colors whitespace-nowrap border-b-[3px] border-transparent relative top-[1px];
+}
+
+.premium-tab.active {
+  @apply font-semibold text-black dark:text-white border-[#58ff48];
+}
+
+.premium-button {
+  @apply px-4 py-2 bg-black dark:bg-[#58ff48] text-white dark:text-black rounded-sm font-semibold text-sm transition-all hover:opacity-90;
+}
+
+.premium-button-outline {
+  @apply px-4 py-2 bg-transparent border border-[#dedede] dark:border-white/10 text-black dark:text-white rounded-sm font-semibold text-sm transition-all hover:bg-[#f5f5f5] dark:hover:bg-white/5;
+}

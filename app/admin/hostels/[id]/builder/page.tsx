@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { HostelWorkspaceLayout } from "@/components/hostel-management/HostelWorkspaceLayout";
 
 type AccommodationType = "MENS" | "WOMENS";
 
@@ -284,32 +285,29 @@ export default function BuilderPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full">
-      <PageHeader
-        title={data.name}
-        description={`${data.address} · ${data.accommodationType}`}
-        breadcrumbs={[
-          { label: "Admin", href: "/admin" },
-          { label: "Hostels", href: "/admin/hostels" },
-          { label: data.name },
-          { label: "Building Structure" }
-        ]}
+    <HostelWorkspaceLayout
+        hostelId={hostelId}
+        hostelName={data.name}
+        title="Building Structure Builder"
+        subtitle={`${data.address} · ${data.accommodationType}`}
         actions={
           <>
             <Button
               variant="outline"
               onClick={() => router.push(`/admin/hostels/${hostelId}/occupancy`)}
+              className="premium-button-outline"
             >
               View Occupancy
             </Button>
             <Button
               onClick={() => setShowAddFloor(true)}
+              className="premium-button"
             >
               + Add Floor
             </Button>
           </>
         }
-      />
+      >
       <div className="space-y-6 p-6">
 
 
@@ -538,7 +536,7 @@ export default function BuilderPage() {
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>
-    </div>
+    </HostelWorkspaceLayout>
   );
 }
 

@@ -41,6 +41,7 @@ model User {
   documentsUploaded Document[]        @relation("UploadedDocuments")
   leadNotes         LeadNote[]
   notifications     Notification[]
+  ticketComments    TicketComment[]
 
   @@index([organizationId])
 }
@@ -74,6 +75,7 @@ model Tenant {
   emergencyContactName   String?
   relationship           String?
   emergencyContactNumber String?
+  additionalEmergencyContacts Json?
   parentGuardianName     String?
   parentGuardianContact  String?
   occupationType         OccupationType?
@@ -89,6 +91,7 @@ model Tenant {
   // Inverse relations
   stays     Stay[]
   documents Document[]
+  tickets   Ticket[]
 }
 
 // ==========================================
@@ -120,6 +123,7 @@ model Hostel {
   stays              Stay[]
   leads              Lead[]
   onboardingRequests OnboardingRequest[]
+  tickets            Ticket[]
 
   @@index([organizationId])
 }
@@ -539,10 +543,74 @@ model Notification {
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title              String
   message            String
-  type               String   // e.g. "FOOD_PLAN", "PAYMENT", "ONBOARDING"
+  type               String   // e.g. "FOOD_PLAN", "PAYMENT", "ONBOARDING", "TICKET"
+  targetUrl          String?  // the URL to navigate to when the notification is clicked
+  referenceId        String?  // ID of the related entity (e.g. Ticket ID)
   read               Boolean  @default(false)
   dismissedFromHome  Boolean  @default(false)
   createdAt          DateTime @default(now())
 
   @@index([userId, read])
+}
+
+// ==========================================
+// Ticketing / Complaint System
+// ==========================================
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketCategory {
+  MAINTENANCE
+  CLEANING
+  ELECTRICAL
+  PLUMBING
+  OTHER
+}
+
+model Ticket {
+  id          String         @id @default(uuid())
+  tenantId    String
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hostelId    String
+  hostel      Hostel         @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  
+  title       String
+  description String
+  priority    TicketPriority @default(NORMAL)
+  status      TicketStatus   @default(OPEN)
+  category    TicketCategory @default(OTHER)
+  
+  resolvedAt  DateTime?
+  closedAt    DateTime?
+  
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  
+  comments    TicketComment[]
+
+  @@index([hostelId, status])
+  @@index([tenantId])
+}
+
+model TicketComment {
+  id         String   @id @default(uuid())
+  ticketId   String
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  message    String
+  isInternal Boolean  @default(false)
+  createdAt  DateTime @default(now())
 }
