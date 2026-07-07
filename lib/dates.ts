@@ -37,16 +37,6 @@ export function getStartOfDayIST(date: Date): Date {
 }
 
 /**
- * Returns a Date object set to 23:59:59.999 IST for the last day of the month of the given date.
- */
-export function getEndOfMonthIST(date: Date): Date {
-  const { year, month } = getISTDateParts(date);
-  // Get the last day of the month
-  const lastDay = new Date(year, month, 0).getDate();
-  return new Date(`${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}T23:59:59.999+05:30`);
-}
-
-/**
  * Add exactly `days` number of days to a date.
  * Safe across month boundaries, leap years, and DST (though IST has no DST).
  */

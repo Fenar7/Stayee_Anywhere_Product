@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
       endDate: data.endDate,
       durationType: data.durationType,
       foodPlan: data.foodPlan,
-      foodBillingMode: data.foodBillingMode,
       isNewAdmission: data.isNewAdmission,
       admissionFee: data.admissionFee,
       monthlyRent: data.monthlyRent,

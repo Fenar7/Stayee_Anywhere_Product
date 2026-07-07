@@ -10,7 +10,6 @@ import { StayStatus, BedStatus, DocumentOwnerType, DocumentType } from "@prisma/
 import { generateRefundInvoice } from "@/services/pdf/refund-invoice.service";
 import { logActivity } from "@/services/activity/activity.service";
 import { ActivityEventType } from "@prisma/client";
-import { FoodCycleService } from "@/services/food/cycle.service";
 
 export interface EarlyCheckoutParams {
   stayId: string;
@@ -110,10 +109,6 @@ export async function processEarlyCheckout(params: EarlyCheckoutParams): Promise
         forDate: { gt: checkoutDate },
       },
     });
-
-    // Hook for Sprint 1.2: Close any open food billing cycle
-    // Note: Full financial settlement algorithm will be added in Sprint 4
-    await FoodCycleService.closeCycle(tx, stayId, checkoutDate, userId);
 
     await tx.stayStatusEvent.create({
       data: {

@@ -44,12 +44,6 @@ model User {
   ticketComments    TicketComment[]
   activityLogsActed ActivityLog[]     @relation("ActivityActor")
 
-  foodPricingsCreated           FoodPricing[]
-  foodBillingCyclesClosed       FoodBillingCycle[]
-  topUpApprovals                FoodWalletTopUp[]           @relation("TopUpApprovals")
-  foodSettlementsCreated        FoodSettlementStatement[]
-  complementaryFoodOrdersCreated ComplementaryFoodOrder[]
-
   @@index([organizationId])
 }
 
@@ -118,8 +112,6 @@ model Hostel {
   locationId        String?
   location          Location?         @relation(fields: [locationId], references: [id])
   affidavitText     String?
-  foodOrderCutoffStartHour  Int       @default(20)  // 8 PM
-  foodOrderCutoffEndHour    Int       @default(6)   // 6 AM
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   organizationId    String
@@ -134,8 +126,6 @@ model Hostel {
   onboardingRequests OnboardingRequest[]
   tickets            Ticket[]
   activityLogs       ActivityLog[]
-  foodPricings       FoodPricing[]
-  complementaryFoodOrders ComplementaryFoodOrder[]
 
   @@index([organizationId])
 }
@@ -282,12 +272,6 @@ enum FoodPlan {
   BLD
 }
 
-enum FoodBillingMode {
-  PREPAID_CONSUMPTION
-  POSTPAID
-  FLAT_RATE
-}
-
 model Stay {
   id                   String       @id @default(uuid())
   tenantId             String
@@ -305,7 +289,6 @@ model Stay {
   monthlyRentPaise     Int
   securityDepositPaise Int
   foodChargesPaise     Int
-  foodBillingMode      FoodBillingMode @default(FLAT_RATE)
   foodPlan             FoodPlan     @default(NOT_INCLUDED)
   foodPlanStartDate    DateTime?
   foodPlanEndDate      DateTime?
@@ -324,10 +307,6 @@ model Stay {
   foodOrders      FoodOrder[]
   documents       Document[]
   serviceRequests ServiceRequest[]
-
-  foodBillingCycles FoodBillingCycle[]
-  foodWalletTopUps  FoodWalletTopUp[]
-  foodSettlements   FoodSettlementStatement[]
 
   // Indexes
   @@index([bedId, status])
@@ -523,7 +502,6 @@ model Organization {
   users        User[]
   leads        Lead[]
   activityLogs ActivityLog[]
-  foodPricings FoodPricing[]
 }
 
 // ==========================================
@@ -659,9 +637,6 @@ enum ActivityEventType {
 
   // Food
   FOOD_ORDER_UPDATED
-  FOOD_CYCLE_CLOSED
-  FOOD_WALLET_TOPPED_UP
-  FOOD_COMPLEMENTARY_ORDER_CREATED
 
   // Service Requests
   SERVICE_REQUEST_CREATED
@@ -687,139 +662,4 @@ model ActivityLog {
 
   @@index([organizationId, createdAt(sort: Desc)])
   @@index([hostelId, createdAt(sort: Desc)])
-}
-
-// ==========================================
-// 4.6 Food Billing System Models
-// ==========================================
-
-model FoodPricing {
-  id                   String       @id @default(uuid())
-  organizationId       String
-  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  hostelId             String?      // null = org-wide default; set = hostel override
-  hostel               Hostel?      @relation(fields: [hostelId], references: [id], onDelete: Cascade)
-  breakfastPricePaise  Int          // price of one breakfast portion in paise
-  lunchPricePaise      Int
-  dinnerPricePaise     Int
-  effectiveFrom        DateTime     // price active from this date
-  createdAt            DateTime     @default(now())
-  createdByUserId      String
-  createdByUser        User         @relation(fields: [createdByUserId], references: [id])
-
-  @@index([organizationId, effectiveFrom(sort: Desc)])
-  @@index([hostelId, effectiveFrom(sort: Desc)])
-}
-
-enum FoodBillingCycleStatus {
-  OPEN
-  SETTLING
-  CLOSED
-}
-
-model FoodBillingCycle {
-  id                   String                  @id @default(uuid())
-  stayId               String
-  stay                 Stay                    @relation(fields: [stayId], references: [id], onDelete: Cascade)
-  cycleStart           DateTime
-  cycleEnd             DateTime
-  status               FoodBillingCycleStatus  @default(OPEN)
-
-  // Snapshot of meal prices at cycle start (frozen for audit)
-  breakfastPricePaise  Int
-  lunchPricePaise      Int
-  dinnerPricePaise     Int
-
-  // Totals computed at close time
-  totalConsumedPaise   Int?
-  totalPaidPaise       Int?                    // initial deposit + top-ups within this cycle
-  settlementPaise      Int?                    // positive = refund; negative = due
-  closedAt             DateTime?
-  closedByUserId       String?
-  closedByUser         User?                   @relation(fields: [closedByUserId], references: [id])
-
-  createdAt            DateTime                @default(now())
-
-  topUps               FoodWalletTopUp[]
-  settlement           FoodSettlementStatement?
-
-  @@unique([stayId, cycleStart])
-  @@index([stayId, status])
-  @@index([cycleEnd, status])           // for cron job querying open cycles past their end date
-}
-
-enum TopUpStatus {
-  PENDING     // tenant-initiated, awaiting warden approval
-  APPROVED    // recorded and added to wallet
-  REJECTED    // warden rejected the request
-}
-
-model FoodWalletTopUp {
-  id               String          @id @default(uuid())
-  stayId           String
-  stay             Stay            @relation(fields: [stayId], references: [id], onDelete: Cascade)
-  cycleId          String
-  cycle            FoodBillingCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  amountPaise      Int
-  paymentMode      PaymentMode?    // null if status = PENDING
-  transactionRef   String?
-  status           TopUpStatus     @default(PENDING)
-  reason           String?         // optional note
-  requestedByTenantUserId String?  // set if tenant-initiated
-  approvedByUserId String?
-  approvedByUser   User?           @relation("TopUpApprovals", fields: [approvedByUserId], references: [id])
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-
-  @@index([stayId, cycleId])
-  @@index([cycleId, status])
-}
-
-enum SettlementOutcome {
-  REFUND_DUE        // hostel owes tenant money
-  AMOUNT_DUE        // tenant owes hostel money
-  SETTLED           // zero balance; nothing to do
-}
-
-model FoodSettlementStatement {
-  id                  String             @id @default(uuid())
-  stayId              String
-  stay                Stay               @relation(fields: [stayId], references: [id], onDelete: Cascade)
-  cycleId             String             @unique
-  cycle               FoodBillingCycle   @relation(fields: [cycleId], references: [id])
-  totalConsumedPaise  Int
-  totalPaidPaise      Int
-  balancePaise        Int                // positive = refund; negative = due
-  outcome             SettlementOutcome
-  notes               String?
-  createdAt           DateTime           @default(now())
-  createdByUserId     String
-  createdByUser       User               @relation(fields: [createdByUserId], references: [id])
-
-  @@index([stayId])
-}
-
-enum ComplementaryOrderCategory {
-  GUEST
-  STAFF
-  EVENT
-  OTHER
-}
-
-model ComplementaryFoodOrder {
-  id              String                      @id @default(uuid())
-  hostelId        String
-  hostel          Hostel                      @relation(fields: [hostelId], references: [id], onDelete: Cascade)
-  forDate         DateTime
-  category        ComplementaryOrderCategory
-  reason          String                      // required; e.g. "Guest – visiting parents of Rahul"
-  breakfastQty    Int                         @default(0)
-  lunchQty        Int                         @default(0)
-  dinnerQty       Int                         @default(0)
-  totalCostPaise  Int                         // computed at creation: (bQty × bPrice + ...) 
-  createdByUserId String
-  createdByUser   User                        @relation(fields: [createdByUserId], references: [id])
-  createdAt       DateTime                    @default(now())
-
-  @@index([hostelId, forDate])
 }
