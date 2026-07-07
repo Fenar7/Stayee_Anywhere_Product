@@ -5,6 +5,7 @@ import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { prisma } from "@/lib/db";
 import { handleApiError, ValidationError } from "@/lib/errors";
 import { UserRole, StayStatus } from "@prisma/client";
+import { FoodBalanceService } from "@/services/food/balance.service";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -18,7 +19,7 @@ const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.WARDEN]);
+    const session = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
     const hostelId = await resolveHostelId(session, request);
 
     const { searchParams } = new URL(request.url);
@@ -82,6 +83,7 @@ export async function GET(request: NextRequest) {
           hostelId,
           status: "ACTIVE",
           foodPlan: "STANDARD",
+          foodBillingMode: "FLAT_RATE",
           tenant: { fullName: "Rahul Hamilton", photoUrl: null },
           bed: { label: "B1", room: { roomNumber: "102" } },
           foodOrders: [],
@@ -91,6 +93,7 @@ export async function GET(request: NextRequest) {
           hostelId,
           status: "ACTIVE",
           foodPlan: "STANDARD",
+          foodBillingMode: "FLAT_RATE",
           tenant: { fullName: "Sam Hamilton", photoUrl: null },
           bed: { label: "B1", room: { roomNumber: "102" } },
           foodOrders: [],
@@ -100,6 +103,7 @@ export async function GET(request: NextRequest) {
           hostelId,
           status: "ACTIVE",
           foodPlan: "STANDARD",
+          foodBillingMode: "FLAT_RATE",
           tenant: { fullName: "Sam Hamilton", photoUrl: null },
           bed: { label: "B1", room: { roomNumber: "102" } },
           foodOrders: [],
@@ -109,11 +113,23 @@ export async function GET(request: NextRequest) {
           hostelId,
           status: "ACTIVE",
           foodPlan: "STANDARD",
+          foodBillingMode: "FLAT_RATE",
           tenant: { fullName: "Sam Hamilton", photoUrl: null },
           bed: { label: "B1", room: { roomNumber: "102" } },
           foodOrders: [],
         },
       ] as any;
+    }
+
+    // Pre-compute wallet balances for all real stays to avoid N+1 queries per day
+    const balances = new Map();
+    for (const stay of activeStays) {
+      try {
+        const bal = await FoodBalanceService.computeWalletBalance(stay.id);
+        balances.set(stay.id, bal);
+      } catch (err) {
+        // Ignore balance calculation errors for individual stays
+      }
     }
 
     // Build weekly days with per-resident data
@@ -141,6 +157,9 @@ export async function GET(request: NextRequest) {
           lunch: order?.lunch ?? false,
           dinner: order?.dinner ?? false,
           hasOrder: !!order,
+          billingMode: stay.foodBillingMode || "FLAT_RATE",
+          walletBalance: balances.get(stay.id)?.balancePaise ?? 0,
+          consumedPaise: balances.get(stay.id)?.totalConsumedPaise ?? 0,
         };
       });
 
