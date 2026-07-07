@@ -44,6 +44,12 @@ model User {
   ticketComments    TicketComment[]
   activityLogsActed ActivityLog[]     @relation("ActivityActor")
 
+  foodPricingsCreated            FoodPricing[]
+  foodBillingCyclesClosed        FoodBillingCycle[]
+  topUpApprovals                 FoodWalletTopUp[]         @relation("TopUpApprovals")
+  foodSettlementsCreated         FoodSettlementStatement[]
+  complementaryFoodOrdersCreated ComplementaryFoodOrder[]
+
   @@index([organizationId])
 }
 
@@ -65,29 +71,29 @@ enum OccupationType {
 }
 
 model Tenant {
-  id                     String          @id @default(uuid())
-  userId                 String?         @unique
-  user                   User?           @relation(fields: [userId], references: [id])
-  fullName               String
-  dateOfBirth            DateTime?
-  gender                 String?
-  placeOfBirth           String?
-  permanentAddress       String?
-  emergencyContactName   String?
-  relationship           String?
-  emergencyContactNumber String?
+  id                          String          @id @default(uuid())
+  userId                      String?         @unique
+  user                        User?           @relation(fields: [userId], references: [id])
+  fullName                    String
+  dateOfBirth                 DateTime?
+  gender                      String?
+  placeOfBirth                String?
+  permanentAddress            String?
+  emergencyContactName        String?
+  relationship                String?
+  emergencyContactNumber      String?
   additionalEmergencyContacts Json?
-  parentGuardianName     String?
-  parentGuardianContact  String?
-  occupationType         OccupationType?
-  collegeName            String?
-  courseOrBranch         String?
-  companyName            String?
-  designation            String?
-  purposeOfStay          String?
-  photoUrl               String?
-  createdAt              DateTime        @default(now())
-  updatedAt              DateTime        @updatedAt
+  parentGuardianName          String?
+  parentGuardianContact       String?
+  occupationType              OccupationType?
+  collegeName                 String?
+  courseOrBranch              String?
+  companyName                 String?
+  designation                 String?
+  purposeOfStay               String?
+  photoUrl                    String?
+  createdAt                   DateTime        @default(now())
+  updatedAt                   DateTime        @updatedAt
 
   // Inverse relations
   stays     Stay[]
@@ -105,27 +111,31 @@ enum AccommodationType {
 }
 
 model Hostel {
-  id                String            @id @default(uuid())
-  name              String
-  address           String
-  accommodationType AccommodationType
-  locationId        String?
-  location          Location?         @relation(fields: [locationId], references: [id])
-  affidavitText     String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  organizationId    String
-  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id                       String            @id @default(uuid())
+  name                     String
+  address                  String
+  accommodationType        AccommodationType
+  locationId               String?
+  location                 Location?         @relation(fields: [locationId], references: [id])
+  affidavitText            String?
+  foodOrderCutoffStartHour Int               @default(20) // 8 PM
+  foodOrderCutoffEndHour   Int               @default(6) // 6 AM
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+  organizationId           String
+  organization             Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   // Inverse relations
-  warden             Warden?
-  paymentConfig      HostelPaymentConfig?
-  floors             Floor[]
-  stays              Stay[]
-  leads              Lead[]
-  onboardingRequests OnboardingRequest[]
-  tickets            Ticket[]
-  activityLogs       ActivityLog[]
+  warden                  Warden?
+  paymentConfig           HostelPaymentConfig?
+  floors                  Floor[]
+  stays                   Stay[]
+  leads                   Lead[]
+  onboardingRequests      OnboardingRequest[]
+  tickets                 Ticket[]
+  activityLogs            ActivityLog[]
+  foodPricings            FoodPricing[]
+  complementaryFoodOrders ComplementaryFoodOrder[]
 
   @@index([organizationId])
 }
@@ -272,14 +282,20 @@ enum FoodPlan {
   BLD
 }
 
+enum FoodBillingMode {
+  PREPAID_CONSUMPTION
+  POSTPAID
+  FLAT_RATE
+}
+
 model Stay {
-  id                   String       @id @default(uuid())
+  id                   String          @id @default(uuid())
   tenantId             String
-  tenant               Tenant       @relation(fields: [tenantId], references: [id])
+  tenant               Tenant          @relation(fields: [tenantId], references: [id])
   bedId                String
-  bed                  Bed          @relation(fields: [bedId], references: [id])
+  bed                  Bed             @relation(fields: [bedId], references: [id])
   hostelId             String // denormalized for speed
-  hostel               Hostel       @relation(fields: [hostelId], references: [id])
+  hostel               Hostel          @relation(fields: [hostelId], references: [id])
   status               StayStatus
   durationType         DurationType
   joiningDate          DateTime
@@ -289,7 +305,8 @@ model Stay {
   monthlyRentPaise     Int
   securityDepositPaise Int
   foodChargesPaise     Int
-  foodPlan             FoodPlan     @default(NOT_INCLUDED)
+  foodBillingMode      FoodBillingMode @default(FLAT_RATE)
+  foodPlan             FoodPlan        @default(NOT_INCLUDED)
   foodPlanStartDate    DateTime?
   foodPlanEndDate      DateTime?
   totalPayablePaise    Int
@@ -297,8 +314,8 @@ model Stay {
   marketingExecutive   String?
   leadSource           String?
   commissionStatus     String?
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
   // Inverse relations
   statusEvents    StayStatusEvent[]
@@ -307,6 +324,10 @@ model Stay {
   foodOrders      FoodOrder[]
   documents       Document[]
   serviceRequests ServiceRequest[]
+
+  foodBillingCycles FoodBillingCycle[]
+  foodWalletTopUps  FoodWalletTopUp[]
+  foodSettlements   FoodSettlementStatement[]
 
   // Indexes
   @@index([bedId, status])
@@ -502,6 +523,7 @@ model Organization {
   users        User[]
   leads        Lead[]
   activityLogs ActivityLog[]
+  foodPricings FoodPricing[]
 }
 
 // ==========================================
@@ -541,17 +563,17 @@ model ServiceRequest {
 }
 
 model Notification {
-  id                 String   @id @default(uuid())
-  userId             String
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title              String
-  message            String
-  type               String   // e.g. "FOOD_PLAN", "PAYMENT", "ONBOARDING", "TICKET"
-  targetUrl          String?  // the URL to navigate to when the notification is clicked
-  referenceId        String?  // ID of the related entity (e.g. Ticket ID)
-  read               Boolean  @default(false)
-  dismissedFromHome  Boolean  @default(false)
-  createdAt          DateTime @default(now())
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title             String
+  message           String
+  type              String // e.g. "FOOD_PLAN", "PAYMENT", "ONBOARDING", "TICKET"
+  targetUrl         String? // the URL to navigate to when the notification is clicked
+  referenceId       String? // ID of the related entity (e.g. Ticket ID)
+  read              Boolean  @default(false)
+  dismissedFromHome Boolean  @default(false)
+  createdAt         DateTime @default(now())
 
   @@index([userId, read])
 }
@@ -583,25 +605,25 @@ enum TicketCategory {
 }
 
 model Ticket {
-  id          String         @id @default(uuid())
-  tenantId    String
-  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  hostelId    String
-  hostel      Hostel         @relation(fields: [hostelId], references: [id], onDelete: Cascade)
-  
+  id       String @id @default(uuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hostelId String
+  hostel   Hostel @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+
   title       String
   description String
   priority    TicketPriority @default(NORMAL)
   status      TicketStatus   @default(OPEN)
   category    TicketCategory @default(OTHER)
-  
-  resolvedAt  DateTime?
-  closedAt    DateTime?
-  
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  
-  comments    TicketComment[]
+
+  resolvedAt DateTime?
+  closedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments TicketComment[]
 
   @@index([hostelId, status])
   @@index([tenantId])
@@ -637,6 +659,9 @@ enum ActivityEventType {
 
   // Food
   FOOD_ORDER_UPDATED
+  FOOD_CYCLE_CLOSED
+  FOOD_WALLET_TOPPED_UP
+  FOOD_COMPLEMENTARY_ORDER_CREATED
 
   // Service Requests
   SERVICE_REQUEST_CREATED
@@ -652,14 +677,150 @@ model ActivityLog {
   eventType      ActivityEventType
   actorId        String?
   actor          User?             @relation("ActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
-  actorName      String            // denormalized
-  subjectName    String            // denormalized
+  actorName      String // denormalized
+  subjectName    String // denormalized
   subjectId      String?
-  subjectType    String?           // "Stay" | "Ticket" | "Payment" | "FoodOrder"
+  subjectType    String? // "Stay" | "Ticket" | "Payment" | "FoodOrder"
   metadata       Json?
   targetUrl      String?
   createdAt      DateTime          @default(now())
 
   @@index([organizationId, createdAt(sort: Desc)])
   @@index([hostelId, createdAt(sort: Desc)])
+}
+
+// ==========================================
+// 4.6 Food Billing System Models
+// ==========================================
+
+model FoodPricing {
+  id                  String       @id @default(uuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  hostelId            String? // null = org-wide default; set = hostel override
+  hostel              Hostel?      @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  breakfastPricePaise Int // price of one breakfast portion in paise
+  lunchPricePaise     Int
+  dinnerPricePaise    Int
+  effectiveFrom       DateTime // price active from this date
+  createdAt           DateTime     @default(now())
+  createdByUserId     String
+  createdByUser       User         @relation(fields: [createdByUserId], references: [id])
+
+  @@index([organizationId, effectiveFrom(sort: Desc)])
+  @@index([hostelId, effectiveFrom(sort: Desc)])
+}
+
+enum FoodBillingCycleStatus {
+  OPEN
+  SETTLING
+  CLOSED
+}
+
+model FoodBillingCycle {
+  id         String                 @id @default(uuid())
+  stayId     String
+  stay       Stay                   @relation(fields: [stayId], references: [id], onDelete: Cascade)
+  cycleStart DateTime
+  cycleEnd   DateTime
+  status     FoodBillingCycleStatus @default(OPEN)
+
+  // Snapshot of meal prices at cycle start (frozen for audit)
+  breakfastPricePaise Int
+  lunchPricePaise     Int
+  dinnerPricePaise    Int
+
+  // Totals computed at close time
+  totalConsumedPaise Int?
+  totalPaidPaise     Int? // initial deposit + top-ups within this cycle
+  settlementPaise    Int? // positive = refund; negative = due
+  closedAt           DateTime?
+  closedByUserId     String?
+  closedByUser       User?     @relation(fields: [closedByUserId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  topUps     FoodWalletTopUp[]
+  settlement FoodSettlementStatement?
+
+  @@unique([stayId, cycleStart])
+  @@index([stayId, status])
+  @@index([cycleEnd, status]) // for cron job querying open cycles past their end date
+}
+
+enum TopUpStatus {
+  PENDING // tenant-initiated, awaiting warden approval
+  APPROVED // recorded and added to wallet
+  REJECTED // warden rejected the request
+}
+
+model FoodWalletTopUp {
+  id                      String           @id @default(uuid())
+  stayId                  String
+  stay                    Stay             @relation(fields: [stayId], references: [id], onDelete: Cascade)
+  cycleId                 String
+  cycle                   FoodBillingCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  amountPaise             Int
+  paymentMode             PaymentMode? // null if status = PENDING
+  transactionRef          String?
+  status                  TopUpStatus      @default(PENDING)
+  reason                  String? // optional note
+  requestedByTenantUserId String? // set if tenant-initiated
+  approvedByUserId        String?
+  approvedByUser          User?            @relation("TopUpApprovals", fields: [approvedByUserId], references: [id])
+  idempotencyKey          String?          @unique
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+
+  @@index([stayId, cycleId])
+  @@index([cycleId, status])
+}
+
+enum SettlementOutcome {
+  REFUND_DUE // hostel owes tenant money
+  AMOUNT_DUE // tenant owes hostel money
+  SETTLED // zero balance; nothing to do
+}
+
+model FoodSettlementStatement {
+  id                 String            @id @default(uuid())
+  stayId             String
+  stay               Stay              @relation(fields: [stayId], references: [id], onDelete: Cascade)
+  cycleId            String            @unique
+  cycle              FoodBillingCycle  @relation(fields: [cycleId], references: [id])
+  totalConsumedPaise Int
+  totalPaidPaise     Int
+  balancePaise       Int // positive = refund; negative = due
+  outcome            SettlementOutcome
+  notes              String?
+  createdAt          DateTime          @default(now())
+  createdByUserId    String
+  createdByUser      User              @relation(fields: [createdByUserId], references: [id])
+
+  @@index([stayId])
+}
+
+enum ComplementaryOrderCategory {
+  GUEST
+  STAFF
+  EVENT
+  OTHER
+}
+
+model ComplementaryFoodOrder {
+  id              String                     @id @default(uuid())
+  hostelId        String
+  hostel          Hostel                     @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  forDate         DateTime
+  category        ComplementaryOrderCategory
+  reason          String // required; e.g. "Guest – visiting parents of Rahul"
+  breakfastQty    Int                        @default(0)
+  lunchQty        Int                        @default(0)
+  dinnerQty       Int                        @default(0)
+  totalCostPaise  Int // computed at creation: (bQty × bPrice + ...) 
+  createdByUserId String
+  createdByUser   User                       @relation(fields: [createdByUserId], references: [id])
+  createdAt       DateTime                   @default(now())
+
+  @@index([hostelId, forDate])
 }

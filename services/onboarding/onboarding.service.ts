@@ -10,7 +10,9 @@ import {
   BedStatus,
   DurationType,
   FoodPlan,
+  FoodBillingMode,
 } from "@prisma/client";
+import { FoodCycleService } from "@/services/food/cycle.service";
 
 export interface OnboardInitiateInput {
   phone: string;
@@ -20,6 +22,7 @@ export interface OnboardInitiateInput {
   endDate: Date;
   durationType: DurationType;
   foodPlan: FoodPlan;
+  foodBillingMode: FoodBillingMode;
   isNewAdmission: boolean;
   admissionFee: number;
   monthlyRent: number;
@@ -67,6 +70,7 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
     endDate,
     durationType,
     foodPlan,
+    foodBillingMode,
     isNewAdmission,
     admissionFee,
     monthlyRent,
@@ -172,6 +176,7 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
         securityDepositPaise,
         foodChargesPaise,
         foodPlan,
+        foodBillingMode,
         totalPayablePaise,
         discountPaise,
       },
@@ -192,6 +197,21 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
       where: { id: bedId },
       data: { status: BedStatus.ON_HOLD },
     });
+
+    const hostel = await tx.hostel.findUniqueOrThrow({
+      where: { id: hostelId },
+      select: { organizationId: true },
+    });
+
+    await FoodCycleService.createCycleForStay(
+      tx,
+      stay.id,
+      hostel.organizationId,
+      hostelId,
+      foodBillingMode,
+      foodPlan,
+      joiningDate
+    );
 
     return { onboardingRequest, stay };
   });

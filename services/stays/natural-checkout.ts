@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getEndOfDayIST } from "@/lib/dates";
 import { StayStatus, BedStatus, Prisma } from "@prisma/client";
+import { FoodCycleService } from "@/services/food/cycle.service";
 
 export interface NaturalCheckoutResult {
   checkedOutCount: number;
@@ -58,6 +59,9 @@ export async function processNaturalCheckouts(params?: NaturalCheckoutParams): P
           note: `Stay naturally expired on ${stay.endDate.toISOString().split("T")[0]}. Bed released.`,
         },
       });
+
+      // Hook for Sprint 1.2: Close any open food billing cycle
+      await FoodCycleService.closeCycle(tx, stay.id, stay.endDate, null);
     });
   }
 
