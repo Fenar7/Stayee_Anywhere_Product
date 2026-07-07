@@ -9,6 +9,7 @@ import {
 import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import FoodFinanceDashboard from "./food-finance/FoodFinanceDashboard";
+import ComplementaryOrdersView from "./food-finance/ComplementaryOrdersView";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 interface ResidentFoodEntry {
@@ -111,7 +112,7 @@ export default function HostelFoodView({
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [toggling, setToggling] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"attendance" | "finance">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "finance" | "complementary">("attendance");
 
   // ── Fetch weekly data ──────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
@@ -305,6 +306,17 @@ export default function HostelFoodView({
             )}
           >
             Finance
+          </button>
+          <button
+            onClick={() => setActiveTab("complementary")}
+            className={cn(
+              "pb-3 text-[14px] font-medium transition-colors border-b-2",
+              activeTab === "complementary"
+                ? "border-[#111827] text-[#111827]"
+                : "border-transparent text-[#4b5563] hover:text-[#111827]"
+            )}
+          >
+            Complementary Orders
           </button>
         </div>
 
@@ -604,8 +616,10 @@ export default function HostelFoodView({
         </div>
       </div>
           </>
-        ) : (
+        ) : activeTab === "finance" ? (
           <FoodFinanceDashboard hostelId={hostelId!} />
+        ) : (
+          <ComplementaryOrdersView hostelId={hostelId!} />
         )}
       </div>
     </HostelWorkspaceLayout>

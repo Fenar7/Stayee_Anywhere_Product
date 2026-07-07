@@ -19,7 +19,7 @@ const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.WARDEN]);
+    const session = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
     const hostelId = await resolveHostelId(session, request);
 
     const { searchParams } = new URL(request.url);

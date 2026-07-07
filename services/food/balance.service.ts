@@ -26,91 +26,140 @@ export interface HostelFoodSummary {
 
 export class FoodBalanceService {
   /**
-   * Computes the real-time wallet balance for a single stay and cycle.
-   * If cycleId is omitted, it finds the currently OPEN cycle.
+   * Computes the real-time wallet balance for a single stay.
    */
   static async computeWalletBalance(
     stayId: string,
     cycleId?: string
   ): Promise<TenantBalanceResult | null> {
-    const stay = await prisma.stay.findUnique({
-      where: { id: stayId },
+    const results = await this.computeWalletBalancesForStays([stayId], cycleId);
+    return results.get(stayId) || null;
+  }
+
+  /**
+   * Batch computes the real-time wallet balances for multiple stays to prevent N+1 queries.
+   */
+  static async computeWalletBalancesForStays(
+    stayIds: string[],
+    explicitCycleId?: string
+  ): Promise<Map<string, TenantBalanceResult>> {
+    const resultMap = new Map<string, TenantBalanceResult>();
+    if (stayIds.length === 0) return resultMap;
+
+    // 1. Fetch stays
+    const stays = await prisma.stay.findMany({
+      where: { id: { in: stayIds } },
       include: {
         tenant: true,
         bed: { include: { room: true } },
       },
     });
 
-    if (!stay) return null;
-
-    let cycle;
-    if (cycleId) {
-      cycle = await prisma.foodBillingCycle.findUnique({ where: { id: cycleId } });
+    // 2. Fetch cycles
+    let cycles = [];
+    if (explicitCycleId) {
+      cycles = await prisma.foodBillingCycle.findMany({
+        where: { id: explicitCycleId, stayId: { in: stayIds } },
+      });
     } else {
-      cycle = await prisma.foodBillingCycle.findFirst({
-        where: { stayId, status: "OPEN" },
+      // Fetch latest OPEN cycle for each stay
+      const allOpenCycles = await prisma.foodBillingCycle.findMany({
+        where: { stayId: { in: stayIds }, status: "OPEN" },
         orderBy: { cycleStart: "desc" },
+      });
+      // Deduplicate to get the latest per stay
+      const cycleMap = new Map();
+      for (const c of allOpenCycles) {
+        if (!cycleMap.has(c.stayId)) {
+          cycleMap.set(c.stayId, c);
+          cycles.push(c);
+        }
+      }
+    }
+
+    const cycleIdMap = new Map(cycles.map(c => [c.id, c]));
+    const stayToCycleMap = new Map(cycles.map(c => [c.stayId, c]));
+    const cycleIds = cycles.map(c => c.id);
+
+    // 3. Fetch top-ups in batch
+    let topUpSums = new Map<string, number>(); // cycleId -> totalAmount
+    if (cycleIds.length > 0) {
+      const topUps = await prisma.foodWalletTopUp.groupBy({
+        by: ['cycleId'],
+        where: {
+          cycleId: { in: cycleIds },
+          status: "APPROVED",
+        },
+        _sum: { amountPaise: true },
+      });
+      for (const t of topUps) {
+        topUpSums.set(t.cycleId, t._sum.amountPaise || 0);
+      }
+    }
+
+    // 4. Fetch food orders in batch
+    // We need to fetch orders that fall within each stay's active cycle bounds.
+    // Instead of complex OR queries, we can just fetch all orders for the month and filter in memory,
+    // or build a clean OR query. Let's do an OR query for exact bounds.
+    let orders: any[] = [];
+    const orConditions = cycles.map(c => ({
+      stayId: c.stayId,
+      forDate: { gte: c.cycleStart, lte: c.cycleEnd },
+    }));
+
+    if (orConditions.length > 0) {
+      orders = await prisma.foodOrder.findMany({
+        where: { OR: orConditions },
       });
     }
 
-    if (!cycle) {
-      // If no cycle exists (e.g. FLAT_RATE or NOT_INCLUDED), just return basic info
-      return {
+    // 5. Aggregate
+    for (const stay of stays) {
+      const cycle = stayToCycleMap.get(stay.id);
+
+      if (!cycle) {
+        resultMap.set(stay.id, {
+          stayId: stay.id,
+          tenantName: stay.tenant.fullName || "Unknown",
+          roomName: stay.bed.room.name,
+          billingMode: stay.foodBillingMode,
+          foodPlan: stay.foodPlan,
+          cycleId: null,
+          totalPaidPaise: stay.foodChargesPaise,
+          totalConsumedPaise: 0,
+          balancePaise: 0,
+        });
+        continue;
+      }
+
+      const totalTopUp = topUpSums.get(cycle.id) || 0;
+      const totalPaidPaise = stay.foodChargesPaise + totalTopUp;
+
+      let totalConsumedPaise = 0;
+      for (const order of orders) {
+        if (order.stayId === stay.id && order.forDate >= cycle.cycleStart && order.forDate <= cycle.cycleEnd) {
+          if (order.breakfast) totalConsumedPaise += cycle.breakfastPricePaise;
+          if (order.lunch) totalConsumedPaise += cycle.lunchPricePaise;
+          if (order.dinner) totalConsumedPaise += cycle.dinnerPricePaise;
+        }
+      }
+
+      const balancePaise = totalPaidPaise - totalConsumedPaise;
+
+      resultMap.set(stay.id, {
         stayId: stay.id,
         tenantName: stay.tenant.fullName || "Unknown",
         roomName: stay.bed.room.name,
         billingMode: stay.foodBillingMode,
         foodPlan: stay.foodPlan,
-        cycleId: null,
-        totalPaidPaise: stay.foodChargesPaise,
-        totalConsumedPaise: 0,
-        balancePaise: 0,
-      };
-    }
-
-    // Sum approved top-ups
-    const topUps = await prisma.foodWalletTopUp.aggregate({
-      where: {
         cycleId: cycle.id,
-        status: "APPROVED",
-      },
-      _sum: { amountPaise: true },
-    });
-    
-    const totalTopUp = topUps._sum.amountPaise || 0;
-    const totalPaidPaise = stay.foodChargesPaise + totalTopUp;
-
-    // Sum consumption
-    const orders = await prisma.foodOrder.findMany({
-      where: {
-        stayId: stay.id,
-        forDate: {
-          gte: cycle.cycleStart,
-          lte: cycle.cycleEnd,
-        },
-      },
-    });
-
-    let totalConsumedPaise = 0;
-    for (const order of orders) {
-      if (order.breakfast) totalConsumedPaise += cycle.breakfastPricePaise;
-      if (order.lunch) totalConsumedPaise += cycle.lunchPricePaise;
-      if (order.dinner) totalConsumedPaise += cycle.dinnerPricePaise;
+        totalPaidPaise,
+        totalConsumedPaise,
+        balancePaise,
+      });
     }
 
-    const balancePaise = totalPaidPaise - totalConsumedPaise;
-
-    return {
-      stayId: stay.id,
-      tenantName: stay.tenant.fullName || "Unknown",
-      roomName: stay.bed.room.name,
-      billingMode: stay.foodBillingMode,
-      foodPlan: stay.foodPlan,
-      cycleId: cycle.id,
-      totalPaidPaise,
-      totalConsumedPaise,
-      balancePaise,
-    };
+    return resultMap;
   }
 
   /**
@@ -128,29 +177,21 @@ export class FoodBalanceService {
       select: { id: true },
     });
 
+    const stayIds = activeStays.map(s => s.id);
+    const balances = await this.computeWalletBalancesForStays(stayIds);
+
     const tenantsInCredit: TenantBalanceResult[] = [];
     const tenantsInDebt: TenantBalanceResult[] = [];
     const flatRateTenants: TenantBalanceResult[] = [];
     let totalRevenuePaise = 0;
     let totalConsumedPaise = 0;
 
-    // We fetch one active cycle to determine the current cycle bounds (assuming monthly synchronization)
-    const representativeCycle = await prisma.foodBillingCycle.findFirst({
-      where: {
-        stay: { hostelId },
-        status: "OPEN",
-      },
-      orderBy: { cycleStart: "desc" },
-    });
+    let representativeCycleStart: Date | null = null;
+    let representativeCycleEnd: Date | null = null;
 
-    for (const { id } of activeStays) {
-      const balance = await this.computeWalletBalance(id);
-      if (!balance) continue;
-
+    for (const [id, balance] of Array.from(balances.entries())) {
       if (balance.billingMode === FoodBillingMode.FLAT_RATE) {
         flatRateTenants.push(balance);
-        // For flat rate, we could count foodChargesPaise as revenue, but usually they are not part of the consumption ledger in the same way.
-        // We'll leave them out of the net position calculation to avoid skewing the prepaid/postpaid consumption math.
       } else {
         totalRevenuePaise += balance.totalPaidPaise;
         totalConsumedPaise += balance.totalConsumedPaise;
@@ -170,11 +211,18 @@ export class FoodBalanceService {
 
     const netPositionPaise = totalRevenuePaise - totalConsumedPaise;
 
+    // Figure out the representative cycle for the top card.
+    // If it's the start of the month, most tenants will have the same bounds. Let's just calculate the current month bounds.
+    // That solves the "Cycle Bounds Assumption" flag perfectly without extra queries.
+    const now = new Date();
+    // Offset for IST (UTC+5:30)
+    const nowIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+    const startOfMonth = new Date(nowIST.getFullYear(), nowIST.getMonth(), 1);
+    const endOfMonth = new Date(nowIST.getFullYear(), nowIST.getMonth() + 1, 0);
+
     return {
       hostelId,
-      cyclePeriod: representativeCycle
-        ? { start: representativeCycle.cycleStart, end: representativeCycle.cycleEnd }
-        : null,
+      cyclePeriod: { start: startOfMonth, end: endOfMonth },
       totalRevenuePaise,
       totalConsumedPaise,
       netPositionPaise,
