@@ -6,6 +6,7 @@ import { handleApiError, ValidationError } from "@/lib/errors";
 import { UserRole, ComplementaryOrderCategory } from "@prisma/client";
 import { z } from "zod";
 import { FoodPricingService } from "@/services/food/pricing.service";
+import { FoodNotificationService } from "@/services/food/notifications.service";
 
 const postSchema = z.object({
   forDate: z.string(), // YYYY-MM-DD
@@ -14,6 +15,8 @@ const postSchema = z.object({
   breakfastQty: z.number().int().min(0).default(0),
   lunchQty: z.number().int().min(0).default(0),
   dinnerQty: z.number().int().min(0).default(0),
+}).refine(data => data.breakfastQty > 0 || data.lunchQty > 0 || data.dinnerQty > 0, {
+  message: "At least one quantity must be > 0",
 });
 
 export async function POST(request: NextRequest) {
@@ -51,6 +54,10 @@ export async function POST(request: NextRequest) {
         createdByUserId: session.user.id,
       },
     });
+
+    if (session.user.role === UserRole.WARDEN) {
+      await FoodNotificationService.notifyAdminComplementaryOrder(order.id, hostelId).catch(console.error);
+    }
 
     return NextResponse.json(order);
   } catch (error) {

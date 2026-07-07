@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ValidationError } from "@/lib/errors";
 import { UserRole, TopUpStatus, PaymentMode } from "@prisma/client";
 import { z } from "zod";
+import { FoodNotificationService } from "@/services/food/notifications.service";
 
 const patchSchema = z.object({
   action: z.enum(["APPROVE", "REJECT"]),
@@ -47,6 +48,12 @@ export async function PATCH(
         approvedByUserId: session.user.id,
       },
     });
+
+    if (data.action === "APPROVE") {
+      await FoodNotificationService.notifyTenantTopUpApproved(updated.id).catch(console.error);
+    } else {
+      await FoodNotificationService.notifyTenantTopUpRejected(updated.id).catch(console.error);
+    }
 
     return NextResponse.json(updated);
   } catch (error) {
