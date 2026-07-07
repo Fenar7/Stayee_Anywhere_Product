@@ -12,6 +12,8 @@ import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
 import { FoodWalletMeter } from "@/components/tenant/FoodWalletMeter";
 import { FoodDueBanner } from "@/components/tenant/FoodDueBanner";
 import { FoodDailyBreakdown } from "@/components/tenant/FoodDailyBreakdown";
+import { FoodOrderPanel } from "@/components/tenant/FoodOrderPanel";
+import { FoodTopUpModal } from "@/components/tenant/FoodTopUpModal";
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -28,6 +30,8 @@ interface FoodOrderDay {
 interface FoodOrdersResponse {
   stayId: string;
   foodPlan: string;
+  cutoffStartHour: number;
+  cutoffEndHour: number;
   days: FoodOrderDay[];
 }
 
@@ -59,30 +63,35 @@ interface FoodLedgerResponse {
 
 const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-function formatDateShort(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+function getISTDate(): Date {
+  const now = new Date();
+  return new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
 }
 
-function getMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
+function formatDateShort(istDate: Date): string {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${istDate.getUTCDate()} ${months[istDate.getUTCMonth()]} ${istDate.getUTCFullYear()}`;
+}
+
+function getMonday(istDate: Date): Date {
+  const d = new Date(istDate.getTime());
+  const day = d.getUTCDay();
+  const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
+  d.setUTCDate(diff);
+  d.setUTCHours(0, 0, 0, 0);
   return d;
 }
 
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
+function addDays(istDate: Date, days: number): Date {
+  const d = new Date(istDate.getTime());
+  d.setUTCDate(d.getUTCDate() + days);
   return d;
 }
 
-function toISODate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
+function toISODate(istDate: Date): string {
+  const y = istDate.getUTCFullYear();
+  const m = String(istDate.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(istDate.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
 
@@ -117,8 +126,8 @@ export default function TenantFoodPage() {
   const [data, setData] = useState<FoodOrdersResponse | null>(null);
   const [ledger, setLedger] = useState<FoodLedgerResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
-  const [saving, setSaving] = useState<string | null>(null);
+  const [weekStart, setWeekStart] = useState(() => getMonday(getISTDate()));
+  const [isTopUpOpen, setIsTopUpOpen] = useState(false);
   const [foodNotIncluded, setFoodNotIncluded] = useState(false);
 
   const weekEnd = addDays(weekStart, 6);
@@ -163,52 +172,40 @@ export default function TenantFoodPage() {
     loadData();
   }, [loadData]);
 
-  const handleToggle = async (forDate: string, meal: "breakfast" | "lunch" | "dinner", currentValue: boolean) => {
-    const day = data?.days.find((d) => d.forDate === forDate);
-    if (!day || !day.isEditable) return;
-
-    const key = `${forDate}-${meal}`;
-    setSaving(key);
-
-    try {
-      const res = await fetch("/api/tenant/food-orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          forDate,
-          [meal]: !currentValue,
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update food order");
-      }
-
-      setData((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          days: prev.days.map((d) =>
-            d.forDate === forDate
-              ? { ...d, [meal]: !currentValue }
-              : d
-          ),
-        };
-      });
-
-      notify.success("Saved!");
-    } catch (e: unknown) { 
-      const eMsg = e instanceof Error ? e.message : String(e);
-      notify.error(eMsg || "Failed to update");
-    } finally {
-      setSaving(null);
-    }
-  };
-
   const prevWeek = () => setWeekStart((d) => addDays(d, -7));
   const nextWeek = () => setWeekStart((d) => addDays(d, 7));
-  const goToday = () => setWeekStart(getMonday(new Date()));
+  const goToday = () => setWeekStart(getMonday(getISTDate()));
+
+  // Compute active order day for the new FoodOrderPanel
+  let activeOrderDay = null;
+  if (data) {
+    const now = new Date();
+    const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+    const currentHour = istTime.getUTCHours();
+    
+    const isOvernight = data.cutoffStartHour > data.cutoffEndHour;
+    let isWindowOpen = false;
+
+    if (isOvernight) {
+      isWindowOpen = currentHour >= data.cutoffStartHour || currentHour < data.cutoffEndHour;
+    } else {
+      isWindowOpen = currentHour >= data.cutoffStartHour && currentHour < data.cutoffEndHour;
+    }
+
+    if (isWindowOpen) {
+      const targetDate = new Date(istTime);
+      if (currentHour >= data.cutoffStartHour) {
+        targetDate.setUTCDate(targetDate.getUTCDate() + 1);
+      }
+      
+      const y = targetDate.getUTCFullYear();
+      const m = String(targetDate.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(targetDate.getUTCDate()).padStart(2, "0");
+      const targetDateString = `${y}-${m}-${d}`;
+
+      activeOrderDay = data.days.find((d) => d.forDate === targetDateString) || null;
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-32 text-[#111111] dark:text-white font-sans relative">
@@ -251,10 +248,19 @@ export default function TenantFoodPage() {
                   />
                 )}
                 
-                <FoodWalletMeter 
-                  paidPaise={ledger.walletBalance.totalPaidPaise} 
-                  consumedPaise={ledger.walletBalance.totalConsumedPaise} 
-                />
+                <div className="relative">
+                  <FoodWalletMeter 
+                    paidPaise={ledger.walletBalance.totalPaidPaise} 
+                    consumedPaise={ledger.walletBalance.totalConsumedPaise} 
+                  />
+                  {(ledger.stay.foodBillingMode === "PREPAID_CONSUMPTION" || ledger.stay.foodBillingMode === "POSTPAID") && (
+                    <div className="mt-4">
+                      <PillButton onClick={() => setIsTopUpOpen(true)} variant="primary">
+                        Top Up Wallet
+                      </PillButton>
+                    </div>
+                  )}
+                </div>
 
                 {ledger.dailyBreakdown && ledger.dailyBreakdown.length > 0 && (
                   <FoodDailyBreakdown days={ledger.dailyBreakdown} />
@@ -264,7 +270,18 @@ export default function TenantFoodPage() {
 
             {/* Ordering Calendar Section */}
             <div>
-              <h2 className="text-xl font-black mb-4">Plan Your Meals</h2>
+              {data && data.cutoffStartHour !== undefined && (
+                <div className="mb-8">
+                  <FoodOrderPanel 
+                    cutoffStartHour={data.cutoffStartHour} 
+                    cutoffEndHour={data.cutoffEndHour} 
+                    activeOrderDay={activeOrderDay}
+                    onOrderUpdated={loadData}
+                  />
+                </div>
+              )}
+              
+              <h2 className="text-xl font-black mb-4">Historical Orders</h2>
               
               <SoftCard className="p-2 flex items-center justify-between shadow-sm mb-6">
                 <button onClick={prevWeek} className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
@@ -273,7 +290,7 @@ export default function TenantFoodPage() {
                 
                 <div className="flex flex-col items-center">
                   <span className="text-[14px] font-bold text-black dark:text-white">
-                    {formatDateShort(weekStart.toISOString())} - {formatDateShort(weekEnd.toISOString())}
+                    {formatDateShort(weekStart)} - {formatDateShort(weekEnd)}
                   </span>
                   <button onClick={goToday} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider hover:text-black dark:hover:text-white mt-1">
                     Go to Today
@@ -288,9 +305,9 @@ export default function TenantFoodPage() {
               {data && (
                 <div className="space-y-4">
                   {data.days.map((day) => {
-                    const d = new Date(day.forDate);
-                    const dayLabel = DAY_LABELS[d.getDay()];
-                    const isToday = toISODate(d) === toISODate(new Date());
+                    const parsedDate = new Date(`${day.forDate}T00:00:00.000Z`);
+                    const dayLabel = DAY_LABELS[parsedDate.getUTCDay()];
+                    const isToday = day.forDate === toISODate(getISTDate());
 
                     return (
                       <SoftCard 
@@ -308,7 +325,7 @@ export default function TenantFoodPage() {
                                 {dayLabel} {isToday && "(Today)"}
                               </p>
                               <h3 className="text-xl font-black mt-1">
-                                {d.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                                {parsedDate.getUTCDate()} {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][parsedDate.getUTCMonth()]}
                               </h3>
                             </div>
                             {!day.isEditable && !isToday && (
@@ -318,66 +335,39 @@ export default function TenantFoodPage() {
                             )}
                           </div>
 
-                          <div className="space-y-3">
-                            <button
-                              onClick={() => handleToggle(day.forDate, "breakfast", day.breakfast)}
-                              disabled={!day.isEditable || saving === `${day.forDate}-breakfast`}
-                              className={`w-full h-14 px-5 rounded-[16px] flex items-center font-bold text-[15px] transition-all ${
+                          <div className="space-y-2 mt-2">
+                            <div className={`w-full h-12 px-4 rounded-[12px] flex items-center font-bold text-[14px] ${
                                 day.breakfast 
-                                  ? "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-300 border-2 border-amber-200 dark:border-amber-800" 
-                                  : "bg-gray-50 text-gray-500 dark:bg-white/5 dark:text-gray-400 border-2 border-transparent"
-                              } ${!day.isEditable ? "opacity-60 cursor-not-allowed" : "hover:scale-[1.01]"}`}
+                                  ? "bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:text-amber-300 border border-amber-200 dark:border-amber-800" 
+                                  : "bg-gray-50 text-gray-400 dark:bg-white/5 border border-transparent"
+                              }`}
                             >
-                              {saving === `${day.forDate}-breakfast` ? (
-                                <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                              ) : (
-                                <Coffee className={`w-5 h-5 mr-3 ${day.breakfast ? "text-amber-600 dark:text-amber-400" : "text-gray-400"}`} />
-                              )}
+                              <Coffee className={`w-4 h-4 mr-3 ${day.breakfast ? "text-amber-600 dark:text-amber-400" : "text-gray-400"}`} />
                               Breakfast
                               {day.breakfast && <span className="ml-auto text-amber-600 dark:text-amber-400">✓</span>}
-                            </button>
+                            </div>
 
-                            <button
-                              onClick={() => handleToggle(day.forDate, "lunch", day.lunch)}
-                              disabled={!day.isEditable || saving === `${day.forDate}-lunch`}
-                              className={`w-full h-14 px-5 rounded-[16px] flex items-center font-bold text-[15px] transition-all ${
+                            <div className={`w-full h-12 px-4 rounded-[12px] flex items-center font-bold text-[14px] ${
                                 day.lunch 
-                                  ? "bg-orange-100 text-orange-900 dark:bg-orange-900/40 dark:text-orange-300 border-2 border-orange-200 dark:border-orange-800" 
-                                  : "bg-gray-50 text-gray-500 dark:bg-white/5 dark:text-gray-400 border-2 border-transparent"
-                              } ${!day.isEditable ? "opacity-60 cursor-not-allowed" : "hover:scale-[1.01]"}`}
+                                  ? "bg-orange-50 text-orange-900 dark:bg-orange-900/20 dark:text-orange-300 border border-orange-200 dark:border-orange-800" 
+                                  : "bg-gray-50 text-gray-400 dark:bg-white/5 border border-transparent"
+                              }`}
                             >
-                              {saving === `${day.forDate}-lunch` ? (
-                                <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                              ) : (
-                                <Sun className={`w-5 h-5 mr-3 ${day.lunch ? "text-orange-600 dark:text-orange-400" : "text-gray-400"}`} />
-                              )}
+                              <Sun className={`w-4 h-4 mr-3 ${day.lunch ? "text-orange-600 dark:text-orange-400" : "text-gray-400"}`} />
                               Lunch
                               {day.lunch && <span className="ml-auto text-orange-600 dark:text-orange-400">✓</span>}
-                            </button>
+                            </div>
 
-                            <button
-                              onClick={() => handleToggle(day.forDate, "dinner", day.dinner)}
-                              disabled={!day.isEditable || saving === `${day.forDate}-dinner`}
-                              className={`w-full h-14 px-5 rounded-[16px] flex items-center font-bold text-[15px] transition-all ${
+                            <div className={`w-full h-12 px-4 rounded-[12px] flex items-center font-bold text-[14px] ${
                                 day.dinner 
-                                  ? "bg-indigo-100 text-indigo-900 dark:bg-indigo-900/40 dark:text-indigo-300 border-2 border-indigo-200 dark:border-indigo-800" 
-                                  : "bg-gray-50 text-gray-500 dark:bg-white/5 dark:text-gray-400 border-2 border-transparent"
-                              } ${!day.isEditable ? "opacity-60 cursor-not-allowed" : "hover:scale-[1.01]"}`}
+                                  ? "bg-indigo-50 text-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800" 
+                                  : "bg-gray-50 text-gray-400 dark:bg-white/5 border border-transparent"
+                              }`}
                             >
-                              {saving === `${day.forDate}-dinner` ? (
-                                <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                              ) : (
-                                <Moon className={`w-5 h-5 mr-3 ${day.dinner ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400"}`} />
-                              )}
+                              <Moon className={`w-4 h-4 mr-3 ${day.dinner ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400"}`} />
                               Dinner
                               {day.dinner && <span className="ml-auto text-indigo-600 dark:text-indigo-400">✓</span>}
-                            </button>
-
-                            {!day.isEditable && (
-                              <p className="text-center text-[12px] font-bold text-gray-400 mt-4 flex items-center justify-center gap-1">
-                                <Lock className="w-3 h-3" /> Orders locked
-                              </p>
-                            )}
+                            </div>
                           </div>
                         </div>
                       </SoftCard>
@@ -422,6 +412,12 @@ export default function TenantFoodPage() {
         </div>
       </nav>
 
+      {/* Modals */}
+      <FoodTopUpModal 
+        isOpen={isTopUpOpen} 
+        onClose={() => setIsTopUpOpen(false)} 
+        onSuccess={() => loadData()}
+      />
     </div>
   );
 }

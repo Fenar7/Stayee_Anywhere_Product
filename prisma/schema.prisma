@@ -768,6 +768,7 @@ model FoodWalletTopUp {
   requestedByTenantUserId String?  // set if tenant-initiated
   approvedByUserId String?
   approvedByUser   User?           @relation("TopUpApprovals", fields: [approvedByUserId], references: [id])
+  idempotencyKey   String?         @unique
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
