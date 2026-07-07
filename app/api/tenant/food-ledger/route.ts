@@ -48,10 +48,13 @@ export async function GET(request: NextRequest) {
         let dailyTotal = 0;
         if (order.breakfast) dailyTotal += currentCycle.breakfastPricePaise;
         if (order.lunch) dailyTotal += currentCycle.lunchPricePaise;
-        if (order.dinner) dailyTotal += currentCycle.dinnerPricePaise;
+        // order.forDate is stored as UTC for IST midnight (e.g. 18:30 UTC the previous day).
+        // To get the correct YYYY-MM-DD, we offset it back to IST before extracting the date string.
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(order.forDate.getTime() + istOffset);
 
         return {
-          forDate: order.forDate.toISOString().split("T")[0],
+          forDate: istDate.toISOString().split("T")[0],
           breakfast: order.breakfast,
           lunch: order.lunch,
           dinner: order.dinner,
