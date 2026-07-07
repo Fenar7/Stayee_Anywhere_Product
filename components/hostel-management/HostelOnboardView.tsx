@@ -159,6 +159,15 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
       return;
     }
 
+    if (
+      foodPlan !== FoodPlan.NOT_INCLUDED &&
+      foodBillingMode === FoodBillingMode.PREPAID_CONSUMPTION &&
+      (!foodCharges || parseFloat(foodCharges) <= 0)
+    ) {
+      notify.error("Food Advance is required for Prepaid Consumption billing.");
+      return;
+    }
+
     setLoading(true);
 
     try {

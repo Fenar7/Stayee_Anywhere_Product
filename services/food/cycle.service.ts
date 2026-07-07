@@ -1,6 +1,8 @@
 import { Prisma, FoodBillingMode, FoodPlan } from "@prisma/client";
-import { endOfMonth } from "date-fns";
+import { getStartOfDayIST, getEndOfMonthIST } from "@/lib/dates";
 import { PricingService } from "./pricing.service";
+import { ValidationError } from "@/lib/errors";
+import { prisma } from "@/lib/db";
 
 export class FoodCycleService {
   /**
@@ -24,14 +26,11 @@ export class FoodCycleService {
     const pricing = await PricingService.getActivePricing(organizationId, hostelId, joiningDate);
     
     if (!pricing) {
-      throw new Error("Cannot enable consumption-based food billing: No active meal prices configured for this date.");
+      throw new ValidationError("Cannot enable consumption-based food billing: No active meal prices configured for this date.");
     }
 
-    const cycleStart = new Date(joiningDate);
-    const cycleEnd = endOfMonth(cycleStart);
-    // Ensure times are zeroed for clean cycle boundaries (in IST logic if necessary, though endOfMonth usually keeps time).
-    cycleStart.setUTCHours(0, 0, 0, 0);
-    cycleEnd.setUTCHours(23, 59, 59, 999);
+    const cycleStart = getStartOfDayIST(joiningDate);
+    const cycleEnd = getEndOfMonthIST(cycleStart);
 
     const cycle = await tx.foodBillingCycle.create({
       data: {
@@ -46,5 +45,49 @@ export class FoodCycleService {
     });
 
     return cycle;
+  }
+
+  /**
+   * Idempotently fetches the current active cycle for a stay.
+   */
+  static async getOrCreateCurrentCycle(stayId: string) {
+    const activeCycle = await prisma.foodBillingCycle.findFirst({
+      where: {
+        stayId,
+        status: "OPEN",
+      },
+      orderBy: { cycleStart: "desc" },
+    });
+
+    if (activeCycle) {
+      return activeCycle;
+    }
+
+    // Creating a cycle requires stay info, this method can be expanded in the future 
+    // to auto-spawn cycle if needed. For now just return null.
+    return null;
+  }
+
+  /**
+   * Closes an active cycle upon early or natural checkout.
+   */
+  static async closeCycle(
+    tx: Prisma.TransactionClient,
+    stayId: string,
+    checkoutDate: Date,
+    userId: string
+  ) {
+    await tx.foodBillingCycle.updateMany({
+      where: {
+        stayId,
+        status: "OPEN",
+      },
+      data: {
+        status: "CLOSED",
+        closedAt: new Date(),
+        closedByUserId: userId,
+        cycleEnd: checkoutDate,
+      },
+    });
   }
 }
