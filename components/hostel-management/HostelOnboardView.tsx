@@ -682,7 +682,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                     <Label className="text-base font-semibold">Food Billing Type</Label>
                     <RadioGroup
                       value={foodBillingMode}
-                      onValueChange={(val) => setFoodBillingMode(val as FoodBillingMode)}
+                      onValueChange={(val: string) => setFoodBillingMode(val as FoodBillingMode)}
                       className="gap-4 pt-2"
                     >
                       <div className="flex items-start space-x-3">

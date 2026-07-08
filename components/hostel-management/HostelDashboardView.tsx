@@ -1,5 +1,7 @@
 import { Bell, Plus } from "lucide-react";
 import { UserRole } from "@prisma/client";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
 import { ActionAlertsClient } from "@/components/dashboard/ActionAlertsClient";
 import { getWardenHostelStats } from "@/services/hostel/dashboard.service";
 

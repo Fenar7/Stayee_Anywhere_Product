@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const orders = await prisma.complementaryFoodOrder.findMany({
       where: { hostelId },
       include: {
-        createdByUser: { select: { fullName: true } },
+        createdByUser: { select: { email: true, phone: true } },
       },
       orderBy: { forDate: "desc" },
     });

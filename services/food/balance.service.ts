@@ -158,7 +158,7 @@ export class FoodBalanceService {
       resultMap.set(stay.id, {
         stayId: stay.id,
         tenantName: stay.tenant.fullName || "Unknown",
-        roomName: stay.bed.room.name,
+        roomName: stay.bed.room.roomNumber,
         billingMode: stay.foodBillingMode,
         foodPlan: stay.foodPlan,
         cycleId: cycle.id,

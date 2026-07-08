@@ -43,7 +43,7 @@ export class PricingService {
       orderBy: { effectiveFrom: "desc" },
       include: {
         hostel: { select: { name: true } },
-        createdByUser: { select: { firstName: true, lastName: true } },
+        createdByUser: { select: { email: true, phone: true } },
       },
     });
   }

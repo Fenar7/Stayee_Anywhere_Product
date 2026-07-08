@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { handleApiError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { PricingService } from "@/services/food/pricing.service";
 import { z } from "zod";
 

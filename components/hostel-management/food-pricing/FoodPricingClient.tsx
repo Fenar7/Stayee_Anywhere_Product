@@ -49,7 +49,7 @@ interface FoodPricingHistory {
   dinnerPricePaise: number;
   effectiveFrom: Date;
   createdAt: Date;
-  createdByUser: { firstName: string; lastName: string };
+  createdByUser: { email: string | null; phone: string };
 }
 
 interface Hostel {
@@ -169,10 +169,12 @@ export default function FoodPricingClient({
           </p>
         </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
+          <DialogTrigger>
             <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Update Prices
+              <span>
+                <Plus className="h-4 w-4" />
+                Update Prices
+              </span>
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -188,7 +190,7 @@ export default function FoodPricingClient({
                   <Label>Target Location</Label>
                   <Select
                     value={formData.hostelId}
-                    onValueChange={(val) => setFormData({ ...formData, hostelId: val })}
+                    onValueChange={(val) => setFormData({ ...formData, hostelId: val || "ALL" })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select target location" />
@@ -310,8 +312,8 @@ export default function FoodPricingClient({
                   <TableCell className="text-right">
                     ₹{(record.dinnerPricePaise / 100).toFixed(2)}
                   </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {record.createdByUser.firstName} {record.createdByUser.lastName}
+                  <TableCell className="text-right">
+                    {record.createdByUser.email || record.createdByUser.phone}
                   </TableCell>
                 </TableRow>
               ))
