@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
     const mapped = pendingTopUps.map((t) => ({
       id: t.id,
       stayId: t.stayId,
-      tenantName: t.stay.tenant.fullName || "Unknown",
-      roomNumber: t.stay.bed.room.roomNumber,
-      bedLabel: t.stay.bed.label,
+      tenantName: t.stay?.tenant?.fullName || "Unknown",
+      roomNumber: t.stay?.bed?.room?.roomNumber || "N/A",
+      bedLabel: t.stay?.bed?.label || "N/A",
       amountPaise: t.amountPaise,
       createdAt: t.createdAt.toISOString(),
       reason: t.reason,

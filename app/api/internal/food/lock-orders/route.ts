@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getStartOfDayIST } from "@/lib/dates";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -12,20 +14,21 @@ export async function GET(request: NextRequest) {
     }
 
     const todayIST = getStartOfDayIST(new Date());
+    const now = new Date();
 
-    const result = await prisma.foodOrder.updateMany({
+    const { count } = await prisma.foodOrder.updateMany({
       where: {
-        forDate: todayIST,
+        forDate: { lte: todayIST },
         lockedAt: null,
       },
       data: {
-        lockedAt: new Date(),
+        lockedAt: now,
       },
     });
 
     return NextResponse.json({
       message: "Daily orders locked successfully",
-      lockedCount: result.count,
+      lockedCount: count,
     });
   } catch (error: any) {
     console.error("Lock Orders Cron Error:", error);

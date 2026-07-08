@@ -45,11 +45,15 @@ export async function PATCH(
       where: { id: topUpId },
       data: {
         status: data.action === "APPROVE" ? TopUpStatus.APPROVED : TopUpStatus.REJECTED,
-        paymentMode: data.action === "APPROVE" ? data.paymentMode : null,
-        transactionRef: data.action === "APPROVE" ? data.transactionRef : null,
+        ...(data.action === "APPROVE" ? { 
+          paymentMode: data.paymentMode, 
+          transactionRef: data.transactionRef || null 
+        } : {}),
         approvedByUserId: session.user.id,
       },
     });
+
+    const actorName = session.user.email || session.user.phone || (session.user.role === UserRole.MAIN_ADMIN ? "Admin" : "Warden");
 
     if (data.action === "APPROVE") {
       await FoodNotificationService.notifyTenantTopUpApproved(updated.id).catch(console.error);
@@ -58,13 +62,25 @@ export async function PATCH(
         hostelId: topUp.stay.hostelId,
         eventType: ActivityEventType.FOOD_WALLET_TOPPED_UP,
         actorId: session.user.id,
-        actorName: session.user.role === UserRole.MAIN_ADMIN ? "Admin" : "Warden",
-        subjectName: `Wallet Top-Up - ${topUp.stay.tenant?.fullName || "Tenant"}`,
-        subjectId: updated.id,
-        subjectType: "FoodWalletTopUp",
+        actorName: actorName,
+        subjectId: topUp.stayId,
+        subjectName: topUp.stay.tenant.fullName,
+        subjectType: "Stay",
+        metadata: { amountPaise: topUp.amountPaise },
       });
     } else {
       await FoodNotificationService.notifyTenantTopUpRejected(updated.id).catch(console.error);
+      await logActivity({
+        organizationId: topUp.stay.hostel.organizationId,
+        hostelId: topUp.stay.hostelId,
+        eventType: ActivityEventType.FOOD_WALLET_TOPUP_REJECTED,
+        actorId: session.user.id,
+        actorName: actorName,
+        subjectId: topUp.stayId,
+        subjectName: topUp.stay.tenant.fullName,
+        subjectType: "Stay",
+        metadata: { amountPaise: topUp.amountPaise },
+      });
     }
 
     return NextResponse.json(updated);

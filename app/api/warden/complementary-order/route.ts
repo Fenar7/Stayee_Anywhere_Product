@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       hostelId,
       eventType: ActivityEventType.FOOD_COMPLEMENTARY_ORDER_CREATED,
       actorId: session.user.id,
-      actorName: session.user.role === UserRole.MAIN_ADMIN ? "Admin" : "Warden",
+      actorName: session.user.email || session.user.phone || (session.user.role === UserRole.MAIN_ADMIN ? "Admin" : "Warden"),
       subjectName: `Complementary Order - ${data.category}`,
       subjectId: order.id,
       subjectType: "ComplementaryFoodOrder",

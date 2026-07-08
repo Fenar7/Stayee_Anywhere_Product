@@ -28,6 +28,8 @@ export function formatActivityAction(eventType: ActivityEventType): string {
       return "closed food cycle for";
     case ActivityEventType.FOOD_WALLET_TOPPED_UP:
       return "topped up food wallet for";
+    case ActivityEventType.FOOD_WALLET_TOPUP_REJECTED:
+      return "rejected food wallet top-up for";
     case ActivityEventType.FOOD_COMPLEMENTARY_ORDER_CREATED:
       return "created a complementary food order for";
     default:
