@@ -193,13 +193,13 @@ export async function verifyPayment(
     if (isFullyPaid) {
       const originalStatus = stay.status;
 
-      updatedStay = await tx.stay.update({
+      const updated = await tx.stay.update({
         where: { id: stay.id },
         data: {
           status: StayStatus.ACTIVE,
         },
-        include: { payments: true },
       });
+      updatedStay = { ...updated, tenant: stay.tenant, hostel: stay.hostel } as any;
 
       await tx.stayStatusEvent.create({
         data: {

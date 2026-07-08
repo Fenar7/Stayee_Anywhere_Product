@@ -39,7 +39,7 @@ export async function logActivity(params: LogActivityParams): Promise<void> {
         subjectName: params.subjectName,
         subjectId: params.subjectId,
         subjectType: params.subjectType,
-        metadata: params.metadata ?? {},
+        metadata: (params.metadata as any) ?? {},
         targetUrl: params.targetUrl,
       },
     });
@@ -68,7 +68,7 @@ export async function getActivityFeed(
     where.eventType = { in: params.eventTypes };
   }
 
-  const cursorOpts = params.cursorId
+  const cursorOpts: any = params.cursorId
     ? {
         cursor: {
           id: params.cursorId,
@@ -77,7 +77,7 @@ export async function getActivityFeed(
       }
     : {};
 
-  const items = await prisma.activityLog.findMany({
+  const items: any = await prisma.activityLog.findMany({
     where,
     take,
     ...cursorOpts,
@@ -141,9 +141,9 @@ export async function* streamActivityLogCsv(params: StreamCsvParams): AsyncGener
   yield "Date,Hostel,Event,Actor,Subject,Subject Type,Target URL\n";
 
   while (true) {
-    const cursorOpts = cursorId ? { cursor: { id: cursorId }, skip: 1 } : {};
+    const cursorOpts: any = cursorId ? { cursor: { id: cursorId }, skip: 1 } : {};
     
-    const items = await prisma.activityLog.findMany({
+    const items: any = await prisma.activityLog.findMany({
       where,
       take: batchSize,
       ...cursorOpts,
