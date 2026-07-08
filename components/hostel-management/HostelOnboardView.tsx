@@ -4,12 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter, useSearchParams } from "next/navigation";
 import { notify } from "@/lib/toast";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { DurationType, FoodPlan, FoodBillingMode } from "@prisma/client";
 import { onboardingLinkWithPassword } from "@/lib/whatsapp/templates";
 import { buildWaMeLink } from "@/lib/whatsapp/utils";
@@ -46,9 +46,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
     DurationType.MONTHLY
   );
   const [foodPlan, setFoodPlan] = useState<FoodPlan>(FoodPlan.NOT_INCLUDED);
-  const [foodBillingMode, setFoodBillingMode] = useState<FoodBillingMode>(
-    FoodBillingMode.FLAT_RATE
-  );
+  const [foodBillingMode, setFoodBillingMode] = useState<FoodBillingMode>(FoodBillingMode.FLAT_RATE);
   const [isNewAdmission, setIsNewAdmission] = useState(true);
   const [admissionFee, setAdmissionFee] = useState("0");
   const [monthlyRent, setMonthlyRent] = useState("0");
@@ -159,15 +157,6 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
       return;
     }
 
-    if (
-      foodPlan !== FoodPlan.NOT_INCLUDED &&
-      foodBillingMode === FoodBillingMode.PREPAID_CONSUMPTION &&
-      (!foodCharges || parseFloat(foodCharges) <= 0)
-    ) {
-      notify.error("Food Advance is required for Prepaid Consumption billing.");
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -180,7 +169,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
         foodPlan,
         foodBillingMode,
         isNewAdmission,
-        admissionFee: parseFloat(admissionFee) || 0,
+        admissionFee: Math.round(parseFloat(admissionFee) * 100),
         monthlyRent: parseFloat(monthlyRent) || 0,
         securityDeposit: parseFloat(securityDeposit) || 0,
         foodCharges: parseFloat(foodCharges) || 0,
@@ -612,20 +601,13 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                     className="text-sm font-medium"
                     htmlFor="food-charges"
                   >
-                    {foodPlan !== FoodPlan.NOT_INCLUDED
-                      ? foodBillingMode === FoodBillingMode.PREPAID_CONSUMPTION
-                        ? "Food Advance (₹) *"
-                        : foodBillingMode === FoodBillingMode.POSTPAID
-                        ? "Initial Food Deposit (₹)"
-                        : "Monthly Food Charges (₹)"
-                      : "Food Charges (₹)"}
+                    Food Charges (₹)
                   </label>
                   <Input
                     id="food-charges"
                     type="number"
                     step="0.01"
                     min="0"
-                    required={foodBillingMode === FoodBillingMode.PREPAID_CONSUMPTION}
                     value={foodCharges}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFoodCharges(e.target.value)
@@ -802,24 +784,10 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   <span className="text-muted-foreground">Duration</span>
                   <span className="font-medium">{durationType}</span>
                 </div>
-                {foodPlan !== FoodPlan.NOT_INCLUDED && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Food Plan</span>
-                      <span className="font-medium">{foodPlan}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Food Billing Type</span>
-                      <span className="font-medium">
-                        {foodBillingMode === FoodBillingMode.FLAT_RATE
-                          ? "Flat Rate"
-                          : foodBillingMode === FoodBillingMode.PREPAID_CONSUMPTION
-                          ? "Prepaid (Consumption)"
-                          : "Postpaid (Consumption)"}
-                      </span>
-                    </div>
-                  </>
-                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Food Plan</span>
+                  <span className="font-medium">{foodPlan}</span>
+                </div>
                 <div className="flex justify-between border-t pt-2">
                   <span className="font-semibold">Total Payable</span>
                   <span className="font-bold text-green-700">

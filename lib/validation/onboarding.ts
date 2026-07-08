@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DurationType, FoodPlan, FoodBillingMode } from "@prisma/client";
+import { DurationType, FoodPlan } from "@prisma/client";
 
 export const onboardSchema = z.object({
   phone: z
@@ -11,7 +11,6 @@ export const onboardSchema = z.object({
   endDate: z.string().transform((val) => new Date(val)),
   durationType: z.nativeEnum(DurationType),
   foodPlan: z.nativeEnum(FoodPlan),
-  foodBillingMode: z.nativeEnum(FoodBillingMode).default(FoodBillingMode.FLAT_RATE),
   isNewAdmission: z.boolean(),
   admissionFee: z.number().nonnegative(),
   monthlyRent: z.number().nonnegative(),
