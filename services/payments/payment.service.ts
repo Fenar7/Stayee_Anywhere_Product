@@ -5,6 +5,7 @@ import { checkBedConflict } from "@/services/beds/bed.service";
 import { generatePaymentReceipt } from "@/services/pdf/receipt.service";
 import { logActivity } from "@/services/activity/activity.service";
 import { ActivityEventType } from "@prisma/client";
+import { FoodCycleService } from "../food/cycle.service";
 
 import { verifyAndGetFileType, compressImage } from "@/lib/image";
 import { uploadToStorage } from "@/lib/storage";
@@ -210,6 +211,18 @@ export async function verifyPayment(
           note: "Payment fully verified. Stay activated.",
         },
       });
+
+      if (stay.foodPlan !== "NOT_INCLUDED") {
+        await FoodCycleService.createCycleForStay(
+          tx,
+          stay.id,
+          stay.hostel.organizationId,
+          stay.hostelId,
+          stay.foodBillingMode,
+          stay.foodPlan,
+          stay.joiningDate
+        );
+      }
 
       await tx.bed.update({
         where: { id: stay.bedId },
