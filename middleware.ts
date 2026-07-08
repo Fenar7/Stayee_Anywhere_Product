@@ -48,7 +48,9 @@ function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           
           responseRef.current = NextResponse.next({
-            request,
+            request: {
+              headers: request.headers,
+            }
           });
           
           cookiesToSet.forEach(({ name, value, options }) => {
@@ -142,11 +144,13 @@ export async function middleware(request: NextRequest) {
       }
     } else {
       console.error(`[Middleware Log] internal auth-check failed: ${res.status}`);
-      return responseRef.current;
+      if (isApiRoute) return jsonError(401, "Unauthorized", "UNAUTHORIZED");
+      return redirectToLogin(request);
     }
   } catch (err) {
     console.error(`[Middleware Log] internal auth-check error:`, err);
-    return responseRef.current;
+    if (isApiRoute) return jsonError(401, "Unauthorized", "UNAUTHORIZED");
+    return redirectToLogin(request);
   }
 
   if (!dbUser) {
