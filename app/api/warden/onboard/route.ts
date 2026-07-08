@@ -56,9 +56,9 @@ export async function POST(request: NextRequest) {
       actorId: session.user.id,
       actorName: session.user.phone ?? "Admin",
       subjectName: data.phone,
-      subjectId: result.requestId,
-      subjectType: "OnboardingRequest",
-      targetUrl: `/warden/onboards/${result.requestId}`,
+      subjectId: result.stayId,
+      subjectType: "Stay",
+      targetUrl: `/warden/onboards/${result.stayId}`,
     });
 
     return NextResponse.json(result);

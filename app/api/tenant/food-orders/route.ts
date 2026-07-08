@@ -46,18 +46,9 @@ export async function GET(request: NextRequest) {
 
     const days = await getFoodOrdersInRange(stay.id, startDate, endDate);
 
-    const fullStay = await prisma.stay.findUnique({
-      where: { id: stay.id },
-      include: { hostel: true },
-    });
-
-    if (!fullStay) throw new NotFoundError("Stay not found");
-
     return NextResponse.json({
       stayId: stay.id,
       foodPlan: stay.foodPlan,
-      cutoffStartHour: fullStay.hostel.foodOrderCutoffStartHour,
-      cutoffEndHour: fullStay.hostel.foodOrderCutoffEndHour,
       days,
     });
   } catch (error) {
