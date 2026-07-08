@@ -17,9 +17,10 @@ const patchSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: topUpId } = await params;
     const session = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
     const hostelId = await resolveHostelId(session, request);
     await requireHostelAccess(session, hostelId);
@@ -27,7 +28,6 @@ export async function PATCH(
     const body = await request.json();
     const data = patchSchema.parse(body);
 
-    const topUpId = params.id;
     const topUp = await prisma.foodWalletTopUp.findUnique({
       where: { id: topUpId },
       include: { stay: { include: { tenant: true, hostel: true } } },

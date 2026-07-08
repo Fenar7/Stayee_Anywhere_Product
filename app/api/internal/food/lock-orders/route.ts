@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getStartOfDayIST } from "@/lib/dates";
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get("Authorization");
     const cronSecret = process.env.CRON_SECRET;
