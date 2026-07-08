@@ -30,9 +30,9 @@ export default async function AdminPage() {
   ];
 
   const bookingItems: StatusItem[] = [
-    { id: "1", label: "Onboarding Started", value: 32, iconUrl: "/icons/onboarding-started-icon.png" },
-    { id: "2", label: "Submitted for Approval", value: 32, iconUrl: "/icons/submitted-for-approval-icon.png" },
-    { id: "3", label: "Payment Pending", value: 32, iconUrl: "/icons/payment-pending-icon.png" },
+    { id: "1", label: "Onboarding Started", value: 32, iconUrl: "/icons/onboarding-started-icon.png", href: "/admin/onboards?tab=form" },
+    { id: "2", label: "Submitted for Approval", value: 32, iconUrl: "/icons/submitted-for-approval-icon.png", href: "/admin/onboards?tab=review" },
+    { id: "3", label: "Payment Pending", value: 32, iconUrl: "/icons/payment-pending-icon.png", href: "/admin/onboards?tab=payment" },
   ];
 
   return (
