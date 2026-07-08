@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter, useSearchParams } from "next/navigation";
 import { notify } from "@/lib/toast";
-import { DurationType, FoodPlan } from "@prisma/client";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { DurationType, FoodPlan, FoodBillingMode } from "@prisma/client";
 import { onboardingLinkWithPassword } from "@/lib/whatsapp/templates";
 import { buildWaMeLink } from "@/lib/whatsapp/utils";
 
@@ -45,6 +46,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
     DurationType.MONTHLY
   );
   const [foodPlan, setFoodPlan] = useState<FoodPlan>(FoodPlan.NOT_INCLUDED);
+  const [foodBillingMode, setFoodBillingMode] = useState<FoodBillingMode>(FoodBillingMode.FLAT_RATE);
   const [isNewAdmission, setIsNewAdmission] = useState(true);
   const [admissionFee, setAdmissionFee] = useState("0");
   const [monthlyRent, setMonthlyRent] = useState("0");
@@ -165,8 +167,9 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
         endDate,
         durationType,
         foodPlan,
+        foodBillingMode,
         isNewAdmission,
-        admissionFee: parseFloat(admissionFee) || 0,
+        admissionFee: Math.round(parseFloat(admissionFee) * 100),
         monthlyRent: parseFloat(monthlyRent) || 0,
         securityDeposit: parseFloat(securityDeposit) || 0,
         foodCharges: parseFloat(foodCharges) || 0,
@@ -656,6 +659,38 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                     </SelectContent>
                   </Select>
                 </div>
+                {foodPlan !== FoodPlan.NOT_INCLUDED && (
+                  <div className="space-y-3 sm:col-span-2 rounded-lg border p-4 bg-muted/30">
+                    <Label className="text-base font-semibold">Food Billing Type</Label>
+                    <RadioGroup
+                      value={foodBillingMode}
+                      onValueChange={(val: string) => setFoodBillingMode(val as FoodBillingMode)}
+                      className="gap-4 pt-2"
+                    >
+                      <div className="flex items-start space-x-3">
+                        <RadioGroupItem value={FoodBillingMode.FLAT_RATE} id="flat" className="mt-1" />
+                        <div className="space-y-1 leading-none">
+                          <Label htmlFor="flat" className="font-medium">Flat Rate</Label>
+                          <p className="text-sm text-muted-foreground">Fixed monthly fee. No per-meal tracking or financial reconciliation.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <RadioGroupItem value={FoodBillingMode.PREPAID_CONSUMPTION} id="prepaid" className="mt-1" />
+                        <div className="space-y-1 leading-none">
+                          <Label htmlFor="prepaid" className="font-medium">Consumption-Based (Prepaid)</Label>
+                          <p className="text-sm text-muted-foreground">Tenant pays an advance upfront. Meals are deducted daily. Refunded or recovered at cycle end.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <RadioGroupItem value={FoodBillingMode.POSTPAID} id="postpaid" className="mt-1" />
+                        <div className="space-y-1 leading-none">
+                          <Label htmlFor="postpaid" className="font-medium">Consumption-Based (Postpaid)</Label>
+                          <p className="text-sm text-muted-foreground">Tenant builds a running tab for consumed meals. Settled at cycle end.</p>
+                        </div>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                )}
               </div>
 
               <div

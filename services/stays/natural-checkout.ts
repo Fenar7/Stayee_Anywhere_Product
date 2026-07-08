@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getEndOfDayIST } from "@/lib/dates";
 import { StayStatus, BedStatus, Prisma } from "@prisma/client";
+import { FoodSettlementService } from "../food/settlement.service";
 
 export interface NaturalCheckoutResult {
   checkedOutCount: number;
@@ -38,6 +39,8 @@ export async function processNaturalCheckouts(params?: NaturalCheckoutParams): P
   }
 
   for (const stay of expiredStays) {
+    let openCycleId: string | undefined;
+
     await prisma.$transaction(async (tx) => {
       await tx.stay.update({
         where: { id: stay.id },
@@ -58,7 +61,23 @@ export async function processNaturalCheckouts(params?: NaturalCheckoutParams): P
           note: `Stay naturally expired on ${stay.endDate.toISOString().split("T")[0]}. Bed released.`,
         },
       });
+
+      const openCycle = await tx.foodBillingCycle.findFirst({
+        where: { stayId: stay.id, status: "OPEN" },
+      });
+
+      if (openCycle) {
+        await tx.foodBillingCycle.update({
+          where: { id: openCycle.id },
+          data: { cycleEnd: stay.endDate },
+        });
+        openCycleId = openCycle.id;
+      }
     });
+
+    if (openCycleId) {
+      await FoodSettlementService.settleStayCycle(stay.id, openCycleId, "system");
+    }
   }
 
   return {

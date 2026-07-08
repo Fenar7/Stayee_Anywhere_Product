@@ -29,6 +29,14 @@ export function getEndOfDayIST(date: Date = new Date()): Date {
 }
 
 /**
+ * Returns a Date object set to 23:59:59.999 IST for the last day of the given month.
+ */
+export function getEndOfMonthIST(date: Date = new Date()): Date {
+  const { year, month } = getISTDateParts(date);
+  const lastDay = new Date(year, month, 0).getDate();
+  return new Date(`${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}T23:59:59.999+05:30`);
+}
+/**
  * Returns a Date object set to 00:00:00.000 IST (midnight) for the given date.
  */
 export function getStartOfDayIST(date: Date): Date {

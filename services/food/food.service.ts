@@ -34,9 +34,9 @@ export async function getActiveStayForFoodOrdering(userId: string) {
 export async function validateCutoff(forDate: Date): Promise<{ isOpen: boolean; closedAt?: Date }> {
   const pastCutoff = isPastFoodCutoff(forDate);
   if (pastCutoff) {
-    const closedAt = new Date(forDate);
-    closedAt.setDate(closedAt.getDate() - 1);
-    closedAt.setHours(22, 0, 0, 0); // 10 PM IST
+    const closedAt = new Date(forDate.getTime());
+    closedAt.setUTCDate(closedAt.getUTCDate() - 1);
+    closedAt.setUTCHours(22, 0, 0, 0); // 10 PM IST (using UTC setter for consistency)
     return { isOpen: false, closedAt };
   }
   return { isOpen: true };
@@ -140,7 +140,7 @@ export async function getFoodOrdersInRange(stayId: string, startDate: Date, endD
       lockedAt: existing?.lockedAt?.toISOString() ?? null,
     });
 
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   return days;

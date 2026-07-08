@@ -1,5 +1,7 @@
 import { Bell, Plus } from "lucide-react";
 import { UserRole } from "@prisma/client";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
 import { ActionAlertsClient } from "@/components/dashboard/ActionAlertsClient";
 import { getWardenHostelStats } from "@/services/hostel/dashboard.service";
 
@@ -56,9 +58,9 @@ export default async function HostelDashboardView({
   ];
 
   const bookingItems: StatusItem[] = [
-    { id: "1", label: "Onboarding Started", value: 32, iconUrl: "/icons/onboarding-started-icon.png" },
-    { id: "2", label: "Submitted for Approval", value: 32, iconUrl: "/icons/submitted-for-approval-icon.png" },
-    { id: "3", label: "Payment Pending", value: 32, iconUrl: "/icons/payment-pending-icon.png" },
+    { id: "1", label: "Onboarding Started", value: 32, iconUrl: "/icons/onboarding-started-icon.png", href: `${baseRoute}/onboards?tab=form` },
+    { id: "2", label: "Submitted for Approval", value: 32, iconUrl: "/icons/submitted-for-approval-icon.png", href: `${baseRoute}/onboards?tab=review` },
+    { id: "3", label: "Payment Pending", value: 32, iconUrl: "/icons/payment-pending-icon.png", href: `${baseRoute}/onboards?tab=payment` },
   ];
 
   const dateStr = new Intl.DateTimeFormat('en-US', {

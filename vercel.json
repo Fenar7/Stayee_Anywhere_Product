@@ -1,0 +1,14 @@
+{
+  "crons": [
+    {
+      "path": "/api/internal/food/settle-cycles",
+      "schedule": "0 0 * * *",
+      "timezone": "Asia/Kolkata"
+    },
+    {
+      "path": "/api/internal/food/lock-orders",
+      "schedule": "0 6 * * *",
+      "timezone": "Asia/Kolkata"
+    }
+  ]
+}

@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface OnboardItem {
   id: string;
@@ -58,6 +58,9 @@ interface OnboardItem {
 
 export default function AdminOnboardsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get("tab") || "all";
+  
   const [onboards, setOnboards] = useState<OnboardItem[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -283,7 +286,7 @@ export default function AdminOnboardsPage() {
         description="Monitor all onboarding applications, verifications, and active stays across all properties."
       />
       <div className="p-6">
-        <Tabs defaultValue="all" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="mb-6 overflow-x-auto flex-nowrap w-full justify-start h-auto p-1 bg-muted/50">
             <TabsTrigger value="all">All Stays ({onboards.length})</TabsTrigger>
             <TabsTrigger value="form">Awaiting Form ({awaitingForm.length})</TabsTrigger>
