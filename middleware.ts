@@ -47,9 +47,16 @@ function updateSession(request: NextRequest) {
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           
+          const requestHeaders = new Headers(request.headers);
+          const updatedCookiesStr = request.cookies
+            .getAll()
+            .map((c) => `${c.name}=${c.value}`)
+            .join('; ');
+          requestHeaders.set('cookie', updatedCookiesStr);
+          
           responseRef.current = NextResponse.next({
             request: {
-              headers: request.headers,
+              headers: requestHeaders,
             }
           });
           
