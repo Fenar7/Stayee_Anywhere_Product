@@ -7,9 +7,8 @@ import {
 import { rupeesToPaise } from "@/lib/money";
 import { diffInDays, isFutureDateIST } from "@/lib/dates";
 import { StayStatus, BedStatus, DocumentOwnerType, DocumentType } from "@prisma/client";
-import { logActivity } from "@/services/activity/activity.service";
 import { generateRefundInvoice } from "@/services/pdf/refund-invoice.service";
-import { FoodSettlementService } from "../food/settlement.service";
+import { logActivity } from "@/services/activity/activity.service";
 import { ActivityEventType } from "@prisma/client";
 
 export interface EarlyCheckoutParams {
@@ -121,25 +120,10 @@ export async function processEarlyCheckout(params: EarlyCheckoutParams): Promise
       },
     });
 
-    const openCycle = await tx.foodBillingCycle.findFirst({
-      where: { stayId, status: "OPEN" },
-    });
-
-    if (openCycle) {
-      await tx.foodBillingCycle.update({
-        where: { id: openCycle.id },
-        data: { cycleEnd: checkoutDate },
-      });
-    }
-
-    return { refundInvoice, openCycleId: openCycle?.id };
+    return refundInvoice;
   });
 
-  const refundInvoiceId = result.refundInvoice.id;
-
-  if (result.openCycleId) {
-    await FoodSettlementService.settleStayCycle(stayId, result.openCycleId, userId);
-  }
+  const refundInvoiceId = result.id;
 
   // Auto-trigger refund invoice PDF generation asynchronously.
   // Failures are logged but do NOT affect the checkout result.

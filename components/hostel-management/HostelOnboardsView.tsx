@@ -61,11 +61,9 @@ interface OnboardItem {
 export default function HostelOnboardsView({
   hostelId,
   baseRoute,
-  defaultTab = "all",
 }: {
   hostelId: string | null;
   baseRoute: string;
-  defaultTab?: string;
 }) {
   const router = useRouter();
   const [onboards, setOnboards] = useState<OnboardItem[]>([]);
@@ -296,7 +294,7 @@ export default function HostelOnboardsView({
         }
       />
       <div className="p-6">
-        <Tabs defaultValue={defaultTab} className="w-full">
+        <Tabs defaultValue="all" className="w-full">
           <TabsList className="mb-6 overflow-x-auto flex-nowrap w-full justify-start h-auto p-1 bg-muted/50">
             <TabsTrigger value="all">All Stays ({onboards.length})</TabsTrigger>
             <TabsTrigger value="form">Awaiting Form ({awaitingForm.length})</TabsTrigger>

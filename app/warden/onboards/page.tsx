@@ -8,9 +8,9 @@ export const dynamic = "force-dynamic";
 export default async function WardenOnboardsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ hostelId?: string; tab?: string }>;
+  searchParams: Promise<{ hostelId?: string }>;
 }) {
-  const { hostelId: queryHostelId, tab } = await searchParams;
+  const { hostelId: queryHostelId } = await searchParams;
   const { user } = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
 
   let hostelId: string | null = null;
@@ -25,5 +25,5 @@ export default async function WardenOnboardsPage({
     hostelId = user.warden?.hostelId ?? null;
   }
 
-  return <HostelOnboardsView hostelId={hostelId} baseRoute="/warden" defaultTab={tab || "all"} />;
+  return <HostelOnboardsView hostelId={hostelId} baseRoute="/warden" />;
 }

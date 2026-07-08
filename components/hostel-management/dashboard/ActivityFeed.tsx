@@ -7,7 +7,6 @@ import { createClient } from "@/lib/auth/client";
 import { createActivityChannel } from "@/lib/realtime/activity-channel";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
-import { formatActivityAction } from "@/lib/activity";
 
 interface ActivityFeedWidgetProps {
   role: "MAIN_ADMIN" | "WARDEN";
@@ -27,10 +26,6 @@ const EVENT_COLORS: Record<ActivityEventType, string> = {
   STAY_STATUS_CHANGED: "#767676",
   SERVICE_REQUEST_CREATED: "#e1a918",
   SERVICE_REQUEST_RESOLVED: "#18b92b",
-  FOOD_CYCLE_CLOSED: "#10b981", // green-500
-  FOOD_WALLET_TOPPED_UP: "#3b82f6", // blue-500
-  FOOD_WALLET_TOPUP_REJECTED: "#ef4444", // red-500
-  FOOD_COMPLEMENTARY_ORDER_CREATED: "#8b5cf6", // violet-500
 };
 
 export function ActivityFeed({ role, hostelId, organizationId }: ActivityFeedWidgetProps) {
@@ -140,11 +135,12 @@ export function ActivityFeed({ role, hostelId, organizationId }: ActivityFeedWid
                   className="text-[14px] font-semibold leading-snug"
                   style={{ color: EVENT_COLORS[item.eventType] || "#767676" }}
                 >
-                  {item.actorName} {formatActivityAction(item.eventType)}
-                  <span className="text-black dark:text-white ml-1">
-                    {item.subjectName}
-                  </span>
+                  {item.actorName} {formatActionType(item.eventType)}
                 </h4>
+                
+                <p className="text-[#767676] text-[13px] leading-snug pl-0 line-clamp-2">
+                  {item.subjectName}
+                </p>
                 
                 <div className="flex items-center justify-between pl-0 mt-0.5">
                   <p className="text-[#a1a1a1] text-[12px]">
@@ -165,3 +161,16 @@ export function ActivityFeed({ role, hostelId, organizationId }: ActivityFeedWid
   );
 }
 
+function formatActionType(type: ActivityEventType): string {
+  switch (type) {
+    case "TENANT_PAYMENT_RECEIVED": return "payment received";
+    case "TENANT_ONBOARDED": return "onboarded tenant";
+    case "TENANT_ONBOARDING_STARTED": return "started onboarding";
+    case "TENANT_CHECKED_OUT": return "checked out tenant";
+    case "TICKET_RAISED": return "raised ticket";
+    case "TICKET_STATUS_UPDATED": return "updated ticket status";
+    case "TICKET_COMMENT_ADDED": return "commented on ticket";
+    case "FOOD_ORDER_UPDATED": return "updated food order";
+    default: return type.replace(/_/g, " ").toLowerCase();
+  }
+}

@@ -6,7 +6,6 @@ import { createClient } from "@/lib/auth/client";
 import { createActivityChannel } from "@/lib/realtime/activity-channel";
 import { format } from "date-fns";
 import { Download, Filter, Search, Loader2 } from "lucide-react";
-import { formatActivityAction } from "@/lib/activity";
 
 interface ActivityLogPageClientProps {
   role: "MAIN_ADMIN" | "WARDEN";
@@ -27,10 +26,6 @@ const EVENT_COLORS: Record<ActivityEventType, string> = {
   STAY_STATUS_CHANGED: "#767676",
   SERVICE_REQUEST_CREATED: "#e1a918",
   SERVICE_REQUEST_RESOLVED: "#18b92b",
-  FOOD_CYCLE_CLOSED: "#10b981", // green-500
-  FOOD_WALLET_TOPPED_UP: "#3b82f6", // blue-500
-  FOOD_WALLET_TOPUP_REJECTED: "#ef4444", // red-500
-  FOOD_COMPLEMENTARY_ORDER_CREATED: "#8b5cf6", // violet-500 // gray
 };
 
 export function ActivityLogPageClient({ role, organizationId, hostelId: initialHostelId, showStandaloneHeader = true }: ActivityLogPageClientProps) {
@@ -230,7 +225,8 @@ export function ActivityLogPageClient({ role, organizationId, hostelId: initialH
                   <div className="flex flex-col gap-0.5">
                     <h4 className="text-[14px] text-black dark:text-white tracking-tight">
                       <span className="font-bold">{item.actorName}</span>
-                      <span className="text-[#767676] mx-1.5 font-medium">{formatActivityAction(item.eventType)}</span>
+                      <span className="text-[#767676] mx-1.5 font-medium">did</span>
+                      <span className="font-semibold text-black/80 dark:text-white/80">{item.eventType.replace(/_/g, " ").toLowerCase()}</span>
                     </h4>
                     <p className="text-[#767676] text-[13px] leading-snug font-medium">
                       {item.subjectName} {item.subjectType ? <span className="opacity-60 ml-1">({item.subjectType})</span> : ""}
