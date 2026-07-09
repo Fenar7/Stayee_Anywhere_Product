@@ -41,6 +41,19 @@ export default function AdminTasksPage() {
     fetchHostels();
   }, []);
 
+  const taskIdParam = searchParams.get("taskId");
+  useEffect(() => {
+    if (taskIdParam) {
+      setSelectedTaskId(taskIdParam);
+      setDrawerOpen(true);
+      
+      // Clean up the URL quietly so refreshing doesn't keep opening it
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("taskId");
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+  }, [taskIdParam]);
+
   useEffect(() => {
     const abortController = new AbortController();
     fetchTasks(abortController.signal);
