@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { ForbiddenError, NotFoundError, ValidationError } from "@/lib/errors";
-import { TaskStatus, TaskPriority, UserRole, Prisma } from "@prisma/client";
+import { UserRole, Prisma } from "@prisma/client";
+import { TaskStatus, TaskPriority } from "@/lib/constants/tasks";
 
 // ==========================================
 // SHARED UTILS

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TaskPriority, TaskStatus } from "@prisma/client";
+import { TaskPriority, TaskStatus } from "@/lib/constants/tasks";
 
 export const createTaskSchema = z.object({
   assignedToWardenId: z.string().uuid("Invalid Warden ID"),
