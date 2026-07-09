@@ -2,7 +2,7 @@ import { getTasksWidgetData } from "@/services/tasks/task.service";
 import { TasksListClient } from "./TasksListClient";
 import { formatRelativeTime } from "@/lib/dates";
 import { PriorityBadge } from "@/components/tasks/TaskBadge";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Building2, User } from "lucide-react";
 
 export async function TasksList({ organizationId }: { organizationId?: string }) {
   if (!organizationId) return null;
@@ -72,22 +72,36 @@ export async function TasksList({ organizationId }: { organizationId?: string })
               </div>
               
               {tasksForDay.map(task => (
-                <div key={task.id} className="bg-gray-50/50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-xl p-3">
-                  <div className="flex items-center gap-2 mb-1.5">
+                <div key={task.id} className="bg-white dark:bg-[#151515] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors border border-gray-200 dark:border-white/10 shadow-sm rounded-xl p-4">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <h4 className="text-[15px] font-semibold text-gray-900 dark:text-white leading-snug line-clamp-2 flex-1">
+                      {task.title}
+                    </h4>
                     <PriorityBadge priority={task.priority} />
-                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider truncate max-w-[120px]">
-                      {task.hostel.name}
-                    </span>
                   </div>
-                  <h4 className="text-[14px] font-bold text-gray-900 dark:text-white leading-snug truncate">
-                    {task.title}
-                  </h4>
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-[12px] font-medium text-gray-500 truncate">
-                      {task.assignedToWarden.user.email || task.assignedToWarden.user.phone}
+                  
+                  <div className="flex flex-wrap items-center gap-3 mt-3">
+                    <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-md">
+                      <Building2 className="w-3.5 h-3.5 text-gray-500" />
+                      <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 truncate max-w-[120px]">
+                        {task.hostel.name}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-md">
+                      <User className="w-3.5 h-3.5 text-gray-500" />
+                      <span className="text-[11px] font-medium text-gray-600 dark:text-gray-300 truncate max-w-[150px]">
+                        {task.assignedToWarden.user.email || task.assignedToWarden.user.phone}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-white/5">
+                    <p className={`text-[11px] font-bold uppercase tracking-wider ${task.isOverdue ? 'text-red-500' : 'text-gray-400'}`}>
+                      {task.isOverdue ? 'OVERDUE' : 'DUE'}
                     </p>
-                    <p className={`text-[11px] font-bold ${task.isOverdue ? 'text-red-500' : 'text-gray-400'}`}>
-                      {task.isOverdue ? 'OVERDUE' : formatRelativeTime(task.deadline.toISOString())}
+                    <p className={`text-[12px] font-medium ${task.isOverdue ? 'text-red-600 dark:text-red-400' : 'text-gray-500'}`}>
+                      {formatRelativeTime(task.deadline.toISOString())}
                     </p>
                   </div>
                 </div>
