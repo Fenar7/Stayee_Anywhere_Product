@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { TaskDTO } from "@/types/tasks";
-import { TaskPriority, TaskStatus } from "@prisma/client";
+import { TaskPriority, TaskStatus } from "@/lib/constants/tasks";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { PriorityBadge, StatusBadge } from "./TaskBadge";
 import { TaskComments } from "./TaskComments";

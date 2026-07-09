@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { formatRelativeTime } from "@/lib/dates";
 import { PriorityBadge } from "@/components/tasks/TaskBadge";
-import { TaskStatus } from "@prisma/client";
+import { TaskStatus } from "@/lib/constants/tasks";
 import { Check } from "lucide-react";
 import { notify } from "@/lib/toast";
 import { useRouter } from "next/navigation";
