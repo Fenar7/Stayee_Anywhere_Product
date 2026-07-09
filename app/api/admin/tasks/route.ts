@@ -37,10 +37,14 @@ export async function GET(request: NextRequest) {
     const hostelId = searchParams.get("hostelId") || undefined;
     const wardenId = searchParams.get("wardenId") || undefined;
     const priority = searchParams.get("priority") as TaskPriority | undefined;
+    const dateFrom = searchParams.get("dateFrom") ? new Date(searchParams.get("dateFrom")!) : undefined;
+    const dateTo = searchParams.get("dateTo") ? new Date(searchParams.get("dateTo")!) : undefined;
+    const sort = searchParams.get("sort") || undefined;
 
     const tasks = await listTasksAdmin({
       organizationId: session.user.organizationId,
-      filters: { status, hostelId, wardenId, priority },
+      filters: { status, hostelId, wardenId, priority, dateFrom, dateTo },
+      sort,
       pagination: { page, limit },
     });
 

@@ -97,7 +97,7 @@ export default async function AdminPage() {
             />
           </div>
           
-          <TasksList />
+          <TasksList organizationId={session.user.organizationId} />
         </div>
 
         {/* Right Column (1/3) */}

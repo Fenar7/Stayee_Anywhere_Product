@@ -107,3 +107,36 @@ export function calculateMonthlyNextDueDate(
 ): Date {
   return addDays(joiningDate, totalMonthsPaid * 30);
 }
+
+/**
+ * Format a date string into a relative label if it's within the next 7 days,
+ * otherwise returns a short date string (e.g., "Oct 24, 2026").
+ */
+export function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  
+  // Strip time for absolute day comparison
+  const dDay = getStartOfDayIST(date);
+  const nDay = getStartOfDayIST(now);
+  
+  const diffDays = Math.round((dDay.getTime() - nDay.getTime()) / MS_PER_DAY);
+  
+  // Format time component (e.g., "3:30 PM")
+  const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  
+  if (diffDays === -1) return `Yesterday ${timeStr}`;
+  if (diffDays === 0) return `Today ${timeStr}`;
+  if (diffDays === 1) return `Tomorrow ${timeStr}`;
+  
+  if (diffDays > 1 && diffDays < 7) {
+    const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+    return `${weekday} ${timeStr}`;
+  }
+  
+  if (diffDays < -1) {
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
+
+  return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} ${timeStr}`;
+}

@@ -28,7 +28,8 @@ import {
   Settings,
   ArrowLeft,
   LayoutGrid,
-  AlertCircle
+  AlertCircle,
+  ClipboardList
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -58,6 +59,7 @@ const NAV_CONFIG: Record<Role, NavGroup[]> = {
         { label: "Hostels", href: "/admin/hostels", icon: Building2 },
         { label: "All Users", href: "/admin/users", icon: Users },
         { label: "Wardens", href: "/admin/wardens", icon: Shield },
+        { label: "Tasks", href: "/admin/tasks", icon: ClipboardList },
         { label: "Complaints", href: "/admin/tickets", icon: AlertCircle },
       ],
     },
