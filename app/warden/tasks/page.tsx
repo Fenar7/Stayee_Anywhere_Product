@@ -12,7 +12,7 @@ export const metadata = {
 export default async function WardenTasksPage({
   searchParams,
 }: {
-  searchParams: { tab?: string; page?: string };
+  searchParams: Promise<{ tab?: string; page?: string }>;
 }) {
   const session = await requireRole([UserRole.WARDEN]);
   
@@ -24,8 +24,9 @@ export default async function WardenTasksPage({
     redirect("/");
   }
 
-  const tab = searchParams.tab || "PENDING";
-  const page = parseInt(searchParams.page || "1") || 1;
+  const { tab: rawTab, page: rawPage } = await searchParams;
+  const tab = rawTab || "PENDING";
+  const page = parseInt(rawPage || "1") || 1;
   const limit = 20;
 
   // Map UI tab to API status
@@ -41,8 +42,13 @@ export default async function WardenTasksPage({
     pagination: { page, limit }
   });
 
-  // Serialize Date objects to ISO strings to match TaskDTO expected by Client Component
-  const tasks = JSON.parse(JSON.stringify(rawTasks));
+  const tasks = rawTasks.map(t => ({
+    ...t,
+    deadline: t.deadline.toISOString(),
+    createdAt: t.createdAt.toISOString(),
+    updatedAt: t.updatedAt.toISOString(),
+    completedAt: t.completedAt?.toISOString() || null
+  }));
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">

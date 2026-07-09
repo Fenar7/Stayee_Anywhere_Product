@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { ForbiddenError, NotFoundError, ValidationError } from "@/lib/errors";
-import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
+import { TaskStatus, TaskPriority, UserRole, Prisma } from "@prisma/client";
 
 // ==========================================
 // SHARED UTILS
@@ -135,7 +135,7 @@ export async function listTasksAdmin(params: {
 }) {
   const skip = (params.pagination.page - 1) * params.pagination.limit;
   
-  const where = {
+  const where: Prisma.TaskWhereInput = {
     organizationId: params.organizationId,
     ...(params.filters.status && { status: params.filters.status }),
     ...(params.filters.hostelId && { hostelId: params.filters.hostelId }),
@@ -146,7 +146,7 @@ export async function listTasksAdmin(params: {
     }),
   };
 
-  let orderBy: any = { deadline: 'asc' };
+  let orderBy: Prisma.TaskOrderByWithRelationInput = { deadline: 'asc' };
   if (params.sort === 'deadline_desc') orderBy = { deadline: 'desc' };
   if (params.sort === 'createdAt_asc') orderBy = { createdAt: 'asc' };
   if (params.sort === 'createdAt_desc') orderBy = { createdAt: 'desc' };
@@ -206,7 +206,7 @@ export async function listTasksWarden(params: {
 }) {
   const skip = (params.pagination.page - 1) * params.pagination.limit;
   
-  const where: any = {
+  const where: Prisma.TaskWhereInput = {
     assignedToWardenId: params.wardenId,
   };
 
@@ -215,6 +215,9 @@ export async function listTasksWarden(params: {
     where.deadline = { lt: new Date() };
   } else if (params.filters.status) {
     where.status = params.filters.status;
+    if (params.filters.status === TaskStatus.PENDING || params.filters.status === TaskStatus.IN_PROGRESS) {
+      where.deadline = { gte: new Date() };
+    }
   }
 
   const [total, tasks] = await Promise.all([

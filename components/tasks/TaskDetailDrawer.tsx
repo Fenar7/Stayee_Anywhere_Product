@@ -44,6 +44,7 @@ export function TaskDetailDrawer({
   const [deadlineInput, setDeadlineInput] = useState("");
   const titleRef = useRef("");
   const descRef = useRef("");
+  const [completionNote, setCompletionNote] = useState("");
 
   useEffect(() => {
     if (open && taskId) {
@@ -312,18 +313,18 @@ export function TaskDetailDrawer({
                     {task.status === TaskStatus.IN_PROGRESS && (
                       <div className="space-y-3">
                         <textarea
-                          id="completionNote"
+                          value={completionNote}
+                          onChange={(e) => setCompletionNote(e.target.value)}
                           className="w-full text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 outline-none resize-none min-h-[80px]"
                           placeholder="Add a completion note (required)..."
                         />
                         <Button 
                           onClick={() => {
-                            const note = (document.getElementById('completionNote') as HTMLTextAreaElement)?.value;
-                            if (!note || note.trim().length < 3) {
+                            if (!completionNote || completionNote.trim().length < 3) {
                               notify.error("Completion note is required");
                               return;
                             }
-                            handleWardenStatusUpdate(TaskStatus.COMPLETED, note);
+                            handleWardenStatusUpdate(TaskStatus.COMPLETED, completionNote);
                           }} 
                           className="w-full rounded-xl bg-green-600 text-white hover:bg-green-700 font-bold"
                         >
