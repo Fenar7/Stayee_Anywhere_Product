@@ -51,16 +51,16 @@ export default async function HostelDashboardView({
 
   const occupancyItems: StatusItem[] = [
     { id: "1", label: "Bedspaces Available", value: stats.availableBeds, iconUrl: "/icons/available-stat-icon.png" },
-    { id: "2", label: "Bedspaces on Hold", value: 9, iconUrl: "/icons/on-hold-stat-icon.png" },
-    { id: "3", label: "Bedspaces Reserved", value: 65, iconUrl: "/icons/reserved-stat-icon.png" },
+    { id: "2", label: "Bedspaces on Hold", value: stats.bedsOnHold, iconUrl: "/icons/on-hold-stat-icon.png" },
+    { id: "3", label: "Bedspaces Reserved", value: stats.bedsReserved, iconUrl: "/icons/reserved-stat-icon.png" },
     { id: "4", label: "Bedspaces Occupied", value: stats.occupiedBeds, iconUrl: "/icons/occupied-stat-icon.png" },
-    { id: "5", label: "BedspacesBlocked", value: 3, iconUrl: "/icons/blocked-stat-icon.png" },
+    { id: "5", label: "BedspacesBlocked", value: stats.bedsBlocked, iconUrl: "/icons/blocked-stat-icon.png" },
   ];
 
   const bookingItems: StatusItem[] = [
-    { id: "1", label: "Onboarding Started", value: 32, iconUrl: "/icons/onboarding-started-icon.png", href: `${baseRoute}/onboards?tab=form` },
-    { id: "2", label: "Submitted for Approval", value: 32, iconUrl: "/icons/submitted-for-approval-icon.png", href: `${baseRoute}/onboards?tab=review` },
-    { id: "3", label: "Payment Pending", value: 32, iconUrl: "/icons/payment-pending-icon.png", href: `${baseRoute}/onboards?tab=payment` },
+    { id: "1", label: "Onboarding Started", value: stats.pendingOnboarding, iconUrl: "/icons/onboarding-started-icon.png", href: `${baseRoute}/onboards?tab=form` },
+    { id: "2", label: "Submitted for Approval", value: stats.submittedForApproval, iconUrl: "/icons/submitted-for-approval-icon.png", href: `${baseRoute}/onboards?tab=review` },
+    { id: "3", label: "Payment Pending", value: stats.pendingPayments, iconUrl: "/icons/payment-pending-icon.png", href: `${baseRoute}/onboards?tab=payment` },
   ];
 
   const dateStr = new Intl.DateTimeFormat('en-US', {
