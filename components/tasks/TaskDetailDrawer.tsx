@@ -39,6 +39,7 @@ export function TaskDetailDrawer({
   // Edit states
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [deadlineInput, setDeadlineInput] = useState("");
   const titleRef = useRef("");
   const descRef = useRef("");
 
@@ -59,6 +60,8 @@ export function TaskDetailDrawer({
       setTask(data);
       setTitle(data.title);
       setDescription(data.description || "");
+      const tzoffset = new Date().getTimezoneOffset() * 60000;
+      setDeadlineInput(new Date(new Date(data.deadline).getTime() - tzoffset).toISOString().slice(0, 16));
       titleRef.current = data.title;
       descRef.current = data.description || "";
     } catch (err) {
@@ -90,8 +93,9 @@ export function TaskDetailDrawer({
       if (field === "title") titleRef.current = updatedTask.title;
       if (field === "description") descRef.current = updatedTask.description || "";
       
-    } catch (err: any) {
-      notify.error(err.message);
+    } catch (err) {
+      const error = err as Error;
+      notify.error(error.message);
       // Revert local state
       if (field === "title") setTitle(titleRef.current);
       if (field === "description") setDescription(descRef.current);
@@ -111,8 +115,9 @@ export function TaskDetailDrawer({
       onTaskUpdated();
       setConfirmCancelOpen(false);
       onOpenChange(false);
-    } catch (err: any) {
-      notify.error(err.message || "Could not cancel task");
+    } catch (err) {
+      const error = err as Error;
+      notify.error(error.message || "Could not cancel task");
     } finally {
       setCancelling(false);
     }
@@ -246,15 +251,23 @@ export function TaskDetailDrawer({
                     <div className="flex items-center gap-2">
                       <input
                         type="datetime-local"
-                        defaultValue={new Date(new Date(task.deadline).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                        value={deadlineInput}
                         min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            updateField("deadline", new Date(e.target.value).toISOString());
-                          }
-                        }}
+                        onChange={(e) => setDeadlineInput(e.target.value)}
                         className="text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 outline-none"
                       />
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          if (deadlineInput) {
+                            updateField("deadline", new Date(deadlineInput).toISOString());
+                          }
+                        }}
+                        className="rounded-xl border-gray-200 dark:border-white/10 h-[38px]"
+                      >
+                        Save
+                      </Button>
                     </div>
                   </div>
                 </div>

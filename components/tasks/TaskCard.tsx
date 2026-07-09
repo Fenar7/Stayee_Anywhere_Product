@@ -26,6 +26,11 @@ export function TaskCard({ task, onClick }: { task: TaskDTO; onClick: () => void
         <h4 className="text-[15px] font-semibold text-gray-900 dark:text-white truncate">
           {task.title}
         </h4>
+        {task.description && (
+          <p className="text-[13px] text-gray-500 truncate max-w-full">
+            {task.description}
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1 text-[13px] text-gray-500">
           <div className="flex items-center gap-1.5">
             <span className="font-medium text-gray-900 dark:text-gray-300">Hostel:</span>
@@ -43,8 +48,11 @@ export function TaskCard({ task, onClick }: { task: TaskDTO; onClick: () => void
         <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
           Deadline
         </div>
-        <div className={`text-[14px] font-medium ${isOverdue ? 'text-red-600 dark:text-red-400 font-bold' : 'text-gray-900 dark:text-white'}`}>
+        <div className={`text-[14px] font-bold text-right leading-tight ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
           {formatRelativeTime(task.deadline)}
+          <div className="text-[11px] font-medium text-gray-500 mt-0.5">
+            {new Date(task.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          </div>
         </div>
       </div>
     </div>

@@ -129,7 +129,8 @@ export async function cancelTask(taskId: string, organizationId: string) {
 
 export async function listTasksAdmin(params: {
   organizationId: string;
-  filters: { status?: TaskStatus; hostelId?: string; wardenId?: string; priority?: TaskPriority };
+  filters: { status?: TaskStatus; hostelId?: string; wardenId?: string; priority?: TaskPriority; dateFrom?: Date; dateTo?: Date };
+  sort?: string;
   pagination: { page: number; limit: number };
 }) {
   const skip = (params.pagination.page - 1) * params.pagination.limit;
@@ -140,7 +141,16 @@ export async function listTasksAdmin(params: {
     ...(params.filters.hostelId && { hostelId: params.filters.hostelId }),
     ...(params.filters.wardenId && { assignedToWardenId: params.filters.wardenId }),
     ...(params.filters.priority && { priority: params.filters.priority }),
+    ...(params.filters.dateFrom && params.filters.dateTo && { 
+      deadline: { gte: params.filters.dateFrom, lte: params.filters.dateTo } 
+    }),
   };
+
+  let orderBy: any = { deadline: 'asc' };
+  if (params.sort === 'deadline_desc') orderBy = { deadline: 'desc' };
+  if (params.sort === 'createdAt_asc') orderBy = { createdAt: 'asc' };
+  if (params.sort === 'createdAt_desc') orderBy = { createdAt: 'desc' };
+  if (params.sort === 'priority') orderBy = { priority: 'desc' };
 
   const [total, tasks] = await Promise.all([
     prisma.task.count({ where }),
@@ -148,7 +158,7 @@ export async function listTasksAdmin(params: {
       where,
       skip,
       take: params.pagination.limit,
-      orderBy: { deadline: 'asc' },
+      orderBy,
       include: {
         assignedToWarden: { include: { user: { select: { email: true, phone: true } } } },
         hostel: { select: { name: true } },

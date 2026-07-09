@@ -20,6 +20,8 @@ export default function AdminTasksPage() {
   const hostelId = searchParams.get("hostelId") || "ALL";
   const wardenId = searchParams.get("wardenId") || "ALL";
   const priority = searchParams.get("priority") || "ALL";
+  const sort = searchParams.get("sort") || "deadline_asc";
+  const dateRange = searchParams.get("dateRange") || "ALL";
   const pageStr = searchParams.get("page") || "1";
   const page = parseInt(pageStr, 10);
 
@@ -28,7 +30,7 @@ export default function AdminTasksPage() {
   const [loading, setLoading] = useState(true);
   
   // Filter Options State
-  const [hostels, setHostels] = useState<{id: string; name: string; warden?: any}[]>([]);
+  const [hostels, setHostels] = useState<{id: string; name: string; warden?: { id: string; user: { email: string | null; phone: string } }}[]>([]);
   
   // UI State
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -43,7 +45,7 @@ export default function AdminTasksPage() {
     const abortController = new AbortController();
     fetchTasks(abortController.signal);
     return () => abortController.abort();
-  }, [status, hostelId, wardenId, priority, page]);
+  }, [status, hostelId, wardenId, priority, sort, dateRange, page]);
 
   const fetchHostels = async () => {
     try {
@@ -65,6 +67,22 @@ export default function AdminTasksPage() {
       if (hostelId !== "ALL") params.set("hostelId", hostelId);
       if (wardenId !== "ALL") params.set("wardenId", wardenId);
       if (priority !== "ALL") params.set("priority", priority);
+      if (sort) params.set("sort", sort);
+      
+      if (dateRange !== "ALL") {
+        const today = new Date();
+        let fromDate = new Date();
+        if (dateRange === "TODAY") {
+          fromDate.setHours(0, 0, 0, 0);
+        } else if (dateRange === "WEEK") {
+          fromDate.setDate(today.getDate() - 7);
+        } else if (dateRange === "MONTH") {
+          fromDate.setMonth(today.getMonth() - 1);
+        }
+        params.set("dateFrom", fromDate.toISOString());
+        params.set("dateTo", new Date().toISOString());
+      }
+
       params.set("page", page.toString());
       params.set("limit", "20");
 
@@ -72,8 +90,8 @@ export default function AdminTasksPage() {
       if (!res.ok) throw new Error("Failed to fetch tasks");
       const json = await res.json();
       setData(json);
-    } catch (error: any) {
-      if (error.name !== "AbortError") {
+    } catch (error) {
+      if (error instanceof Error && error.name !== "AbortError") {
         notify.error("Could not load tasks");
       }
     } finally {
@@ -188,6 +206,35 @@ export default function AdminTasksPage() {
               </select>
             </div>
           )}
+
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Date</span>
+            <select 
+              value={dateRange}
+              onChange={e => updateFilter("dateRange", e.target.value)}
+              className="h-9 px-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[13px] font-medium outline-none cursor-pointer"
+            >
+              <option value="ALL">All Time</option>
+              <option value="TODAY">Today</option>
+              <option value="WEEK">Last 7 Days</option>
+              <option value="MONTH">Last 30 Days</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Sort</span>
+            <select 
+              value={sort}
+              onChange={e => updateFilter("sort", e.target.value)}
+              className="h-9 px-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[13px] font-medium outline-none cursor-pointer"
+            >
+              <option value="deadline_asc">Deadline (Nearest)</option>
+              <option value="deadline_desc">Deadline (Furthest)</option>
+              <option value="createdAt_desc">Newest First</option>
+              <option value="createdAt_asc">Oldest First</option>
+              <option value="priority">Priority</option>
+            </select>
+          </div>
         </div>
 
         {/* Task List */}

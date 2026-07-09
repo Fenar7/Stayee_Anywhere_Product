@@ -81,8 +81,9 @@ export function TaskCreateModal({
         const data = await res.json();
         setHostels(data);
       }
-    } catch (error) {
-      notify.error("Failed to load hostels");
+    } catch (err) {
+      const error = err as Error;
+      notify.error(error.message || "Failed to load hostels");
     } finally {
       setLoadingHostels(false);
     }
@@ -105,7 +106,8 @@ export function TaskCreateModal({
       notify.success("Task assigned successfully!");
       onTaskCreated();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (err) {
+      const error = err as Error;
       notify.error(error.message || "Something went wrong");
     } finally {
       setIsSubmitting(false);

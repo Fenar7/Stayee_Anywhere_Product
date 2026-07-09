@@ -27,8 +27,9 @@ export function TaskComments({ taskId }: { taskId: string }) {
           setComments(data);
           scrollToBottom();
         }
-      } catch (err: any) {
-        if (err.name !== "AbortError") {
+      } catch (err) {
+        const error = err as Error;
+        if (error.name !== "AbortError") {
           console.error("Failed to fetch comments", err);
         }
       } finally {
