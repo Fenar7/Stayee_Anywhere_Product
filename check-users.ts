@@ -1,0 +1,1 @@
+import 'dotenv/config'; import { prisma } from './lib/db'; async function run() { const users = await prisma.user.findMany({ select: { email: true, role: true, passwordSetAt: true } }); console.log(JSON.stringify(users, null, 2)); } run().finally(() => process.exit(0));

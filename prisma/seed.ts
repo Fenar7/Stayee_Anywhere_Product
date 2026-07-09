@@ -307,7 +307,7 @@ async function main() {
         foodChargesPaise: 0,
         discountPaise: 0,
         totalPayablePaise: 600000,
-        foodPlan: FoodPlan.PAY_PER_MEAL,
+        foodPlan: FoodPlan.NOT_INCLUDED,
         foodBillingMode: FoodBillingMode.POSTPAID,
       }
     });
@@ -334,7 +334,7 @@ async function main() {
       // Setup prepaid monthly subscription
       await prisma.stay.update({
         where: { id: tenant1Stay.id },
-        data: { foodPlan: FoodPlan.MONTHLY_SUBSCRIPTION, foodBillingMode: FoodBillingMode.PREPAID }
+        data: { foodPlan: FoodPlan.BLD, foodBillingMode: FoodBillingMode.FLAT_RATE }
       });
       
       const t1Cycle = await prisma.foodBillingCycle.create({
