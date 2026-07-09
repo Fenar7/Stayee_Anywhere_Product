@@ -72,7 +72,7 @@ export async function TasksList({ organizationId }: { organizationId?: string })
               </div>
               
               {tasksForDay.map(task => (
-                <div key={task.id} className="bg-white dark:bg-[#151515] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors border border-gray-200 dark:border-white/10 shadow-sm rounded-xl p-4">
+                <div key={task.id} className="bg-white dark:bg-[#151515] hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors border border-gray-200 dark:border-white/10 rounded-xl p-4">
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <h4 className="text-[15px] font-semibold text-gray-900 dark:text-white leading-snug line-clamp-2 flex-1">
                       {task.title}
