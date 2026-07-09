@@ -144,7 +144,7 @@ export default async function HostelDashboardView({
               />
             </div>
             
-            <TasksList />
+            {userRole === "WARDEN" && <TasksList />}
           </div>
 
           {/* Right Column (1/3) */}

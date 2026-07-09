@@ -201,15 +201,21 @@ export async function getTaskAdmin(taskId: string, organizationId: string) {
 
 export async function listTasksWarden(params: {
   wardenId: string;
-  filters: { status?: TaskStatus };
+  filters: { status?: TaskStatus | 'OVERDUE' };
   pagination: { page: number; limit: number };
 }) {
   const skip = (params.pagination.page - 1) * params.pagination.limit;
   
-  const where = {
+  const where: any = {
     assignedToWardenId: params.wardenId,
-    ...(params.filters.status && { status: params.filters.status }),
   };
+
+  if (params.filters.status === 'OVERDUE') {
+    where.status = { in: [TaskStatus.PENDING, TaskStatus.IN_PROGRESS] };
+    where.deadline = { lt: new Date() };
+  } else if (params.filters.status) {
+    where.status = params.filters.status;
+  }
 
   const [total, tasks] = await Promise.all([
     prisma.task.count({ where }),
@@ -218,6 +224,11 @@ export async function listTasksWarden(params: {
       skip,
       take: params.pagination.limit,
       orderBy: { deadline: 'asc' },
+      include: {
+        assignedToWarden: { include: { user: { select: { email: true, phone: true } } } },
+        hostel: { select: { name: true } },
+        createdBy: { select: { email: true, phone: true } },
+      }
     }),
   ]);
 

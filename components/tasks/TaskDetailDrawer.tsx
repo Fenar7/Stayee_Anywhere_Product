@@ -25,11 +25,13 @@ export function TaskDetailDrawer({
   open,
   onOpenChange,
   onTaskUpdated,
+  mode = "admin",
 }: {
   taskId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTaskUpdated: () => void;
+  mode?: "admin" | "warden";
 }) {
   const [task, setTask] = useState<TaskDTO | null>(null);
   const [loading, setLoading] = useState(false);
@@ -54,7 +56,8 @@ export function TaskDetailDrawer({
   const fetchTask = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/tasks/${taskId}`);
+      const endpoint = mode === "warden" ? `/api/warden/tasks/${taskId}` : `/api/admin/tasks/${taskId}`;
+      const res = await fetch(endpoint);
       if (!res.ok) throw new Error("Failed to fetch task");
       const data = await res.json();
       setTask(data);
@@ -137,6 +140,27 @@ export function TaskDetailDrawer({
 
   const isOverdue = task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.CANCELLED && new Date(task.deadline) < new Date();
   const isReadOnly = task.status === TaskStatus.COMPLETED || task.status === TaskStatus.CANCELLED;
+  
+  const handleWardenStatusUpdate = async (newStatus: TaskStatus, note?: string) => {
+    try {
+      const res = await fetch(`/api/warden/tasks/${task.id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus, completionNote: note }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to update status");
+      }
+      const updatedTask = await res.json();
+      setTask(updatedTask);
+      onTaskUpdated();
+      notify.success("Status updated successfully");
+    } catch (err) {
+      const error = err as Error;
+      notify.error(error.message);
+    }
+  };
 
   return (
     <>
@@ -144,14 +168,14 @@ export function TaskDetailDrawer({
         <SheetContent className="w-full sm:max-w-md md:max-w-lg p-0 flex flex-col border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] overflow-hidden">
           
           <SheetHeader className="p-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 shrink-0">
-            {isReadOnly && (
+            {task.status === TaskStatus.COMPLETED || task.status === TaskStatus.CANCELLED ? (
               <div className="mb-4 px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg flex items-center gap-2">
                 <Ban className="w-4 h-4 text-slate-500" />
                 <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
                   This task is {task.status.toLowerCase()} and cannot be edited.
                 </span>
               </div>
-            )}
+            ) : null}
 
             <div className="flex items-center gap-2 mb-3">
               <PriorityBadge priority={task.priority} />
@@ -173,7 +197,7 @@ export function TaskDetailDrawer({
                   setTitle(titleRef.current);
                 }
               }}
-              readOnly={isReadOnly}
+              readOnly={isReadOnly || mode === "warden"}
               className="text-xl font-black bg-transparent outline-none w-full text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-700"
               placeholder="Task Title"
             />
@@ -186,7 +210,7 @@ export function TaskDetailDrawer({
                   updateField("description", description);
                 }
               }}
-              readOnly={isReadOnly}
+              readOnly={isReadOnly || mode === "warden"}
               className="mt-2 text-sm text-gray-500 bg-transparent outline-none w-full resize-none min-h-[60px]"
               placeholder="Add a description..."
             />
@@ -222,7 +246,7 @@ export function TaskDetailDrawer({
                 </div>
               </div>
 
-              {!isReadOnly && (
+              {!isReadOnly && mode === "admin" && (
                 <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-white/5">
                   <div className="space-y-2">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Update Priority</span>
@@ -273,7 +297,45 @@ export function TaskDetailDrawer({
                 </div>
               )}
 
-              {!isReadOnly && (
+              {!isReadOnly && mode === "warden" && task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.CANCELLED && (
+                <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-white/5">
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Update Status</span>
+                    {task.status === TaskStatus.PENDING && (
+                      <Button 
+                        onClick={() => handleWardenStatusUpdate(TaskStatus.IN_PROGRESS)} 
+                        className="w-full rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-bold"
+                      >
+                        Start Task (In Progress)
+                      </Button>
+                    )}
+                    {task.status === TaskStatus.IN_PROGRESS && (
+                      <div className="space-y-3">
+                        <textarea
+                          id="completionNote"
+                          className="w-full text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 outline-none resize-none min-h-[80px]"
+                          placeholder="Add a completion note (required)..."
+                        />
+                        <Button 
+                          onClick={() => {
+                            const note = (document.getElementById('completionNote') as HTMLTextAreaElement)?.value;
+                            if (!note || note.trim().length < 3) {
+                              notify.error("Completion note is required");
+                              return;
+                            }
+                            handleWardenStatusUpdate(TaskStatus.COMPLETED, note);
+                          }} 
+                          className="w-full rounded-xl bg-green-600 text-white hover:bg-green-700 font-bold"
+                        >
+                          Mark as Completed
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!isReadOnly && mode === "admin" && (
                 <div className="pt-6">
                   <Button 
                     variant="outline" 
