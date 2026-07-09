@@ -7,7 +7,8 @@ import { Loader2, ArrowRight, Check, Copy, Eye, Clock, Key } from "lucide-react"
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { notify } from "@/lib/toast";
-import { PageHeader } from "@/components/shared/PageHeader";
+import { notify } from "@/lib/toast";
+import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
 import { STAY_STATUS_LABELS, STAY_STATUS_COLORS } from "@/lib/labels";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -185,17 +186,18 @@ export default function HostelOnboardsView({
     }
 
     return (
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tenant</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Bed Assigned</TableHead>
-              <TableHead>Stay Duration</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
+      <div className="rounded-md border border-[#dedede] bg-white overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-gray-50/50">
+              <TableRow>
+                <TableHead className="font-semibold text-black">Tenant</TableHead>
+                <TableHead className="font-semibold text-black">Status</TableHead>
+                <TableHead className="font-semibold text-black">Bed Assigned</TableHead>
+                <TableHead className="font-semibold text-black">Stay Duration</TableHead>
+                <TableHead className="text-right font-semibold text-black">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
           <TableBody>
             {items.map((item) => {
               const label = STAY_STATUS_LABELS[item.status] || item.status;
@@ -267,13 +269,57 @@ export default function HostelOnboardsView({
                           <ArrowRight className="h-4 w-4" />
                         </Button>
                       </Link>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                        {needsPaymentVerify && (
+                          <Badge variant="destructive" className="animate-pulse text-[10px] px-1.5 py-0">
+                            Verify Payment
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span>{item.bed.roomNumber} - {item.bed.label}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">
+                        {formatDate(item.joiningDate)} - {formatDate(item.endDate)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-end gap-2">
+                        {item.status === "ONBOARDING_PENDING" && !item.tenant.hasProfile && item.onboardingRequest && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewPassword(item.onboardingRequest!.id, item.tenant.phone)}
+                          >
+                            <Key className="h-4 w-4 mr-1" /> Key
+                          </Button>
+                        )}
+                        {item.status === "ONBOARDING_PENDING" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                            onClick={() => setConfirmCancelId(item.id)}
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                        <Link href={`${baseRoute}/onboards/${item.id}`}>
+                          <Button variant="ghost" size="icon">
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     );
   };
@@ -285,16 +331,18 @@ export default function HostelOnboardsView({
   const cancelled = onboards.filter((i) => i.status === "CANCELLED");
 
   return (
-    <div className="flex flex-col min-h-full">
-      <PageHeader
-        title="Onboarding & Stays"
-        description="Manage tenant applications, verification, and active stays."
-        actions={
-          <Link href={`${baseRoute}/onboard`}>
-            <Button size="sm">+ Onboard New Tenant</Button>
-          </Link>
-        }
-      />
+    <HostelWorkspaceLayout
+      hostelId={hostelId || ""}
+      title="Onboarding & Stays"
+      subtitle="Manage tenant applications, verification, and active stays."
+      actions={
+        <Link href={`${baseRoute}/onboard`}>
+          <button className="flex items-center justify-center h-10 px-5 rounded-[6px] bg-[#282828] dark:bg-[#58ff48] text-white dark:text-black hover:bg-black transition-all font-semibold text-[15px] whitespace-nowrap">
+            + Onboard New Tenant
+          </button>
+        </Link>
+      }
+    >
       <div className="p-6">
         <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="mb-6 overflow-x-auto flex-nowrap w-full justify-start h-auto p-1 bg-muted/50">
@@ -409,6 +457,6 @@ export default function HostelOnboardsView({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </HostelWorkspaceLayout>
   );
 }
