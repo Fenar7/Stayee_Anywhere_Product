@@ -7,7 +7,6 @@ import { Loader2, ArrowRight, Check, Copy, Eye, Clock, Key } from "lucide-react"
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { notify } from "@/lib/toast";
-import { notify } from "@/lib/toast";
 import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
 import { STAY_STATUS_LABELS, STAY_STATUS_COLORS } from "@/lib/labels";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
