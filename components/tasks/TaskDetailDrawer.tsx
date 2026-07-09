@@ -8,7 +8,7 @@ import { PriorityBadge, StatusBadge } from "./TaskBadge";
 import { TaskComments } from "./TaskComments";
 import { Button } from "@/components/ui/button";
 import { notify } from "@/lib/toast";
-import { Loader2, Mail, Phone, Calendar, Clock, User, Ban } from "lucide-react";
+import { Loader2, Mail, Phone, Calendar, Clock, User, Ban, Building2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
