@@ -47,7 +47,7 @@ export function StatusListCard({ title, items }: StatusListCardProps) {
 
           if (item.href) {
             return (
-              <Link href={item.href} key={item.id || idx} className="group flex items-center justify-between py-4 first:pt-0 last:pb-0 hover:bg-black/5 dark:hover:bg-white/5 -mx-4 px-4 rounded-md transition-colors">
+              <Link href={item.href} key={item.id || idx} className="group flex items-center justify-between py-4 hover:bg-black/5 dark:hover:bg-white/5 -mx-4 px-4 rounded-md transition-colors">
                 {content}
                 {valueElement}
               </Link>
@@ -55,7 +55,7 @@ export function StatusListCard({ title, items }: StatusListCardProps) {
           }
 
           return (
-            <div key={item.id || idx} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+            <div key={item.id || idx} className="flex items-center justify-between py-4">
               {content}
               {valueElement}
             </div>
