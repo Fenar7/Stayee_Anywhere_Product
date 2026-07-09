@@ -168,7 +168,7 @@ export function TaskDetailDrawer({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="w-full sm:max-w-md md:max-w-lg p-0 flex flex-col border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] overflow-hidden">
           
-          <SheetHeader className="p-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 shrink-0">
+          <SheetHeader className="p-6 pb-4 border-b border-gray-100 dark:border-white/5 bg-[#fcfcfc] dark:bg-white/5 shrink-0 relative">
             {task.status === TaskStatus.COMPLETED || task.status === TaskStatus.CANCELLED ? (
               <div className="mb-4 px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg flex items-center gap-2">
                 <Ban className="w-4 h-4 text-slate-500" />
@@ -178,12 +178,15 @@ export function TaskDetailDrawer({
               </div>
             ) : null}
 
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-5 pr-8">
               <PriorityBadge priority={task.priority} />
               <StatusBadge status={task.status} isOverdue={isOverdue} />
-              <span className="ml-auto text-[13px] font-medium text-gray-500">
-                {task.hostel.name}
-              </span>
+              <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-md shadow-sm">
+                <Building2 className="w-3.5 h-3.5 text-gray-500" />
+                <span className="text-[12px] font-semibold text-gray-700 dark:text-gray-300">
+                  {task.hostel.name}
+                </span>
+              </div>
             </div>
             
             <SheetTitle className="sr-only">Task Details</SheetTitle>
@@ -199,7 +202,7 @@ export function TaskDetailDrawer({
                 }
               }}
               readOnly={isReadOnly || mode === "warden"}
-              className="text-[22px] font-semibold bg-transparent outline-none w-full text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-700 leading-tight"
+              className="text-[26px] font-bold bg-transparent outline-none w-full text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-700 leading-tight tracking-tight focus:ring-0"
               placeholder="Task Title"
             />
             
@@ -212,7 +215,7 @@ export function TaskDetailDrawer({
                 }
               }}
               readOnly={isReadOnly || mode === "warden"}
-              className="mt-3 text-[15px] leading-relaxed text-gray-600 dark:text-gray-400 bg-transparent outline-none w-full resize-none min-h-[80px]"
+              className="mt-3 text-[15px] leading-relaxed text-gray-600 dark:text-gray-400 bg-transparent outline-none w-full resize-none min-h-[60px] focus:ring-0"
               placeholder="Add a description..."
             />
           </SheetHeader>
@@ -221,26 +224,26 @@ export function TaskDetailDrawer({
             <div className="p-6 space-y-6">
               
               {/* Metadata Grid */}
-              <div className="grid grid-cols-2 gap-6 bg-gray-50/50 dark:bg-white/[0.02] p-4 rounded-xl border border-gray-100 dark:border-white/5">
-                <div className="space-y-1.5">
-                  <span className="text-[12px] font-medium text-gray-500">Assigned To</span>
-                  <div className="flex items-center gap-2 text-[14px] text-gray-900 dark:text-white truncate">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 dark:bg-white/[0.02] p-4 rounded-2xl border border-gray-100 dark:border-white/5 flex flex-col justify-center">
+                  <span className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Assigned To</span>
+                  <div className="flex items-center gap-2 text-[14px] font-medium text-gray-900 dark:text-white truncate">
                     <User className="w-4 h-4 text-gray-400 shrink-0" />
                     <span className="truncate">{task.assignedToWarden.user.email || 'Warden'}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-[13px] text-gray-500 mt-1">
+                  <div className="flex items-center gap-2 text-[13px] text-gray-500 mt-1.5">
                     <Phone className="w-3.5 h-3.5 shrink-0" />
                     {task.assignedToWarden.user.phone}
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <span className="text-[12px] font-medium text-gray-500">Deadline</span>
-                  <div className={`flex items-center gap-2 text-[14px] font-medium ${isOverdue ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
+                <div className="bg-gray-50 dark:bg-white/[0.02] p-4 rounded-2xl border border-gray-100 dark:border-white/5 flex flex-col justify-center">
+                  <span className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Deadline</span>
+                  <div className={`flex items-center gap-2 text-[14px] font-bold ${isOverdue ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
                     <Calendar className="w-4 h-4 shrink-0" />
                     {new Date(task.deadline).toLocaleDateString()}
                   </div>
-                  <div className={`flex items-center gap-2 text-[13px] ${isOverdue ? 'text-red-400' : 'text-gray-500'} mt-1`}>
+                  <div className={`flex items-center gap-2 text-[13px] font-medium ${isOverdue ? 'text-red-500' : 'text-gray-500'} mt-1.5`}>
                     <Clock className="w-3.5 h-3.5 shrink-0" />
                     {new Date(task.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
@@ -248,9 +251,9 @@ export function TaskDetailDrawer({
               </div>
 
               {!isReadOnly && mode === "admin" && (
-                <div className="space-y-6 pt-2">
-                  <div className="space-y-2">
-                    <span className="text-[13px] font-medium text-gray-500 block mb-2">Priority Level</span>
+                <div className="space-y-6 pt-4 border-t border-gray-100 dark:border-white/5">
+                  <div className="space-y-3">
+                    <span className="text-[13px] font-semibold text-gray-700 dark:text-gray-300">Priority Level</span>
                     <div className="flex flex-wrap gap-2">
                       {(["LOW", "MEDIUM", "HIGH", "URGENT"] as TaskPriority[]).map((p) => {
                         const isSelected = task.priority === p;
@@ -258,10 +261,10 @@ export function TaskDetailDrawer({
                           <button
                             key={p}
                             onClick={() => updateField("priority", p)}
-                            className={`px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all ${
+                            className={`px-4 py-2 rounded-xl text-[13px] font-semibold transition-all border ${
                               isSelected
-                                ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-sm"
-                                : "bg-transparent text-gray-600 border border-gray-200 hover:bg-gray-50 dark:text-gray-400 dark:border-white/10 dark:hover:bg-white/5"
+                                ? "bg-gray-900 text-white border-gray-900 dark:bg-white dark:text-gray-900 dark:border-white shadow-md"
+                                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm dark:bg-transparent dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/5"
                             }`}
                           >
                             {p.charAt(0) + p.slice(1).toLowerCase()}
@@ -271,25 +274,24 @@ export function TaskDetailDrawer({
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <span className="text-[13px] font-medium text-gray-500 block mb-2">Adjust Deadline</span>
-                    <div className="flex items-center gap-3">
+                  <div className="space-y-3">
+                    <span className="text-[13px] font-semibold text-gray-700 dark:text-gray-300">Adjust Deadline</span>
+                    <div className="flex items-center gap-2">
                       <input
                         type="datetime-local"
                         value={deadlineInput}
                         min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                         onChange={(e) => setDeadlineInput(e.target.value)}
-                        className="flex-1 text-[14px] bg-transparent border-b border-gray-200 dark:border-white/10 pb-2 pt-1 outline-none focus:border-gray-900 dark:focus:border-white transition-colors"
+                        className="flex-1 text-[14px] font-medium bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-gray-900/10 transition-shadow shadow-sm"
                       />
                       <Button 
                         size="sm" 
-                        variant="secondary"
                         onClick={() => {
                           if (deadlineInput) {
                             updateField("deadline", new Date(deadlineInput).toISOString());
                           }
                         }}
-                        className="rounded-lg h-9 px-4 font-medium"
+                        className="rounded-xl h-[42px] px-5 font-semibold bg-gray-900 text-white hover:bg-gray-800 shadow-sm"
                       >
                         Update
                       </Button>
@@ -339,7 +341,7 @@ export function TaskDetailDrawer({
               {!isReadOnly && mode === "admin" && (
                 <div className="pt-8">
                   <button 
-                    className="text-[13px] font-medium text-red-500 hover:text-red-600 transition-colors w-full text-center py-2"
+                    className="w-full py-3 rounded-xl text-[14px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 transition-colors border border-red-100 dark:border-red-900/30"
                     onClick={() => setConfirmCancelOpen(true)}
                   >
                     Delete / Cancel Task
