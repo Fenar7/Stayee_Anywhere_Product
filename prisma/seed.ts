@@ -20,6 +20,8 @@ async function main() {
   console.log('Seeding database with Next Home dummy data...');
 
   // Clean the database in reverse order of relations
+  await prisma.taskComment.deleteMany();
+  await prisma.task.deleteMany();
   await prisma.stayStatusEvent.deleteMany();
   await prisma.foodOrder.deleteMany();
   await prisma.payment.deleteMany();
@@ -386,6 +388,43 @@ async function main() {
           lunch: true,
           dinner: false,
           confirmedAt: new Date(),
+        }
+      });
+    }
+
+    console.log('Seeding Tasks...');
+    // Create Tasks for Warden 1 (Hostel 1)
+    const wardenUser = await prisma.user.findFirst({
+      where: { role: UserRole.WARDEN, warden: { hostelId: mainHostel.id } },
+      include: { warden: true }
+    });
+
+    if (wardenUser && wardenUser.warden) {
+      await prisma.task.create({
+        data: {
+          organizationId: org.id,
+          createdByUserId: admin.id,
+          assignedToWardenId: wardenUser.warden.id,
+          hostelId: mainHostel.id,
+          title: 'Do Grocery Purchases',
+          description: 'Need to restock on rice and dal for next week.',
+          priority: 'HIGH',
+          status: 'PENDING',
+          deadline: new Date(new Date().setHours(15, 33, 0, 0)), // Today 3:33 PM
+        }
+      });
+
+      await prisma.task.create({
+        data: {
+          organizationId: org.id,
+          createdByUserId: admin.id,
+          assignedToWardenId: wardenUser.warden.id,
+          hostelId: mainHostel.id,
+          title: 'Onboard Ashiq',
+          description: 'New tenant arriving today, please complete onboarding.',
+          priority: 'MEDIUM',
+          status: 'PENDING',
+          deadline: new Date(new Date().setDate(new Date().getDate() + 1)), // Tomorrow
         }
       });
     }

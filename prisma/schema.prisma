@@ -50,6 +50,9 @@ model User {
   foodSettlementsCreated         FoodSettlementStatement[]
   complementaryFoodOrdersCreated ComplementaryFoodOrder[]
 
+  tasksCreated Task[] @relation("TasksCreated")
+  taskComments TaskComment[]
+
   @@index([organizationId])
 }
 
@@ -63,6 +66,7 @@ model Warden {
 
   // Inverse relations
   onboardingRequests OnboardingRequest[]
+  tasks              Task[]
 }
 
 enum OccupationType {
@@ -136,6 +140,7 @@ model Hostel {
   activityLogs            ActivityLog[]
   foodPricings            FoodPricing[]
   complementaryFoodOrders ComplementaryFoodOrder[]
+  tasks                   Task[]
 
   @@index([organizationId])
 }
@@ -381,7 +386,7 @@ model Payment {
   screenshotDocument   Document?     @relation("PaymentScreenshot", fields: [screenshotDocumentId], references: [id])
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
-  receiptNumber        Int           @unique @default(autoincrement())
+  receiptNumber        Int           @default(autoincrement())
 
   serviceRequest ServiceRequest?
 
@@ -524,6 +529,8 @@ model Organization {
   leads        Lead[]
   activityLogs ActivityLog[]
   foodPricings FoodPricing[]
+  tasks        Task[]
+  taskComments TaskComment[]
 }
 
 // ==========================================
@@ -824,4 +831,74 @@ model ComplementaryFoodOrder {
   createdAt       DateTime                   @default(now())
 
   @@index([hostelId, forDate])
+}
+
+// ==========================================
+// Task Assignment System
+// ==========================================
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Task {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Assignment
+  createdByUserId    String?
+  createdBy          User?  @relation("TasksCreated", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  assignedToWardenId String
+  assignedToWarden   Warden @relation(fields: [assignedToWardenId], references: [id], onDelete: Restrict)
+  hostelId           String
+  hostel             Hostel @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+
+  // Task Content
+  title       String
+  description String?
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(PENDING)
+  deadline    DateTime
+
+  // Completion
+  completedAt    DateTime?
+  completionNote String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  comments TaskComment[]
+
+  @@index([organizationId])
+  @@index([assignedToWardenId, status])
+  @@index([hostelId])
+  @@index([deadline])
+}
+
+model TaskComment {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  taskId         String
+  task           Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  message        String
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([taskId])
 }
