@@ -182,14 +182,14 @@ export default function HostelOccupancyView({ hostelId, hostelName, baseRoute }:
 
   const Actions = (
     <>
-      <button className="flex items-center justify-center gap-2 premium-button-outline whitespace-nowrap">
+      <button className="flex items-center justify-center gap-2 h-10 px-5 rounded-[6px] border border-[#dedede] dark:border-white/10 bg-white dark:bg-[#1a1a1a] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-all font-semibold text-[15px] whitespace-nowrap">
         Export Data
       </button>
       <button
         onClick={() => router.push(`${baseRoute}/builder`)}
-        className="flex items-center justify-center gap-2 premium-button whitespace-nowrap"
+        className="flex items-center justify-center gap-2 h-10 px-5 rounded-[6px] bg-[#282828] dark:bg-[#58ff48] text-white dark:text-black hover:bg-black transition-all font-semibold text-[15px] whitespace-nowrap"
       >
-        Manage Rooms <Plus className="size-4" />
+        Manage Rooms <Plus className="size-4 text-[#58ff48] dark:text-black" />
       </button>
     </>
   );
