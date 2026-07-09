@@ -72,7 +72,7 @@ export function TaskDetailDrawer({
     }
   };
 
-  const updateField = async (field: string, value: any) => {
+  const updateField = async (field: "title" | "description" | "priority" | "deadline", value: string) => {
     if (!task) return;
     try {
       const res = await fetch(`/api/admin/tasks/${task.id}`, {

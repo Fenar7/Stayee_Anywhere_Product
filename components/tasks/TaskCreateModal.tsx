@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { TaskPriority } from "@prisma/client";
@@ -14,7 +14,7 @@ import { notify } from "@/lib/toast";
 import { Loader2, AlertCircle } from "lucide-react";
 import { createTaskSchema } from "@/lib/validation/task";
 
-type CreateTaskForm = z.infer<typeof createTaskSchema>;
+type CreateTaskForm = z.input<typeof createTaskSchema>;
 
 interface Hostel {
   id: string;
@@ -46,7 +46,7 @@ export function TaskCreateModal({
     reset,
     formState: { errors },
   } = useForm<CreateTaskForm>({
-    resolver: zodResolver(createTaskSchema) as any,
+    resolver: zodResolver(createTaskSchema),
     defaultValues: {
       priority: TaskPriority.MEDIUM,
     },
@@ -89,7 +89,7 @@ export function TaskCreateModal({
     }
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit: SubmitHandler<CreateTaskForm> = async (data) => {
     setIsSubmitting(true);
     try {
       const res = await fetch("/api/admin/tasks", {
