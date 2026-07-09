@@ -71,8 +71,37 @@ export async function createTask(data: {
     },
   });
 
-  // TODO: Trigger notification to Warden
-  
+  // Trigger notification to Warden
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: warden.userId,
+        title: "New Task Assigned",
+        message: `You have been assigned a new task: ${task.title}`,
+        type: "TASK",
+        targetUrl: `/warden/tasks`,
+        referenceId: task.id,
+      },
+    });
+
+    // Also log activity
+    await prisma.activityLog.create({
+      data: {
+        organizationId: data.organizationId,
+        hostelId: data.hostelId,
+        eventType: "TASK_CREATED",
+        actorId: data.createdByUserId,
+        actorName: "Admin", // Would ideally fetch real name
+        subjectName: task.title,
+        subjectId: task.id,
+        subjectType: "TASK",
+        targetUrl: `/admin/tasks`,
+      }
+    });
+  } catch (error) {
+    console.error("Failed to create task notification/activity log:", error);
+  }
+
   return formatTask(task);
 }
 

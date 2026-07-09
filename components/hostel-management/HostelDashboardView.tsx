@@ -69,14 +69,14 @@ export default async function HostelDashboardView({
 
   const Actions = (
     <>
-      <button className="flex items-center justify-center size-10 rounded-full border border-[#dedede] dark:border-white/10 bg-white dark:bg-[#1a1a1a] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-all shadow-sm shrink-0">
+      <button className="flex items-center justify-center size-10 rounded-[6px] border border-[#dedede] dark:border-white/10 bg-white dark:bg-[#1a1a1a] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-all shrink-0">
         <Bell className="size-[18px]" />
       </button>
-      <button className="flex items-center justify-center gap-2 px-4 py-2 rounded-full border border-[#dedede] dark:border-white/10 bg-white dark:bg-[#1a1a1a] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-all shadow-sm font-semibold text-[14px] whitespace-nowrap">
+      <button className="flex items-center justify-center gap-2 h-10 px-5 rounded-[6px] border border-[#dedede] dark:border-white/10 bg-white dark:bg-[#1a1a1a] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-all font-semibold text-[15px] whitespace-nowrap">
         Manage Rent <Plus className="size-4 text-[#58ff48]" />
       </button>
-      <button className="flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-[#222222] dark:bg-[#58ff48] text-white dark:text-black hover:opacity-90 transition-all shadow-md font-semibold text-[14px] whitespace-nowrap">
-        On Board a User <Plus className="size-4" />
+      <button className="flex items-center justify-center gap-2 h-10 px-5 rounded-[6px] bg-[#282828] dark:bg-[#58ff48] text-white dark:text-black hover:bg-black transition-all font-semibold text-[15px] whitespace-nowrap">
+        On Board a User <Plus className="size-4 text-[#58ff48] dark:text-black" />
       </button>
     </>
   );
