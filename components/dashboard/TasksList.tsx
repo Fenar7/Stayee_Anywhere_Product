@@ -18,7 +18,7 @@ export async function TasksList({ organizationId }: { organizationId: string }) 
       assignedToWarden: {
         include: {
           user: {
-            select: { name: true, email: true },
+            select: { email: true, phone: true },
           },
         },
       },
@@ -74,7 +74,7 @@ export async function TasksList({ organizationId }: { organizationId: string }) 
                 {/* Tasks column */}
                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 min-w-0">
                   {dayTasks.map((task) => {
-                    const assigneeName = task.assignedToWarden.user.name || task.assignedToWarden.user.email?.split('@')[0] || "Warden";
+                    const assigneeName = task.assignedToWarden.user.email?.split('@')[0] || task.assignedToWarden.user.phone || "Warden";
                     const deadlineStr = new Date(task.deadline).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
                     const relativeDeadline = formatRelativeTime(task.deadline);
                     const isOverdue = new Date(task.deadline) < new Date();
