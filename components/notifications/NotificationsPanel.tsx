@@ -198,7 +198,7 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
   }
 
   return (
-    <div className={cn("w-full mx-auto", role === "TENANT" ? "max-w-2xl py-8 px-4 sm:px-6" : "p-4 sm:p-6 lg:p-8")}>
+    <div className={cn("w-full mx-auto", role === "TENANT" ? "max-w-2xl py-8 px-4 sm:px-6" : role === "WARDEN" ? "" : "p-4 sm:p-6 lg:p-8")}>
       
       {/* ── App-style Header for TENANT only ── */}
       {role === "TENANT" && (
@@ -228,8 +228,8 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
         </div>
       )}
 
-      {/* ── Admin/Warden Header ── */}
-      {role !== "TENANT" && (
+      {/* ── Admin Header ── */}
+      {role === "MAIN_ADMIN" && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-gray-900">Notifications</h1>
