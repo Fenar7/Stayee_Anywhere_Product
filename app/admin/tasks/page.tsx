@@ -138,190 +138,190 @@ export default function AdminTasksPage() {
 
   const selectedHostel = hostels.find(h => h.id === hostelId);
 
+  const taskCount = data?.tasks.length ?? 0;
+  const overdueCount = data?.tasks.filter(t => t.status !== "COMPLETED" && t.status !== "CANCELLED" && new Date(t.deadline) < new Date()).length ?? 0;
+
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#050505] p-6 lg:p-8 font-sans">
-      <div className="max-w-[1200px] mx-auto space-y-8">
-        
-        {/* Header */}
+    <div className="min-h-screen bg-[#f9f9f9] dark:bg-[#080808] font-sans">
+      <div className="max-w-[1100px] mx-auto px-6 py-8 space-y-6">
+
+        {/* ── Page Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">Task Management</h1>
-            <p className="text-sm text-gray-500 mt-1">Assign, track, and manage all operational tasks.</p>
+            <h1 className="text-[22px] font-bold tracking-[-0.02em] text-[#0f0f0f] dark:text-white">Task Management</h1>
+            <p className="text-[13.5px] text-[#888] dark:text-[#555] mt-0.5">Assign, track, and manage all operational tasks.</p>
           </div>
-          
-          <Button 
+          <button
             onClick={() => setCreateModalOpen(true)}
-            className="rounded-xl bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 shadow-sm"
+            className="inline-flex items-center gap-2 h-10 px-5 rounded-[8px] bg-[#0f0f0f] dark:bg-white text-white dark:text-[#0f0f0f] text-[14px] font-semibold hover:bg-[#2a2a2a] dark:hover:bg-gray-100 transition-colors shrink-0"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4" />
             Assign Task
-          </Button>
+          </button>
         </div>
 
-        {/* Filter Bar */}
-        <div className="bg-white dark:bg-[#111111] p-4 rounded-2xl border border-gray-200 dark:border-white/10 flex flex-wrap gap-4 items-center shadow-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Status</span>
-            <select 
-              value={status}
-              onChange={e => updateFilter("status", e.target.value)}
-              className="h-9 px-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[13px] font-medium outline-none cursor-pointer"
-            >
-              <option value="ALL">All Status</option>
-              <option value="PENDING">Pending</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
+        {/* ── Stats Row ── */}
+        {data && !loading && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: "Total", value: data.pagination.total, color: "text-[#0f0f0f] dark:text-white" },
+              { label: "Overdue", value: overdueCount, color: overdueCount > 0 ? "text-red-600 dark:text-red-400" : "text-[#0f0f0f] dark:text-white" },
+              { label: "In Progress", value: data.tasks.filter(t => t.status === "IN_PROGRESS").length, color: "text-blue-600 dark:text-blue-400" },
+              { label: "Completed", value: data.tasks.filter(t => t.status === "COMPLETED").length, color: "text-green-600 dark:text-green-400" },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="bg-white dark:bg-[#111] border border-[#ebebeb] dark:border-white/8 rounded-[10px] px-4 py-3">
+                <div className="text-[12px] text-[#999] dark:text-[#555] font-medium">{label}</div>
+                <div className={`text-[24px] font-bold mt-0.5 leading-none ${color}`}>{value}</div>
+              </div>
+            ))}
           </div>
+        )}
 
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Priority</span>
-            <select 
-              value={priority}
-              onChange={e => updateFilter("priority", e.target.value)}
-              className="h-9 px-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[13px] font-medium outline-none cursor-pointer"
-            >
-              <option value="ALL">All Priority</option>
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-              <option value="URGENT">Urgent</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Hostel</span>
-            <select 
-              value={hostelId}
-              onChange={e => updateFilter("hostelId", e.target.value)}
-              className="h-9 px-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[13px] font-medium outline-none cursor-pointer"
-            >
-              <option value="ALL">All Hostels</option>
-              {hostels.map(h => (
-                <option key={h.id} value={h.id}>{h.name}</option>
-              ))}
-            </select>
-          </div>
-
+        {/* ── Filter Bar ── */}
+        <div className="bg-white dark:bg-[#111] border border-[#ebebeb] dark:border-white/8 rounded-[10px] px-4 py-3 flex flex-wrap items-center gap-x-5 gap-y-3">
+          {[
+            {
+              key: "status", label: "Status", value: status,
+              options: [
+                { value: "ALL", label: "All Status" },
+                { value: "PENDING", label: "Pending" },
+                { value: "IN_PROGRESS", label: "In Progress" },
+                { value: "COMPLETED", label: "Completed" },
+                { value: "CANCELLED", label: "Cancelled" },
+              ]
+            },
+            {
+              key: "priority", label: "Priority", value: priority,
+              options: [
+                { value: "ALL", label: "All Priority" },
+                { value: "LOW", label: "Low" },
+                { value: "MEDIUM", label: "Medium" },
+                { value: "HIGH", label: "High" },
+                { value: "URGENT", label: "Urgent" },
+              ]
+            },
+            {
+              key: "hostelId", label: "Hostel", value: hostelId,
+              options: [
+                { value: "ALL", label: "All Hostels" },
+                ...hostels.map(h => ({ value: h.id, label: h.name }))
+              ]
+            },
+            {
+              key: "dateRange", label: "Date", value: dateRange,
+              options: [
+                { value: "ALL", label: "All Time" },
+                { value: "TODAY", label: "Today" },
+                { value: "WEEK", label: "Last 7 Days" },
+                { value: "MONTH", label: "Last 30 Days" },
+              ]
+            },
+            {
+              key: "sort", label: "Sort", value: sort,
+              options: [
+                { value: "deadline_asc", label: "Deadline ↑" },
+                { value: "deadline_desc", label: "Deadline ↓" },
+                { value: "createdAt_desc", label: "Newest" },
+                { value: "createdAt_asc", label: "Oldest" },
+                { value: "priority", label: "Priority" },
+              ]
+            },
+          ].map(({ key, label, value: val, options }) => (
+            <div key={key} className="flex items-center gap-2">
+              <span className="text-[11.5px] font-semibold uppercase tracking-wider text-[#b0b0b0] dark:text-[#444] shrink-0">{label}</span>
+              <select
+                value={val}
+                onChange={e => updateFilter(key, e.target.value)}
+                className="h-8 px-2.5 pr-7 rounded-[6px] bg-[#f4f4f4] dark:bg-white/5 border border-[#e5e5e5] dark:border-white/8 text-[13px] font-medium text-[#111] dark:text-[#eee] outline-none cursor-pointer appearance-none hover:border-[#ccc] transition-colors"
+              >
+                {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+          ))}
           {hostelId !== "ALL" && selectedHostel?.warden && (
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Warden</span>
-              <select 
+              <span className="text-[11.5px] font-semibold uppercase tracking-wider text-[#b0b0b0] dark:text-[#444]">Warden</span>
+              <select
                 value={wardenId}
                 onChange={e => updateFilter("wardenId", e.target.value)}
-                className="h-9 px-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[13px] font-medium outline-none cursor-pointer"
+                className="h-8 px-2.5 pr-7 rounded-[6px] bg-[#f4f4f4] dark:bg-white/5 border border-[#e5e5e5] dark:border-white/8 text-[13px] font-medium text-[#111] dark:text-[#eee] outline-none cursor-pointer appearance-none hover:border-[#ccc] transition-colors"
               >
-                <option value="ALL">All Wardens in Hostel</option>
+                <option value="ALL">All Wardens</option>
                 <option value={selectedHostel.warden.id}>
                   {selectedHostel.warden.user.email || selectedHostel.warden.user.phone}
                 </option>
               </select>
             </div>
           )}
-
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Date</span>
-            <select 
-              value={dateRange}
-              onChange={e => updateFilter("dateRange", e.target.value)}
-              className="h-9 px-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[13px] font-medium outline-none cursor-pointer"
-            >
-              <option value="ALL">All Time</option>
-              <option value="TODAY">Today</option>
-              <option value="WEEK">Last 7 Days</option>
-              <option value="MONTH">Last 30 Days</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Sort</span>
-            <select 
-              value={sort}
-              onChange={e => updateFilter("sort", e.target.value)}
-              className="h-9 px-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[13px] font-medium outline-none cursor-pointer"
-            >
-              <option value="deadline_asc">Deadline (Nearest)</option>
-              <option value="deadline_desc">Deadline (Furthest)</option>
-              <option value="createdAt_desc">Newest First</option>
-              <option value="createdAt_asc">Oldest First</option>
-              <option value="priority">Priority</option>
-            </select>
-          </div>
         </div>
 
-        {/* Task List */}
-        <div className="space-y-3 relative min-h-[400px]">
-          {loading ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-black/50 z-10 backdrop-blur-[1px] rounded-2xl">
-              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        {/* ── Task List ── */}
+        <div className="space-y-2 relative">
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#f9f9f9]/70 dark:bg-[#080808]/70 z-10 backdrop-blur-[2px] rounded-[10px]">
+              <Loader2 className="w-7 h-7 animate-spin text-[#999]" />
             </div>
-          ) : null}
+          )}
 
           {(!data || data.tasks.length === 0) && !loading ? (
-            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-[#111111] rounded-3xl border border-gray-200 dark:border-white/10 shadow-sm">
-              <CheckCircle2 className="w-10 h-10 text-gray-300 dark:text-gray-600 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">No tasks found</h3>
-              <p className="text-gray-500 mt-1 text-sm">Try adjusting your filters or assign a new task.</p>
-              <Button 
-                variant="outline" 
+            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-[#111] rounded-[10px] border border-[#ebebeb] dark:border-white/8">
+              <CheckCircle2 className="w-10 h-10 text-[#ddd] dark:text-[#333] mb-4" />
+              <h3 className="text-[15px] font-semibold text-[#333] dark:text-[#ccc]">No tasks found</h3>
+              <p className="text-[13px] text-[#999] mt-1">Try adjusting your filters or assign a new task.</p>
+              <button
                 onClick={() => setCreateModalOpen(true)}
-                className="mt-6 rounded-xl border-gray-200 dark:border-white/10"
+                className="mt-5 h-9 px-4 rounded-[7px] bg-[#0f0f0f] dark:bg-white text-white dark:text-[#0f0f0f] text-[13px] font-semibold hover:bg-[#2a2a2a] transition-colors"
               >
-                Assign Task
-              </Button>
+                + Assign Task
+              </button>
             </div>
           ) : (
             data?.tasks.map(task => (
-              <TaskCard 
-                key={task.id} 
-                task={task} 
+              <TaskCard
+                key={task.id}
+                task={task}
                 onClick={() => {
                   setSelectedTaskId(task.id);
                   setDrawerOpen(true);
-                }} 
+                }}
               />
             ))
           )}
         </div>
 
-        {/* Pagination */}
+        {/* ── Pagination ── */}
         {data && data.pagination.pages > 1 && (
-          <div className="flex items-center justify-between pt-4">
-            <span className="text-sm text-gray-500 font-medium">
-              Page {data.pagination.page} of {data.pagination.pages}
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-[13px] text-[#999]">
+              Page {data.pagination.page} of {data.pagination.pages} &bull; {data.pagination.total} tasks total
             </span>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
+              <button
                 disabled={data.pagination.page <= 1}
                 onClick={() => updateFilter("page", (data.pagination.page - 1).toString())}
-                className="rounded-lg border-gray-200 dark:border-white/10"
+                className="h-9 px-4 rounded-[7px] border border-[#e5e5e5] dark:border-white/10 bg-white dark:bg-[#111] text-[13px] font-medium text-[#333] dark:text-[#ccc] hover:bg-[#f4f4f4] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                Previous
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
+                ← Previous
+              </button>
+              <button
                 disabled={data.pagination.page >= data.pagination.pages}
                 onClick={() => updateFilter("page", (data.pagination.page + 1).toString())}
-                className="rounded-lg border-gray-200 dark:border-white/10"
+                className="h-9 px-4 rounded-[7px] border border-[#e5e5e5] dark:border-white/10 bg-white dark:bg-[#111] text-[13px] font-medium text-[#333] dark:text-[#ccc] hover:bg-[#f4f4f4] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                Next
-              </Button>
+                Next →
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      <TaskCreateModal 
-        open={createModalOpen} 
-        onOpenChange={setCreateModalOpen} 
-        onTaskCreated={() => fetchTasks()} 
+      <TaskCreateModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        onTaskCreated={() => fetchTasks()}
       />
 
-      <TaskDetailDrawer 
+      <TaskDetailDrawer
         taskId={selectedTaskId}
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
