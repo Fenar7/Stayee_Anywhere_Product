@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       ? { hostelId: session.user.warden!.hostelId } 
       : {};
 
-    const [pendingReviews, pendingPayments, rentDueSoon, openTickets, unreadNotifications] = await Promise.all([
+    const [pendingReviews, pendingPayments, rentDueSoon, openTickets, unreadNotifications, pendingTasks] = await Promise.all([
       // ONBOARDING_PENDING
       prisma.stay.count({
         where: {
@@ -57,6 +57,13 @@ export async function GET(request: NextRequest) {
           read: false,
         },
       }),
+      // Pending tasks
+      prisma.task.count({
+        where: {
+          ...(session.user.role === UserRole.WARDEN ? { assignedToWardenId: session.user.warden!.id } : { organizationId: session.user.organizationId }),
+          status: { in: ["PENDING", "IN_PROGRESS"] },
+        },
+      }),
     ]);
 
     // For rentDueSoon, wait, PRD says: "count of items needing action (pending payments + overdue rent)".
@@ -69,9 +76,10 @@ export async function GET(request: NextRequest) {
       rentDueSoon,
       openTickets,
       unreadNotifications,
+      pendingTasks,
     });
   } catch (error) {
     console.error("Failed to fetch action counts:", error);
-    return NextResponse.json({ pendingReviews: 0, pendingPayments: 0, rentDueSoon: 0, openTickets: 0, unreadNotifications: 0 }, { status: 500 });
+    return NextResponse.json({ pendingReviews: 0, pendingPayments: 0, rentDueSoon: 0, openTickets: 0, unreadNotifications: 0, pendingTasks: 0 }, { status: 500 });
   }
 }

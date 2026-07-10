@@ -184,7 +184,7 @@ function SidebarContent({
   const pathname = usePathname();
   const router = useRouter();
   const groups = NAV_CONFIG[role] ?? [];
-  const { data: counts = { pendingReviews: 0, pendingPayments: 0, rentDueSoon: 0, openTickets: 0, unreadNotifications: 0 } } = useSWR(
+  const { data: counts = { pendingReviews: 0, pendingPayments: 0, rentDueSoon: 0, openTickets: 0, unreadNotifications: 0, pendingTasks: 0 } } = useSWR(
     role === "WARDEN" || role === "MAIN_ADMIN" ? "/api/warden/action-counts" : null,
     (url: string) => fetch(url).then(res => res.json()),
     { refreshInterval: 60000, dedupingInterval: 10000 }
@@ -309,7 +309,8 @@ function SidebarContent({
                     item.label === "Onboards" ? counts.pendingReviews + counts.pendingPayments :
                     item.label === "Worklists" ? counts.rentDueSoon :
                     item.label === "Complaints" ? counts.openTickets :
-                    item.label === "Notifications" ? unreadCount : 0
+                    item.label === "Tasks" ? counts.pendingTasks :
+                    item.label === "Notifications" ? (role === "TENANT" ? unreadCount : counts.unreadNotifications) : 0
                   }
                 />
               ))}

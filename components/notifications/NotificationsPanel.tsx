@@ -20,7 +20,8 @@ import {
   ChevronLeft,
   MessageSquare,
   ArrowRight,
-  Loader2
+  Loader2,
+  ClipboardList
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { notify } from "@/lib/toast";
@@ -180,6 +181,7 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
     if (t.includes("PAY")) return <CreditCard className="size-4" />;
     if (t.includes("ONBOARD")) return <FileText className="size-4" />;
     if (t.includes("TICKET")) return <MessageSquare className="size-4" />;
+    if (t.includes("TASK")) return <ClipboardList className="size-4" />;
     return <Bell className="size-4" />;
   };
 

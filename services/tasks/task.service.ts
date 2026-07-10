@@ -396,14 +396,9 @@ export async function getTasksWidgetData(params: {
   organizationId: string;
   wardenId?: string;
 }) {
-  const now = new Date();
-  const nextWeek = new Date();
-  nextWeek.setDate(now.getDate() + 7);
-
   const where = {
     organizationId: params.organizationId,
     status: { in: [TaskStatus.PENDING, TaskStatus.IN_PROGRESS] },
-    deadline: { lte: nextWeek },
     ...(params.scope === 'warden' && { assignedToWardenId: params.wardenId }),
   };
 
