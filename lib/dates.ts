@@ -29,14 +29,6 @@ export function getEndOfDayIST(date: Date = new Date()): Date {
 }
 
 /**
- * Returns a Date object set to 23:59:59.999 IST for the last day of the given month.
- */
-export function getEndOfMonthIST(date: Date = new Date()): Date {
-  const { year, month } = getISTDateParts(date);
-  const lastDay = new Date(year, month, 0).getDate();
-  return new Date(`${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}T23:59:59.999+05:30`);
-}
-/**
  * Returns a Date object set to 00:00:00.000 IST (midnight) for the given date.
  */
 export function getStartOfDayIST(date: Date): Date {
@@ -109,34 +101,28 @@ export function calculateMonthlyNextDueDate(
 }
 
 /**
- * Format a date string into a relative label if it's within the next 7 days,
- * otherwise returns a short date string (e.g., "Oct 24, 2026").
+ * Format a date string into a relative time like "Today", "Tomorrow", "Yesterday" or short date "Aug 15"
  */
-export function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
+export function formatRelativeTime(dateInput: string | Date): string {
+  const date = new Date(dateInput);
   const now = new Date();
   
-  // Strip time for absolute day comparison
-  const dDay = getStartOfDayIST(date);
-  const nDay = getStartOfDayIST(now);
+  // Clone to avoid mutating original dates if they are passed by reference
+  const d1 = new Date(date);
+  const d2 = new Date(now);
   
-  const diffDays = Math.round((dDay.getTime() - nDay.getTime()) / MS_PER_DAY);
+  d1.setHours(0, 0, 0, 0);
+  d2.setHours(0, 0, 0, 0);
   
-  // Format time component (e.g., "3:30 PM")
-  const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const diffDays = Math.round((d1.getTime() - d2.getTime()) / (1000 * 60 * 60 * 24));
   
-  if (diffDays === -1) return `Yesterday ${timeStr}`;
-  if (diffDays === 0) return `Today ${timeStr}`;
-  if (diffDays === 1) return `Tomorrow ${timeStr}`;
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Tomorrow";
+  if (diffDays === -1) return "Yesterday";
   
   if (diffDays > 1 && diffDays < 7) {
-    const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
-    return `${weekday} ${timeStr}`;
+    return date.toLocaleDateString("en-US", { weekday: "short" }); // e.g. Mon, Tue
   }
   
-  if (diffDays < -1) {
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  }
-
-  return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} ${timeStr}`;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" }); // e.g. Mar 3
 }
