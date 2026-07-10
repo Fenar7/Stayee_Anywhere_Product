@@ -1,4 +1,4 @@
-import { TaskPriority, TaskStatus } from "@prisma/client";
+import { TaskPriority, TaskStatus } from "@/lib/constants/tasks";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 

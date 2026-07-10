@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { ForbiddenError, NotFoundError, ValidationError } from "@/lib/errors";
-import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
+import { UserRole, Prisma } from "@prisma/client";
+import { TaskStatus, TaskPriority } from "@/lib/constants/tasks";
 
 // ==========================================
 // SHARED UTILS
@@ -70,8 +71,37 @@ export async function createTask(data: {
     },
   });
 
-  // TODO: Trigger notification to Warden
-  
+  // Trigger notification to Warden
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: warden.userId,
+        title: "New Task Assigned",
+        message: `You have been assigned a new task: ${task.title}`,
+        type: "TASK",
+        targetUrl: `/warden/tasks`,
+        referenceId: task.id,
+      },
+    });
+
+    // Also log activity
+    await prisma.activityLog.create({
+      data: {
+        organizationId: data.organizationId,
+        hostelId: data.hostelId,
+        eventType: "TASK_CREATED",
+        actorId: data.createdByUserId,
+        actorName: "Admin", // Would ideally fetch real name
+        subjectName: task.title,
+        subjectId: task.id,
+        subjectType: "TASK",
+        targetUrl: `/admin/tasks`,
+      }
+    });
+  } catch (error) {
+    console.error("Failed to create task notification/activity log:", error);
+  }
+
   return formatTask(task);
 }
 
@@ -135,7 +165,7 @@ export async function listTasksAdmin(params: {
 }) {
   const skip = (params.pagination.page - 1) * params.pagination.limit;
   
-  const where = {
+  const where: Prisma.TaskWhereInput = {
     organizationId: params.organizationId,
     ...(params.filters.status && { status: params.filters.status }),
     ...(params.filters.hostelId && { hostelId: params.filters.hostelId }),
@@ -146,7 +176,7 @@ export async function listTasksAdmin(params: {
     }),
   };
 
-  let orderBy: any = { deadline: 'asc' };
+  let orderBy: Prisma.TaskOrderByWithRelationInput = { deadline: 'asc' };
   if (params.sort === 'deadline_desc') orderBy = { deadline: 'desc' };
   if (params.sort === 'createdAt_asc') orderBy = { createdAt: 'asc' };
   if (params.sort === 'createdAt_desc') orderBy = { createdAt: 'desc' };
@@ -201,15 +231,24 @@ export async function getTaskAdmin(taskId: string, organizationId: string) {
 
 export async function listTasksWarden(params: {
   wardenId: string;
-  filters: { status?: TaskStatus };
+  filters: { status?: TaskStatus | 'OVERDUE' };
   pagination: { page: number; limit: number };
 }) {
   const skip = (params.pagination.page - 1) * params.pagination.limit;
   
-  const where = {
+  const where: Prisma.TaskWhereInput = {
     assignedToWardenId: params.wardenId,
-    ...(params.filters.status && { status: params.filters.status }),
   };
+
+  if (params.filters.status === 'OVERDUE') {
+    where.status = { in: [TaskStatus.PENDING, TaskStatus.IN_PROGRESS] };
+    where.deadline = { lt: new Date() };
+  } else if (params.filters.status) {
+    where.status = params.filters.status;
+    if (params.filters.status === TaskStatus.PENDING || params.filters.status === TaskStatus.IN_PROGRESS) {
+      where.deadline = { gte: new Date() };
+    }
+  }
 
   const [total, tasks] = await Promise.all([
     prisma.task.count({ where }),
@@ -218,6 +257,11 @@ export async function listTasksWarden(params: {
       skip,
       take: params.pagination.limit,
       orderBy: { deadline: 'asc' },
+      include: {
+        assignedToWarden: { include: { user: { select: { email: true, phone: true } } } },
+        hostel: { select: { name: true } },
+        createdBy: { select: { email: true, phone: true } },
+      }
     }),
   ]);
 

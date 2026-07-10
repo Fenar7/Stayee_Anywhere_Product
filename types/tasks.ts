@@ -27,7 +27,7 @@ export interface TaskDTO {
   organizationId: string;
   hostelId: string;
   assignedToWardenId: string;
-  createdByUserId: string;
+  createdByUserId: string | null;
 
   // Joined fields
   hostel: {
@@ -43,7 +43,7 @@ export interface TaskDTO {
   createdBy: {
     email: string | null;
     phone: string;
-  };
+  } | null;
   comments?: TaskCommentDTO[];
 }
 

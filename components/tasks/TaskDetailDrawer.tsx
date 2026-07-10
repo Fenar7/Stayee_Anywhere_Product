@@ -2,13 +2,13 @@
 
 import { useEffect, useState, useRef } from "react";
 import { TaskDTO } from "@/types/tasks";
-import { TaskPriority, TaskStatus } from "@prisma/client";
+import { TaskPriority, TaskStatus } from "@/lib/constants/tasks";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { PriorityBadge, StatusBadge } from "./TaskBadge";
 import { TaskComments } from "./TaskComments";
 import { Button } from "@/components/ui/button";
 import { notify } from "@/lib/toast";
-import { Loader2, Mail, Phone, Calendar, Clock, User, Ban } from "lucide-react";
+import { Loader2, Mail, Phone, Calendar, Clock, User, Ban, Building2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,11 +25,13 @@ export function TaskDetailDrawer({
   open,
   onOpenChange,
   onTaskUpdated,
+  mode = "admin",
 }: {
   taskId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTaskUpdated: () => void;
+  mode?: "admin" | "warden";
 }) {
   const [task, setTask] = useState<TaskDTO | null>(null);
   const [loading, setLoading] = useState(false);
@@ -42,6 +44,7 @@ export function TaskDetailDrawer({
   const [deadlineInput, setDeadlineInput] = useState("");
   const titleRef = useRef("");
   const descRef = useRef("");
+  const [completionNote, setCompletionNote] = useState("");
 
   useEffect(() => {
     if (open && taskId) {
@@ -54,7 +57,8 @@ export function TaskDetailDrawer({
   const fetchTask = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/tasks/${taskId}`);
+      const endpoint = mode === "warden" ? `/api/warden/tasks/${taskId}` : `/api/admin/tasks/${taskId}`;
+      const res = await fetch(endpoint);
       if (!res.ok) throw new Error("Failed to fetch task");
       const data = await res.json();
       setTask(data);
@@ -137,28 +141,52 @@ export function TaskDetailDrawer({
 
   const isOverdue = task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.CANCELLED && new Date(task.deadline) < new Date();
   const isReadOnly = task.status === TaskStatus.COMPLETED || task.status === TaskStatus.CANCELLED;
+  
+  const handleWardenStatusUpdate = async (newStatus: TaskStatus, note?: string) => {
+    try {
+      const res = await fetch(`/api/warden/tasks/${task.id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus, completionNote: note }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to update status");
+      }
+      const updatedTask = await res.json();
+      setTask(updatedTask);
+      onTaskUpdated();
+      notify.success("Status updated successfully");
+    } catch (err) {
+      const error = err as Error;
+      notify.error(error.message);
+    }
+  };
 
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="w-full sm:max-w-md md:max-w-lg p-0 flex flex-col border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] overflow-hidden">
           
-          <SheetHeader className="p-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 shrink-0">
-            {isReadOnly && (
+          <SheetHeader className="p-6 pb-4 border-b border-gray-100 dark:border-white/5 bg-[#fcfcfc] dark:bg-white/5 shrink-0 relative">
+            {task.status === TaskStatus.COMPLETED || task.status === TaskStatus.CANCELLED ? (
               <div className="mb-4 px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg flex items-center gap-2">
                 <Ban className="w-4 h-4 text-slate-500" />
                 <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
                   This task is {task.status.toLowerCase()} and cannot be edited.
                 </span>
               </div>
-            )}
+            ) : null}
 
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-5 pr-8">
               <PriorityBadge priority={task.priority} />
               <StatusBadge status={task.status} isOverdue={isOverdue} />
-              <span className="ml-auto text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                {task.hostel.name}
-              </span>
+              <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-md shadow-sm">
+                <Building2 className="w-3.5 h-3.5 text-gray-500" />
+                <span className="text-[12px] font-semibold text-gray-700 dark:text-gray-300">
+                  {task.hostel.name}
+                </span>
+              </div>
             </div>
             
             <SheetTitle className="sr-only">Task Details</SheetTitle>
@@ -173,8 +201,8 @@ export function TaskDetailDrawer({
                   setTitle(titleRef.current);
                 }
               }}
-              readOnly={isReadOnly}
-              className="text-xl font-black bg-transparent outline-none w-full text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-700"
+              readOnly={isReadOnly || mode === "warden"}
+              className="text-[26px] font-bold bg-transparent outline-none w-full text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-700 leading-tight tracking-tight focus:ring-0"
               placeholder="Task Title"
             />
             
@@ -186,8 +214,8 @@ export function TaskDetailDrawer({
                   updateField("description", description);
                 }
               }}
-              readOnly={isReadOnly}
-              className="mt-2 text-sm text-gray-500 bg-transparent outline-none w-full resize-none min-h-[60px]"
+              readOnly={isReadOnly || mode === "warden"}
+              className="mt-3 text-[15px] leading-relaxed text-gray-600 dark:text-gray-400 bg-transparent outline-none w-full resize-none min-h-[60px] focus:ring-0"
               placeholder="Add a description..."
             />
           </SheetHeader>
@@ -197,35 +225,35 @@ export function TaskDetailDrawer({
               
               {/* Metadata Grid */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Assigned To</span>
-                  <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900 dark:text-white truncate">
+                <div className="bg-gray-50 dark:bg-white/[0.02] p-4 rounded-2xl border border-gray-100 dark:border-white/5 flex flex-col justify-center">
+                  <span className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Assigned To</span>
+                  <div className="flex items-center gap-2 text-[14px] font-medium text-gray-900 dark:text-white truncate">
                     <User className="w-4 h-4 text-gray-400 shrink-0" />
                     <span className="truncate">{task.assignedToWarden.user.email || 'Warden'}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
-                    <Phone className="w-3 h-3 shrink-0" />
+                  <div className="flex items-center gap-2 text-[13px] text-gray-500 mt-1.5">
+                    <Phone className="w-3.5 h-3.5 shrink-0" />
                     {task.assignedToWarden.user.phone}
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Deadline</span>
-                  <div className={`flex items-center gap-1.5 text-sm font-bold ${isOverdue ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
+                <div className="bg-gray-50 dark:bg-white/[0.02] p-4 rounded-2xl border border-gray-100 dark:border-white/5 flex flex-col justify-center">
+                  <span className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Deadline</span>
+                  <div className={`flex items-center gap-2 text-[14px] font-bold ${isOverdue ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
                     <Calendar className="w-4 h-4 shrink-0" />
                     {new Date(task.deadline).toLocaleDateString()}
                   </div>
-                  <div className={`flex items-center gap-1.5 text-xs ${isOverdue ? 'text-red-400' : 'text-gray-500'} mt-1`}>
-                    <Clock className="w-3 h-3 shrink-0" />
+                  <div className={`flex items-center gap-2 text-[13px] font-medium ${isOverdue ? 'text-red-500' : 'text-gray-500'} mt-1.5`}>
+                    <Clock className="w-3.5 h-3.5 shrink-0" />
                     {new Date(task.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
               </div>
 
-              {!isReadOnly && (
-                <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-white/5">
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Update Priority</span>
+              {!isReadOnly && mode === "admin" && (
+                <div className="space-y-6 pt-4 border-t border-gray-100 dark:border-white/5">
+                  <div className="space-y-3">
+                    <span className="text-[13px] font-semibold text-gray-700 dark:text-gray-300">Priority Level</span>
                     <div className="flex flex-wrap gap-2">
                       {(["LOW", "MEDIUM", "HIGH", "URGENT"] as TaskPriority[]).map((p) => {
                         const isSelected = task.priority === p;
@@ -233,55 +261,91 @@ export function TaskDetailDrawer({
                           <button
                             key={p}
                             onClick={() => updateField("priority", p)}
-                            className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                            className={`px-4 py-2 rounded-xl text-[13px] font-semibold transition-all border ${
                               isSelected
-                                ? "bg-black text-white border-black dark:bg-white dark:text-black dark:border-white"
-                                : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 dark:bg-transparent dark:border-white/10 dark:hover:border-white/20"
+                                ? "bg-gray-900 text-white border-gray-900 dark:bg-white dark:text-gray-900 dark:border-white shadow-md"
+                                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm dark:bg-transparent dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/5"
                             }`}
                           >
-                            {p}
+                            {p.charAt(0) + p.slice(1).toLowerCase()}
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Update Deadline</span>
+                  <div className="space-y-3">
+                    <span className="text-[13px] font-semibold text-gray-700 dark:text-gray-300">Adjust Deadline</span>
                     <div className="flex items-center gap-2">
                       <input
                         type="datetime-local"
                         value={deadlineInput}
                         min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                         onChange={(e) => setDeadlineInput(e.target.value)}
-                        className="text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 outline-none"
+                        className="flex-1 text-[14px] font-medium bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-gray-900/10 transition-shadow shadow-sm"
                       />
                       <Button 
                         size="sm" 
-                        variant="outline"
                         onClick={() => {
                           if (deadlineInput) {
                             updateField("deadline", new Date(deadlineInput).toISOString());
                           }
                         }}
-                        className="rounded-xl border-gray-200 dark:border-white/10 h-[38px]"
+                        className="rounded-xl h-[42px] px-5 font-semibold bg-gray-900 text-white hover:bg-gray-800 shadow-sm"
                       >
-                        Save
+                        Update
                       </Button>
                     </div>
                   </div>
                 </div>
               )}
 
-              {!isReadOnly && (
-                <div className="pt-6">
-                  <Button 
-                    variant="outline" 
-                    className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
+              {!isReadOnly && mode === "warden" && task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.CANCELLED && (
+                <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-white/5">
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Update Status</span>
+                    {task.status === TaskStatus.PENDING && (
+                      <Button 
+                        onClick={() => handleWardenStatusUpdate(TaskStatus.IN_PROGRESS)} 
+                        className="w-full rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-bold"
+                      >
+                        Start Task (In Progress)
+                      </Button>
+                    )}
+                    {task.status === TaskStatus.IN_PROGRESS && (
+                      <div className="space-y-3">
+                        <textarea
+                          value={completionNote}
+                          onChange={(e) => setCompletionNote(e.target.value)}
+                          className="w-full text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 outline-none resize-none min-h-[80px]"
+                          placeholder="Add a completion note (required)..."
+                        />
+                        <Button 
+                          onClick={() => {
+                            if (!completionNote || completionNote.trim().length < 3) {
+                              notify.error("Completion note is required");
+                              return;
+                            }
+                            handleWardenStatusUpdate(TaskStatus.COMPLETED, completionNote);
+                          }} 
+                          className="w-full rounded-xl bg-green-600 text-white hover:bg-green-700 font-bold"
+                        >
+                          Mark as Completed
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!isReadOnly && mode === "admin" && (
+                <div className="pt-8">
+                  <button 
+                    className="w-full py-3 rounded-xl text-[14px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 transition-colors border border-red-100 dark:border-red-900/30"
                     onClick={() => setConfirmCancelOpen(true)}
                   >
-                    Cancel Task
-                  </Button>
+                    Delete / Cancel Task
+                  </button>
                 </div>
               )}
             </div>

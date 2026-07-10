@@ -1,5 +1,5 @@
 import { TaskDTO } from "@/types/tasks";
-import { TaskStatus } from "@prisma/client";
+import { TaskStatus } from "@/lib/constants/tasks";
 import { PriorityBadge, StatusBadge } from "./TaskBadge";
 import { formatRelativeTime } from "@/lib/dates";
 

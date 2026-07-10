@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { handleApiError } from "@/lib/errors";
-import { UserRole, TaskStatus, TaskPriority } from "@prisma/client";
+import { UserRole } from "@prisma/client";
+import { TaskStatus, TaskPriority } from "@/lib/constants/tasks";
 import { createTask, listTasksAdmin } from "@/services/tasks/task.service";
 import { createTaskSchema } from "@/lib/validation/task";
 
@@ -48,7 +49,15 @@ export async function GET(request: NextRequest) {
       pagination: { page, limit },
     });
 
-    return Response.json(tasks);
+    return Response.json({
+      tasks: tasks.data,
+      pagination: {
+        total: tasks.total,
+        page: tasks.page,
+        pages: tasks.totalPages,
+        limit,
+      }
+    });
   } catch (error) {
     return handleApiError(error);
   }
