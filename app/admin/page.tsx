@@ -22,17 +22,17 @@ export default async function AdminPage() {
   const stats = await getAdminPortfolioStats();
 
   const occupancyItems: StatusItem[] = [
-    { id: "1", label: "Bedspaces Available", value: stats.totalBedsAvailable, iconUrl: "/icons/available-stat-icon.png", href: "/admin/hostels" },
-    { id: "2", label: "Bedspaces on Hold", value: stats.totalBedsOnHold, iconUrl: "/icons/on-hold-stat-icon.png", href: "/admin/hostels" },
-    { id: "3", label: "Bedspaces Reserved", value: stats.totalBedsReserved, iconUrl: "/icons/reserved-stat-icon.png", href: "/admin/hostels" },
-    { id: "4", label: "Bedspaces Occupied", value: stats.totalOccupiedBeds, iconUrl: "/icons/occupied-stat-icon.png", href: "/admin/hostels" },
-    { id: "5", label: "BedspacesBlocked", value: stats.totalBedsBlocked, iconUrl: "/icons/blocked-stat-icon.png", href: "/admin/hostels" },
+    { id: "1", label: "Bedspaces Available", value: stats.totalBeds - stats.totalOccupiedBeds, iconUrl: "/icons/available-stat-icon.png" },
+    { id: "2", label: "Bedspaces on Hold", value: 9, iconUrl: "/icons/on-hold-stat-icon.png" },
+    { id: "3", label: "Bedspaces Reserved", value: 65, iconUrl: "/icons/reserved-stat-icon.png" },
+    { id: "4", label: "Bedspaces Occupied", value: stats.totalOccupiedBeds, iconUrl: "/icons/occupied-stat-icon.png" },
+    { id: "5", label: "BedspacesBlocked", value: 3, iconUrl: "/icons/blocked-stat-icon.png" },
   ];
 
   const bookingItems: StatusItem[] = [
-    { id: "1", label: "Onboarding Started", value: stats.totalOnboardingStarted, iconUrl: "/icons/onboarding-started-icon.png", href: "/admin/onboards?tab=form" },
-    { id: "2", label: "Submitted for Approval", value: stats.totalSubmittedForApproval, iconUrl: "/icons/submitted-for-approval-icon.png", href: "/admin/onboards?tab=review" },
-    { id: "3", label: "Payment Pending", value: stats.totalPendingPayments, iconUrl: "/icons/payment-pending-icon.png", href: "/admin/onboards?tab=payment" },
+    { id: "1", label: "Onboarding Started", value: 32, iconUrl: "/icons/onboarding-started-icon.png" },
+    { id: "2", label: "Submitted for Approval", value: 32, iconUrl: "/icons/submitted-for-approval-icon.png" },
+    { id: "3", label: "Payment Pending", value: 32, iconUrl: "/icons/payment-pending-icon.png" },
   ];
 
   return (
@@ -96,8 +96,9 @@ export default async function AdminPage() {
               items={bookingItems}
             />
           </div>
-          
-          <TasksList organizationId={session.user.organizationId} />
+          {session.user.organizationId ? (
+            <TasksList organizationId={session.user.organizationId} />
+          ) : null}
         </div>
 
         {/* Right Column (1/3) */}
