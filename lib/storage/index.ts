@@ -1,33 +1,27 @@
-import { createAdminClient } from "@/lib/auth/server";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl as getPresignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || "nexthome-documents";
+const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || "staye-production-documents";
+
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || "ap-south-1",
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  }
+});
 
 /**
- * Ensures that the private storage bucket exists in Supabase.
+ * Ensures that the private storage bucket exists.
+ * (No-op for AWS since the bucket was provisioned manually via IaC/Console)
  */
 export async function ensureBucketExists(): Promise<void> {
-  const supabase = createAdminClient();
-  const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-  
-  if (listError) {
-    console.error("Failed to list storage buckets:", listError);
-    return;
-  }
-
-  const exists = buckets.some((b) => b.name === BUCKET_NAME);
-  if (!exists) {
-    const { error: createError } = await supabase.storage.createBucket(BUCKET_NAME, {
-      public: false, // Bucket must be private
-      fileSizeLimit: 10 * 1024 * 1024, // 10MB limit
-    });
-    if (createError) {
-      console.error(`Failed to create storage bucket "${BUCKET_NAME}":`, createError);
-    }
-  }
+  // Bucket is already provisioned in AWS
+  return Promise.resolve();
 }
 
 /**
- * Uploads a buffer to private Supabase storage.
+ * Uploads a buffer to private AWS S3 storage.
  * @returns The storage path of the uploaded file.
  */
 export async function uploadToStorage(
@@ -35,21 +29,19 @@ export async function uploadToStorage(
   path: string,
   mimeType: string
 ): Promise<string> {
-  const supabase = createAdminClient();
-  await ensureBucketExists();
+  const command = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: path,
+    Body: buffer,
+    ContentType: mimeType,
+  });
 
-  const { data, error } = await supabase.storage
-    .from(BUCKET_NAME)
-    .upload(path, buffer, {
-      contentType: mimeType,
-      upsert: true,
-    });
-
-  if (error) {
-    throw new Error(`Storage upload failed: ${error.message}`);
+  try {
+    await s3Client.send(command);
+    return path;
+  } catch (error: any) {
+    throw new Error(`AWS S3 upload failed: ${error.message}`);
   }
-
-  return data.path;
 }
 
 /**
@@ -59,14 +51,15 @@ export async function getSignedUrl(
   path: string,
   expiresInSeconds = 900 // Default to 15 minutes (900 seconds)
 ): Promise<string> {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase.storage
-    .from(BUCKET_NAME)
-    .createSignedUrl(path, expiresInSeconds);
+  const command = new GetObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: path,
+  });
 
-  if (error) {
-    throw new Error(`Failed to generate signed URL: ${error.message}`);
+  try {
+    const signedUrl = await getPresignedUrl(s3Client, command, { expiresIn: expiresInSeconds });
+    return signedUrl;
+  } catch (error: any) {
+    throw new Error(`Failed to generate AWS S3 signed URL: ${error.message}`);
   }
-
-  return data.signedUrl;
 }

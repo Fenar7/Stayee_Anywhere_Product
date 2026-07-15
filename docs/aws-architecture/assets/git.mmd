@@ -1,0 +1,19 @@
+graph TD
+    classDef main fill:#1D76DB,stroke:#000,stroke-width:2px,color:white;
+    classDef dev fill:#28A745,stroke:#000,stroke-width:2px,color:white;
+    classDef feat fill:#FFC107,stroke:#000,stroke-width:2px,color:black;
+    classDef hotfix fill:#DC3545,stroke:#000,stroke-width:2px,color:white;
+
+    M[main branch]:::main
+    D[development branch]:::dev
+    F[feature/* branches]:::feat
+    H[hotfix/* branches]:::hotfix
+    QA[QA / Staging Environment]
+
+    M -->|Create Hotfix| H
+    H -->|Merge fix| M
+    M -->|Branch off| D
+    D -->|Branch off| F
+    F -->|Pull Request| D
+    D -->|Deploy for testing| QA
+    QA -->|Approved Release| M

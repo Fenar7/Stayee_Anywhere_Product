@@ -89,7 +89,7 @@ export async function createTask(data: {
       data: {
         organizationId: data.organizationId,
         hostelId: data.hostelId,
-        eventType: "TASK_CREATED",
+        eventType: "SERVICE_REQUEST_CREATED",
         actorId: data.createdByUserId,
         actorName: "Admin", // Would ideally fetch real name
         subjectName: task.title,

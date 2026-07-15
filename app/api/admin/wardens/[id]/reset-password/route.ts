@@ -54,7 +54,7 @@ export async function POST(
         if (error.message.toLowerCase().includes("already registered")) {
           const { data: listData } = await supabase.auth.admin.listUsers();
           const orphanedUser = listData?.users?.find(
-            (u) => u.phone === warden.user.phone || u.phone === warden.user.phone.replace(/^\+/, "")
+            (u: any) => u.phone === warden.user.phone || u.phone === warden.user.phone.replace(/^\+/, "")
           );
 
           if (orphanedUser) {

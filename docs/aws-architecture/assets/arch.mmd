@@ -1,0 +1,16 @@
+graph TD
+    classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:white;
+    classDef ecs fill:#147EBA,stroke:#232F3E,stroke-width:2px,color:white;
+    classDef db fill:#336699,stroke:#232F3E,stroke-width:2px,color:white;
+    classDef edge fill:#527FFF,stroke:#232F3E,stroke-width:2px,color:white;
+
+    User[End User] --> R53[Route 53 DNS]
+    R53 --> WAF[AWS WAF]:::edge
+    WAF --> CF[CloudFront CDN]:::edge
+    CF --> ALB[Application Load Balancer]:::aws
+    
+    subgraph VPC [AWS Virtual Private Cloud - ap-south-1]
+        ALB --> ECS[ECS Fargate: Next.js Containers]:::ecs
+        ECS --> RDS[(RDS PostgreSQL Multi-AZ)]:::db
+        ECS --> S3[(S3 Bucket: Media)]:::db
+    end

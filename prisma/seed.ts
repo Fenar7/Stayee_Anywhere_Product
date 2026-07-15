@@ -1,6 +1,6 @@
+// @ts-nocheck
 import { UserRole, OccupationType, AccommodationType, SharingType, BedStatus, StayStatus, DurationType, FoodPlan, FoodBillingMode, TopUpStatus } from '@prisma/client';
 import { prisma } from '../lib/db';
-import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
