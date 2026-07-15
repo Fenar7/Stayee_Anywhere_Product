@@ -36,7 +36,7 @@ export default function AdminHostelNav({ hostelId }: { hostelId: string }) {
   ];
 
   return (
-    <nav className="premium-tab-list" aria-label="Tabs">
+    <nav className="flex items-center gap-2 w-full overflow-x-auto scrollbar-none py-3" aria-label="Tabs">
       {navItems.map((item) => {
         const isActive = pathname === item.href;
         return (
@@ -44,11 +44,13 @@ export default function AdminHostelNav({ hostelId }: { hostelId: string }) {
             key={item.name}
             href={item.href}
             className={cn(
-              "premium-tab flex items-center",
-              isActive && "active"
+              "flex items-center px-4 py-2 text-[14px] font-medium rounded-full transition-all whitespace-nowrap border",
+              isActive 
+                ? "bg-[#222222] text-white border-transparent shadow-sm dark:bg-[#58ff48] dark:text-black" 
+                : "bg-transparent text-[#767676] border-[#dedede] hover:text-[#222222] hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5 dark:text-gray-400 dark:hover:text-white"
             )}
           >
-            <item.icon className={cn("mr-2 size-4", isActive ? "text-[#58ff48]" : "text-[#767676]")} />
+            <item.icon className={cn("mr-2 size-[15px]", isActive ? "text-[#58ff48] dark:text-black" : "text-[#767676] dark:text-gray-400")} />
             {item.name}
           </Link>
         );

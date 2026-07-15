@@ -96,8 +96,9 @@ export default async function AdminPage() {
               items={bookingItems}
             />
           </div>
-          
-          <TasksList />
+          {session.user.organizationId ? (
+            <TasksList organizationId={session.user.organizationId} />
+          ) : null}
         </div>
 
         {/* Right Column (1/3) */}

@@ -52,11 +52,11 @@ function LoginFormInner() {
     const result = await res.json();
 
     if (!result.passwordSetAt) {
-      router.push("/set-password");
+      window.location.href = "/set-password";
       return;
     }
 
-    router.push(result.redirectUrl);
+    window.location.href = result.redirectUrl;
   }
 
   return (

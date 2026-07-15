@@ -1,0 +1,67 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: staye-backend
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Deploy to EC2 via AWS SSM
+        run: |
+          aws ssm send-command \
+            --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters commands=[ \
+              "echo 'Deploying latest staye-backend...'", \
+              "aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}", \
+              "docker pull ${{ steps.login-ecr.outputs.registry }}/staye-backend:latest", \
+              "docker stop staye-api || true", \
+              "docker rm staye-api || true", \
+              "echo 'Fetching secrets from SSM...'", \
+              "export DATABASE_URL=\$(aws ssm get-parameter --name /staye/prod/DATABASE_URL --with-decryption --query Parameter.Value --output text)", \
+              "export NEXTAUTH_SECRET=\$(aws ssm get-parameter --name /staye/prod/NEXTAUTH_SECRET --with-decryption --query Parameter.Value --output text)", \
+              "export NEXTAUTH_URL=\$(aws ssm get-parameter --name /staye/prod/NEXTAUTH_URL --with-decryption --query Parameter.Value --output text)", \
+              "export COGNITO_CLIENT_ID=\$(aws ssm get-parameter --name /staye/prod/COGNITO_CLIENT_ID --with-decryption --query Parameter.Value --output text)", \
+              "export COGNITO_CLIENT_SECRET=\$(aws ssm get-parameter --name /staye/prod/COGNITO_CLIENT_SECRET --with-decryption --query Parameter.Value --output text)", \
+              "export COGNITO_ISSUER=\$(aws ssm get-parameter --name /staye/prod/COGNITO_ISSUER --with-decryption --query Parameter.Value --output text)", \
+              "export S3_BUCKET_NAME=\$(aws ssm get-parameter --name /staye/prod/S3_BUCKET_NAME --with-decryption --query Parameter.Value --output text)", \
+              "echo 'Running Docker container with CloudWatch logs...'", \
+              "docker run -d --name staye-api -p 80:3000 --restart unless-stopped \
+                --log-driver=awslogs \
+                --log-opt awslogs-region=ap-south-1 \
+                --log-opt awslogs-group=/hostel/prod/app \
+                --log-opt awslogs-create-group=true \
+                -e DATABASE_URL=\$DATABASE_URL \
+                -e NEXTAUTH_SECRET=\$NEXTAUTH_SECRET \
+                -e NEXTAUTH_URL=\$NEXTAUTH_URL \
+                -e COGNITO_CLIENT_ID=\$COGNITO_CLIENT_ID \
+                -e COGNITO_CLIENT_SECRET=\$COGNITO_CLIENT_SECRET \
+                -e COGNITO_ISSUER=\$COGNITO_ISSUER \
+                -e AWS_S3_BUCKET_NAME=\$S3_BUCKET_NAME \
+                ${{ steps.login-ecr.outputs.registry }}/staye-backend:latest" \
+            ]

@@ -1,0 +1,12 @@
+sequenceDiagram
+    participant User
+    participant Next.js (Client)
+    participant Cognito (AWS)
+    participant Next.js (Server/Middleware)
+    
+    User->>Next.js (Client): Enters Email & Password
+    Next.js (Client)->>Cognito (AWS): Authenticate User
+    Cognito (AWS)-->>Next.js (Client): Returns JWT Tokens (Id, Access, Refresh)
+    Next.js (Client)->>Next.js (Server/Middleware): Sets HttpOnly Secure Cookie
+    Next.js (Server/Middleware)-->>Next.js (Server/Middleware): Validates JWT Signature & Expiry
+    Next.js (Server/Middleware)-->>Next.js (Client): Grants access to protected routes

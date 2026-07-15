@@ -9,15 +9,16 @@ interface StatCardProps {
   iconUrl?: string;
   trend: string;
   trendUp?: boolean;
+  iconBgClass?: string;
 }
 
-export function StatCard({ title, value, subtitle, icon: Icon, iconUrl, trend, trendUp }: StatCardProps) {
+export function StatCard({ title, value, subtitle, icon: Icon, iconUrl, trend, trendUp, iconBgClass }: StatCardProps) {
   return (
     <div className="rounded-[7px] border border-[#dedede] bg-white dark:bg-zinc-900 flex flex-col justify-between p-5 gap-5">
       {/* Top row: title + icon */}
       <div className="flex justify-between items-start">
         <h3 className="text-[15px] font-semibold text-black dark:text-white leading-snug">{title}</h3>
-        <div className="size-12 rounded-[6px] bg-[#5c5c5c] flex items-center justify-center shrink-0">
+        <div className={`size-12 rounded-[6px] flex items-center justify-center shrink-0 ${iconBgClass || "bg-[#5c5c5c]"}`}>
           {iconUrl ? (
             <Image src={iconUrl} alt={title} width={24} height={24} className="size-6 object-contain" />
           ) : Icon ? (

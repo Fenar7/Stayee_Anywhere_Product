@@ -56,7 +56,7 @@ export async function POST(
           // It's an orphaned user. Let's find them by phone and just update their password.
           const { data: listData } = await supabase.auth.admin.listUsers();
           const orphanedUser = listData?.users?.find(
-            (u) => u.phone === user.phone || u.phone === user.phone.replace(/^\+/, "")
+            (u: any) => u.phone === user.phone || u.phone === user.phone.replace(/^\+/, "")
           );
 
           if (orphanedUser) {

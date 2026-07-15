@@ -1,5 +1,7 @@
 import { Bell, Plus } from "lucide-react";
 import { UserRole } from "@prisma/client";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
 import { ActionAlertsClient } from "@/components/dashboard/ActionAlertsClient";
 import { getWardenHostelStats } from "@/services/hostel/dashboard.service";
 
@@ -9,6 +11,7 @@ import { StatusListCard, StatusItem } from "./dashboard/StatusListCard";
 import { ActivityFeed } from "./dashboard/ActivityFeed";
 import { TasksList } from "./dashboard/TasksList";
 import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
+import { NotificationBellClient } from "@/components/notifications/NotificationBellClient";
 
 export const dynamic = "force-dynamic";
 
@@ -48,17 +51,17 @@ export default async function HostelDashboardView({
   const organizationId = hostel?.organizationId;
 
   const occupancyItems: StatusItem[] = [
-    { id: "1", label: "Bedspaces Available", value: stats.availableBeds, iconUrl: "/icons/available-stat-icon.png" },
-    { id: "2", label: "Bedspaces on Hold", value: 9, iconUrl: "/icons/on-hold-stat-icon.png" },
-    { id: "3", label: "Bedspaces Reserved", value: 65, iconUrl: "/icons/reserved-stat-icon.png" },
-    { id: "4", label: "Bedspaces Occupied", value: stats.occupiedBeds, iconUrl: "/icons/occupied-stat-icon.png" },
-    { id: "5", label: "BedspacesBlocked", value: 3, iconUrl: "/icons/blocked-stat-icon.png" },
+    { id: "1", label: "Bedspaces Available", value: stats.availableBeds, iconUrl: "/icons/available-stat-icon.png", href: `${baseRoute}/occupancy` },
+    { id: "2", label: "Bedspaces on Hold", value: stats.bedsOnHold, iconUrl: "/icons/on-hold-stat-icon.png", href: `${baseRoute}/occupancy` },
+    { id: "3", label: "Bedspaces Reserved", value: stats.bedsReserved, iconUrl: "/icons/reserved-stat-icon.png", href: `${baseRoute}/occupancy` },
+    { id: "4", label: "Bedspaces Occupied", value: stats.occupiedBeds, iconUrl: "/icons/occupied-stat-icon.png", href: `${baseRoute}/occupancy` },
+    { id: "5", label: "BedspacesBlocked", value: stats.bedsBlocked, iconUrl: "/icons/blocked-stat-icon.png", href: `${baseRoute}/occupancy` },
   ];
 
   const bookingItems: StatusItem[] = [
-    { id: "1", label: "Onboarding Started", value: 32, iconUrl: "/icons/onboarding-started-icon.png" },
-    { id: "2", label: "Submitted for Approval", value: 32, iconUrl: "/icons/submitted-for-approval-icon.png" },
-    { id: "3", label: "Payment Pending", value: 32, iconUrl: "/icons/payment-pending-icon.png" },
+    { id: "1", label: "Onboarding Started", value: stats.pendingOnboarding, iconUrl: "/icons/onboarding-started-icon.png", href: `${baseRoute}/onboards?tab=form` },
+    { id: "2", label: "Submitted for Approval", value: stats.submittedForApproval, iconUrl: "/icons/submitted-for-approval-icon.png", href: `${baseRoute}/onboards?tab=review` },
+    { id: "3", label: "Payment Pending", value: stats.pendingPayments, iconUrl: "/icons/payment-pending-icon.png", href: `${baseRoute}/onboards?tab=payment` },
   ];
 
   const dateStr = new Intl.DateTimeFormat('en-US', {
@@ -67,14 +70,12 @@ export default async function HostelDashboardView({
 
   const Actions = (
     <>
-      <button className="flex items-center justify-center size-10 premium-button-outline shrink-0">
-        <Bell className="size-5 text-black dark:text-white" />
-      </button>
-      <button className="flex items-center justify-center gap-2 premium-button-outline whitespace-nowrap">
+      <NotificationBellClient role={userRole === "MAIN_ADMIN" ? UserRole.MAIN_ADMIN : UserRole.WARDEN} baseRoute={baseRoute} />
+      <button className="flex items-center justify-center gap-2 h-10 px-5 rounded-[6px] border border-[#dedede] dark:border-white/10 bg-white dark:bg-[#1a1a1a] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-all font-semibold text-[15px] whitespace-nowrap">
         Manage Rent <Plus className="size-4 text-[#58ff48]" />
       </button>
-      <button className="flex items-center justify-center gap-2 premium-button whitespace-nowrap">
-        On Board a User <Plus className="size-4" />
+      <button className="flex items-center justify-center gap-2 h-10 px-5 rounded-[6px] bg-[#282828] dark:bg-[#58ff48] text-white dark:text-black hover:bg-black transition-all font-semibold text-[15px] whitespace-nowrap">
+        On Board a User <Plus className="size-4 text-[#58ff48] dark:text-black" />
       </button>
     </>
   );
@@ -142,7 +143,7 @@ export default async function HostelDashboardView({
               />
             </div>
             
-            <TasksList />
+            {userRole === "WARDEN" && <TasksList />}
           </div>
 
           {/* Right Column (1/3) */}

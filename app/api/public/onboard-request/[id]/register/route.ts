@@ -208,7 +208,7 @@ export async function POST(
         if (authError?.message?.toLowerCase().includes("already")) {
           const { data: existingUsers } = await supabase.auth.admin.listUsers();
           const orphanedUser = existingUsers?.users?.find(
-            (u) => u.phone === phone || u.phone === phone.replace(/^\+/, "")
+            (u: any) => u.phone === phone || u.email === data.email?.toLowerCase()
           );
           if (orphanedUser) {
             await supabase.auth.admin.deleteUser(orphanedUser.id);

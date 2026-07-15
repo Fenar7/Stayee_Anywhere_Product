@@ -37,6 +37,16 @@ export function getStartOfDayIST(date: Date): Date {
 }
 
 /**
+ * Returns a Date object set to 23:59:59.999 IST for the last day of the month.
+ */
+export function getEndOfMonthIST(date: Date): Date {
+  const { year, month } = getISTDateParts(date);
+  // Get the last day of the month by asking for day 0 of the next month
+  const lastDay = new Date(year, month, 0).getDate();
+  return new Date(`${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}T23:59:59.999+05:30`);
+}
+
+/**
  * Add exactly `days` number of days to a date.
  * Safe across month boundaries, leap years, and DST (though IST has no DST).
  */
@@ -98,4 +108,31 @@ export function calculateMonthlyNextDueDate(
   totalMonthsPaid: number
 ): Date {
   return addDays(joiningDate, totalMonthsPaid * 30);
+}
+
+/**
+ * Format a date string into a relative time like "Today", "Tomorrow", "Yesterday" or short date "Aug 15"
+ */
+export function formatRelativeTime(dateInput: string | Date): string {
+  const date = new Date(dateInput);
+  const now = new Date();
+  
+  // Clone to avoid mutating original dates if they are passed by reference
+  const d1 = new Date(date);
+  const d2 = new Date(now);
+  
+  d1.setHours(0, 0, 0, 0);
+  d2.setHours(0, 0, 0, 0);
+  
+  const diffDays = Math.round((d1.getTime() - d2.getTime()) / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Tomorrow";
+  if (diffDays === -1) return "Yesterday";
+  
+  if (diffDays > 1 && diffDays < 7) {
+    return date.toLocaleDateString("en-US", { weekday: "short" }); // e.g. Mon, Tue
+  }
+  
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" }); // e.g. Mar 3
 }

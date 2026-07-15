@@ -20,7 +20,8 @@ import {
   ChevronLeft,
   MessageSquare,
   ArrowRight,
-  Loader2
+  Loader2,
+  ClipboardList
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { notify } from "@/lib/toast";
@@ -37,6 +38,7 @@ interface NotificationItem {
   dismissedFromHome: boolean;
   createdAt: string;
   referenceId: string | null;
+  targetUrl: string | null;
 }
 
 interface NotificationsPanelProps {
@@ -180,15 +182,25 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
     if (t.includes("PAY")) return <CreditCard className="size-4" />;
     if (t.includes("ONBOARD")) return <FileText className="size-4" />;
     if (t.includes("TICKET")) return <MessageSquare className="size-4" />;
+    if (t.includes("TASK")) return <ClipboardList className="size-4" />;
     return <Bell className="size-4" />;
   };
 
   const getTicketLink = () => {
     if (!selectedNotification?.referenceId) return "#";
-    if (role === "TENANT") return `/tenant/tickets`; // Adjust based on actual routing
+    if (role === "TENANT") return `/tenant/tickets`;
     if (role === "WARDEN") return `/warden/tickets`;
     if (role === "MAIN_ADMIN") return `/admin/tickets`;
     return "#";
+  };
+
+  const getActionLabel = (type: string) => {
+    const t = type.toUpperCase();
+    if (t.includes("TASK")) return "View Task";
+    if (t.includes("PAY")) return "View Payment";
+    if (t.includes("ONBOARD")) return "View Application";
+    if (t.includes("FOOD")) return "View Food Orders";
+    return "View Details";
   };
 
   if (loading && notifications.length === 0) {
@@ -196,7 +208,7 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
   }
 
   return (
-    <div className={cn("w-full mx-auto", role === "TENANT" ? "max-w-2xl py-8 px-4 sm:px-6" : "p-4 sm:p-6 lg:p-8")}>
+    <div className={cn("w-full mx-auto", role === "TENANT" ? "max-w-2xl py-8 px-4 sm:px-6" : role === "WARDEN" ? "" : "p-4 sm:p-6 lg:p-8")}>
       
       {/* ── App-style Header for TENANT only ── */}
       {role === "TENANT" && (
@@ -226,8 +238,8 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
         </div>
       )}
 
-      {/* ── Admin/Warden Header ── */}
-      {role !== "TENANT" && (
+      {/* ── Admin Header ── */}
+      {role === "MAIN_ADMIN" && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-gray-900">Notifications</h1>
@@ -401,7 +413,7 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
                 Close
               </Button>
               <div className="flex items-center gap-2">
-                {selectedNotification.type === "TICKET" && selectedNotification.referenceId && (
+                {selectedNotification.type === "TICKET" && selectedNotification.referenceId ? (
                   <>
                     <Button 
                       variant="outline" 
@@ -422,12 +434,25 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
                       Add Note
                     </Button>
                   </>
-                )}
+                ) : selectedNotification.targetUrl ? (
+                  <Button 
+                    className="rounded-xl shadow-sm bg-gray-900 hover:bg-gray-800 text-white"
+                    onClick={() => {
+                      const url = selectedNotification.targetUrl;
+                      setSelectedNotification(null);
+                      if (url) router.push(url);
+                    }}
+                  >
+                    <ArrowRight className="size-4 mr-2" />
+                    {getActionLabel(selectedNotification.type)}
+                  </Button>
+                ) : null}
               </div>
             </div>
           </div>
         </div>
       )}
+
 
     </div>
   );
