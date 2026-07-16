@@ -1,16 +1,16 @@
 "use client";
-import { useSession, signOut } from "next-auth/react";
+import { getSession, signOut } from "next-auth/react";
 
 export function createClient(): any {
-  const { data: session } = useSession();
-
   return {
     auth: {
       getUser: async () => {
+        const session = await getSession();
         if (!session?.user) return { data: { user: null }, error: new Error("Unauthorized") };
         return { data: { user: { id: (session.user as any).id } }, error: null };
       },
       getSession: async () => {
+        const session = await getSession();
         if (!session) return { data: { session: null }, error: new Error("Unauthorized") };
         return { data: { session: { user: { id: (session.user as any).id } } }, error: null };
       },
