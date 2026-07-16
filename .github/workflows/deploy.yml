@@ -59,7 +59,13 @@ jobs:
                 "echo 'Running Database Migrations...'",
                 "docker run --rm -e DATABASE_URL=$DATABASE_URL ${{ steps.login-ecr.outputs.registry }}/staye-backend:latest npx prisma migrate deploy",
                 "echo 'Running Docker container with CloudWatch logs...'",
-                "docker run -d --name staye-api -p 80:3000 --restart unless-stopped --log-driver=awslogs --log-opt awslogs-region=ap-south-1 --log-opt awslogs-group=/hostel/prod/app --log-opt awslogs-create-group=true -e DATABASE_URL=$DATABASE_URL -e NEXTAUTH_SECRET=$NEXTAUTH_SECRET -e NEXTAUTH_URL=$NEXTAUTH_URL -e COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID -e COGNITO_CLIENT_SECRET=$COGNITO_CLIENT_SECRET -e COGNITO_ISSUER=$COGNITO_ISSUER -e AWS_S3_BUCKET_NAME=$S3_BUCKET_NAME ${{ steps.login-ecr.outputs.registry }}/staye-backend:latest"
+                "docker run -d --name staye-api -p 80:3000 --restart unless-stopped --log-driver=awslogs --log-opt awslogs-region=ap-south-1 --log-opt awslogs-group=/hostel/prod/app --log-opt awslogs-create-group=true -e DATABASE_URL=$DATABASE_URL -e NEXTAUTH_SECRET=$NEXTAUTH_SECRET -e NEXTAUTH_URL=$NEXTAUTH_URL -e COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID -e COGNITO_CLIENT_SECRET=$COGNITO_CLIENT_SECRET -e COGNITO_ISSUER=$COGNITO_ISSUER -e AWS_S3_BUCKET_NAME=$S3_BUCKET_NAME ${{ steps.login-ecr.outputs.registry }}/staye-backend:latest",
+                "echo 'Waiting 10s for container to stabilize...'",
+                "sleep 10",
+                "echo '--- Container Status ---'",
+                "docker ps -a | grep staye-api || echo 'WARNING: staye-api container not found'",
+                "echo '--- Container Logs (last 100 lines) ---'",
+                "docker logs staye-api --tail 100 2>&1 || echo 'Could not fetch logs'"
               ]
             }
           }
