@@ -19,9 +19,11 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# NEW: Copy Prisma schema and install CLI for production migrations
+# Copy Prisma schema, config, and install CLI for production migrations
+# prisma.config.ts is required by Prisma v7 CLI to find the database URL at runtime
 COPY --from=builder /app/prisma ./prisma
-RUN npm install prisma
+COPY --from=builder /app/prisma.config.ts ./
+RUN npm install prisma dotenv
 
 # Set production env
 ENV NODE_ENV=production
