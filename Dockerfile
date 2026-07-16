@@ -18,6 +18,11 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
+
+# NEW: Copy Prisma schema and install CLI for production migrations
+COPY --from=builder /app/prisma ./prisma
+RUN npm install prisma
+
 # Set production env
 ENV NODE_ENV=production
 ENV PORT=3000
