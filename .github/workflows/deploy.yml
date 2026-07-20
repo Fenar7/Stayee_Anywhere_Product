@@ -65,7 +65,7 @@ jobs:
                 "echo 'Waiting 10s for container to stabilize...'",
                 "sleep 10",
                 "echo '--- Container Status ---'",
-                "docker ps -a | grep staye-api || echo 'WARNING: staye-api container not found'",
+                "if ! docker ps | grep -q staye-api; then echo 'CONTAINER CRASHED:'; docker logs staye-api; exit 1; fi",
                 "echo '--- Container Logs (last 100 lines) ---'",
                 "docker logs staye-api --tail 100 2>&1 || echo 'Could not fetch logs'"
               ]
