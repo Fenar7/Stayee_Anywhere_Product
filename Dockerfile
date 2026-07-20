@@ -24,10 +24,17 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./
 COPY --from=builder /app/scripts ./scripts
-RUN npm install prisma dotenv
+
+# Safely copy Prisma and dotenv from the builder stage instead of running npm install
+# This prevents npm from overwriting the traced, generated @prisma/client
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/dotenv ./node_modules/dotenv
+COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 
 # Set production env
 ENV NODE_ENV=production
+ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 EXPOSE 3000
 CMD ["node", "server.js"]
