@@ -57,7 +57,7 @@ jobs:
                 "export COGNITO_ISSUER=$(aws ssm get-parameter --name /staye/prod/COGNITO_ISSUER --with-decryption --query Parameter.Value --output text)",
                 "export S3_BUCKET_NAME=$(aws ssm get-parameter --name /staye/prod/S3_BUCKET_NAME --with-decryption --query Parameter.Value --output text)",
                 "echo 'Running Database Migrations...'",
-                "docker run --rm -e DATABASE_URL=$DATABASE_URL ${{ steps.login-ecr.outputs.registry }}/staye-backend:latest node node_modules/prisma/build/index.js migrate deploy",
+                "docker run --rm -e DATABASE_URL=$DATABASE_URL ${{ steps.login-ecr.outputs.registry }}/staye-backend:latest prisma migrate deploy",
                 "echo 'Seeding initial data (skips if data already exists)...'",
                 "docker run --rm -e DATABASE_URL=$DATABASE_URL ${{ steps.login-ecr.outputs.registry }}/staye-backend:latest node scripts/seed-prod.mjs",
                 "echo 'Running Docker container with CloudWatch logs...'",

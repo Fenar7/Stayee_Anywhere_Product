@@ -25,11 +25,9 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./
 COPY --from=builder /app/scripts ./scripts
 
-# Safely copy Prisma and dotenv from the builder stage instead of running npm install
-# This prevents npm from overwriting the traced, generated @prisma/client
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/dotenv ./node_modules/dotenv
+# Install Prisma and pg globally for migrations and seeding without polluting Next.js standalone node_modules
+RUN npm install -g prisma pg
+ENV NODE_PATH="/usr/local/lib/node_modules"
 
 # Set production env
 ENV NODE_ENV=production
