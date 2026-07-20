@@ -18,7 +18,7 @@ async function seed() {
     console.log('Cleaning up existing data...');
     // Wipe everything in reverse dependency order to avoid Postgres FK violations
     const tables = [
-      'ActivityLog', 'FoodSettlementStatement', 'FoodWalletTopUp', 'FoodBillingCycle',
+      'ActivityLog', 'FoodSettlementStatement', 'ComplementaryFoodOrder', 'FoodWalletTopUp', 'FoodBillingCycle',
       'TicketComment', 'Ticket', 'ServiceRequest', 'Notification', 'TaskComment', 'Task',
       'StayStatusEvent', 'FoodOrder', 'Payment', 'RefundInvoice', 'Document', 'Stay',
       'OnboardingRequest', 'LeadNote', 'Lead', 'Bed', 'Room', 'Flat', 'Floor',
