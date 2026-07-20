@@ -16,8 +16,18 @@ async function seed() {
   const client = await pool.connect();
   try {
     console.log('Cleaning up existing data...');
-    // Wipe everything (cascades)
-    await client.query('DELETE FROM "Organization"');
+    // Wipe everything in reverse dependency order to avoid Postgres FK violations
+    const tables = [
+      'ActivityLog', 'FoodSettlementStatement', 'FoodWalletTopUp', 'FoodBillingCycle',
+      'TicketComment', 'Ticket', 'ServiceRequest', 'Notification', 'TaskComment', 'Task',
+      'StayStatusEvent', 'FoodOrder', 'Payment', 'RefundInvoice', 'Document', 'Stay',
+      'OnboardingRequest', 'LeadNote', 'Lead', 'Bed', 'Room', 'Flat', 'Floor',
+      'Warden', 'Tenant', 'HostelPaymentConfig', 'FoodPricing', 'Hostel', 'User',
+      'Location', 'Organization'
+    ];
+    for (const table of tables) {
+      await client.query(`DELETE FROM "${table}"`);
+    }
 
     console.log('No data found. Seeding production database with Cognito & Postgres...');
 
