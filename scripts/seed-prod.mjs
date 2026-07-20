@@ -5,7 +5,11 @@ import { randomUUID } from 'crypto';
 
 const { Pool } = pg;
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  // AWS RDS requires SSL; rejectUnauthorized:false accepts RDS self-signed certs
+  ssl: { rejectUnauthorized: false },
+});
 
 async function seed() {
   const client = await pool.connect();
