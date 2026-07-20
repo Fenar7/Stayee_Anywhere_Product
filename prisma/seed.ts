@@ -184,6 +184,7 @@ async function main() {
           }
         }
       },
+      include: { warden: true }
     });
 
     // Structure (2 Floors, 5 Rooms each, 2 beds per room -> 20 beds)
@@ -336,7 +337,7 @@ async function main() {
         await prisma.ticketComment.create({
           data: {
             ticketId: ticket.id,
-            userId: tenant.user!.id,
+            userId: tenant.userId!,
             message: 'It is very hot, please arrange a technician ASAP.',
           }
         });
