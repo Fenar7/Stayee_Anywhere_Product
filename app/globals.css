@@ -147,6 +147,6 @@ button:not(:disabled) {
 
 @layer components {
   .premium-card {
-    @apply relative overflow-hidden rounded-[8px] sm:rounded-[7px] border border-black/5 dark:border-white/10 bg-white dark:bg-[#111111] shadow-[0px_4px_12px_rgba(0,0,0,0.03)] dark:shadow-none;
+    @apply relative overflow-hidden rounded-[8px] sm:rounded-[7px] border border-[#dedede] dark:border-white/10 bg-white dark:bg-[#111111];
   }
 }
