@@ -142,8 +142,8 @@ export default function AdminTasksPage() {
   const overdueCount = data?.tasks.filter(t => t.status !== "COMPLETED" && t.status !== "CANCELLED" && new Date(t.deadline) < new Date()).length ?? 0;
 
   return (
-    <div className="min-h-screen bg-[#f9f9f9] dark:bg-[#080808] font-sans">
-      <div className="max-w-[1100px] mx-auto px-6 py-8 space-y-6">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#050505] p-6 lg:p-8 font-sans">
+      <div className="max-w-[1400px] mx-auto space-y-8">
 
         {/* ── Page Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

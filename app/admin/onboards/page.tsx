@@ -7,7 +7,7 @@ import { Loader2, ArrowRight, Check, Copy, Key } from "lucide-react";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { notify } from "@/lib/toast";
-import { PageHeader } from "@/components/shared/PageHeader";
+
 import { STAY_STATUS_LABELS, STAY_STATUS_COLORS } from "@/lib/labels";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -277,12 +277,15 @@ export default function AdminOnboardsPage() {
   const cancelled = onboards.filter((i) => i.status === "CANCELLED");
 
   return (
-    <div className="flex flex-col min-h-full">
-      <PageHeader
-        title="Portfolio Onboarding"
-        description="Monitor all onboarding applications, verifications, and active stays across all properties."
-      />
-      <div className="p-6">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#050505] p-6 lg:p-8 font-sans">
+      <div className="max-w-[1400px] mx-auto space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">Portfolio Onboarding</h1>
+            <p className="text-sm text-gray-500 mt-1">Monitor all onboarding applications, verifications, and active stays across all properties.</p>
+          </div>
+        </div>
+      <div>
         <Tabs defaultValue="all" className="w-full">
           <TabsList className="mb-6 overflow-x-auto flex-nowrap w-full justify-start h-auto p-1 bg-muted/50">
             <TabsTrigger value="all">All Stays ({onboards.length})</TabsTrigger>
