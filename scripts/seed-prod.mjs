@@ -15,6 +15,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function seed() {
   const client = await pool.connect();
   try {
+    const adminEmail = 'admin@nexthome.io';
+    const existingAdmin = await client.query(`SELECT id FROM "User" WHERE email = $1`, [adminEmail]);
+    if (existingAdmin.rows.length > 0) {
+      console.log('Database already contains data (Admin exists). Skipping production seed.');
+      return;
+    }
+
     console.log('Cleaning up existing data...');
     // Wipe everything in reverse dependency order to avoid Postgres FK violations
     const tables = [
@@ -112,7 +119,7 @@ async function seed() {
     const adminSub = await createCognitoUser(adminEmail, commonPassword);
     const adminId = randomUUID();
     await client.query(
-      `INSERT INTO "User" (id, "supabaseAuthId", phone, email, role, "passwordSetAt", "plainTextPassword", "createdAt", "updatedAt", "organizationId") VALUES ($1, $2, $3, $4, $5, NOW(), $6, NOW(), NOW(), $7)`,
+      `INSERT INTO "User" (id, "cognitoSub", phone, email, role, "passwordSetAt", "plainTextPassword", "createdAt", "updatedAt", "organizationId") VALUES ($1, $2, $3, $4, $5, NOW(), $6, NOW(), NOW(), $7)`,
       [adminId, adminSub, '9999999990', adminEmail, 'MAIN_ADMIN', commonPassword, orgId]
     );
 
@@ -164,7 +171,7 @@ async function seed() {
       const wardenId = randomUUID();
       
       await client.query(
-        `INSERT INTO "User" (id, "supabaseAuthId", phone, email, role, "passwordSetAt", "plainTextPassword", "createdAt", "updatedAt", "organizationId") VALUES ($1, $2, $3, $4, $5, NOW(), $6, NOW(), NOW(), $7)`,
+        `INSERT INTO "User" (id, "cognitoSub", phone, email, role, "passwordSetAt", "plainTextPassword", "createdAt", "updatedAt", "organizationId") VALUES ($1, $2, $3, $4, $5, NOW(), $6, NOW(), NOW(), $7)`,
         [wardenUserId, wardenSub, `888888888${h}`, wardenEmail, 'WARDEN', commonPassword, orgId]
       );
       await client.query(
@@ -214,7 +221,7 @@ async function seed() {
         
         const tUserId = randomUUID();
         await client.query(
-          `INSERT INTO "User" (id, "supabaseAuthId", phone, email, role, "passwordSetAt", "plainTextPassword", "createdAt", "updatedAt", "organizationId") VALUES ($1, $2, $3, $4, $5, NOW(), $6, NOW(), NOW(), $7)`,
+          `INSERT INTO "User" (id, "cognitoSub", phone, email, role, "passwordSetAt", "plainTextPassword", "createdAt", "updatedAt", "organizationId") VALUES ($1, $2, $3, $4, $5, NOW(), $6, NOW(), NOW(), $7)`,
           [tUserId, tSub, phone, tEmail, 'TENANT', commonPassword, orgId]
         );
 
