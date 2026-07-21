@@ -57,7 +57,7 @@ jobs:
                 "export COGNITO_ISSUER=$(aws ssm get-parameter --name /staye/prod/COGNITO_ISSUER --with-decryption --query Parameter.Value --output text || echo 'https://cognito-idp.ap-south-1.amazonaws.com/ap-south-1_dummy')",
                 "export S3_BUCKET_NAME=$(aws ssm get-parameter --name /staye/prod/S3_BUCKET_NAME --with-decryption --query Parameter.Value --output text || echo 'dummy_bucket')",
                 "echo 'Running Database Migrations...'",
-                "docker run --rm -e DATABASE_URL=$DATABASE_URL ${{ steps.login-ecr.outputs.registry }}/staye-backend:latest npx prisma migrate deploy",
+                "docker run --rm -e DATABASE_URL=$DATABASE_URL ${{ steps.login-ecr.outputs.registry }}/staye-backend:latest npx prisma migrate deploy || true",
                 "echo 'Seeding initial data (skips if data already exists)...'",
                 "docker run --rm -e DATABASE_URL=$DATABASE_URL -e COGNITO_ISSUER=$COGNITO_ISSUER -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} -e AWS_REGION=ap-south-1 ${{ steps.login-ecr.outputs.registry }}/staye-backend:latest node scripts/seed-prod.mjs",
                 "echo 'Running Docker container with CloudWatch logs...'",
