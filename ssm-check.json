@@ -1,0 +1,1 @@
+{"DocumentName": "AWS-RunShellScript", "InstanceIds": ["i-066e2193c831d8495"], "Parameters": {"commands": ["docker ps -a", "docker logs staye-api --tail 50"]}}

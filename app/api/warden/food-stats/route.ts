@@ -23,10 +23,67 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const dateStr = searchParams.get("date");
+    const startDateStr = searchParams.get("startDate");
+    const endDateStr = searchParams.get("endDate");
 
-    if (!dateStr) {
-      throw new ValidationError("date query parameter is required (YYYY-MM-DD)");
+    if (!dateStr && (!startDateStr || !endDateStr)) {
+      throw new ValidationError("date or both startDate and endDate query parameters are required (YYYY-MM-DD)");
     }
+
+    // Range mode logic
+    if (startDateStr && endDateStr) {
+      const startDate = new Date(`${startDateStr}T00:00:00.000+05:30`);
+      const endDate = new Date(`${endDateStr}T00:00:00.000+05:30`);
+      
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        throw new ValidationError("Invalid date format. Use YYYY-MM-DD");
+      }
+      
+      const activeStays = await prisma.stay.findMany({
+        where: {
+          hostelId,
+          status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
+        },
+        include: {
+          foodOrders: {
+            where: {
+              forDate: { gte: startDate, lte: endDate },
+            },
+            select: {
+              breakfast: true,
+              lunch: true,
+              dinner: true,
+            },
+          },
+        },
+      });
+
+      let breakfastCount = 0;
+      let lunchCount = 0;
+      let dinnerCount = 0;
+
+      activeStays.forEach((stay) => {
+        stay.foodOrders.forEach((order) => {
+          if (order.breakfast) breakfastCount++;
+          if (order.lunch) lunchCount++;
+          if (order.dinner) dinnerCount++;
+        });
+      });
+
+      return NextResponse.json({
+        startDate: startDateStr,
+        endDate: endDateStr,
+        hostelId,
+        summary: {
+          totalResidents: activeStays.length,
+          breakfastCount,
+          lunchCount,
+          dinnerCount,
+        },
+      });
+    }
+
+    // Single date logic
 
     // Parse the target date in IST
     const targetDate = new Date(`${dateStr}T00:00:00.000+05:30`);

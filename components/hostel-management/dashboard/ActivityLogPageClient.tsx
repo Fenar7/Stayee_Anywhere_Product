@@ -69,6 +69,14 @@ export function ActivityLogPageClient({ role, organizationId, hostelId: initialH
       if (isLoadMore && nextCursorRef.current) url.searchParams.set("cursor", nextCursorRef.current);
       if (isLoadMore && nextCursorIdRef.current) url.searchParams.set("cursorId", nextCursorIdRef.current);
 
+      if (role === "WARDEN" && !filterHostelId) {
+        setItems([]);
+        setLoading(false);
+        setFetchingMore(false);
+        setHasMore(false);
+        return;
+      }
+
       const res = await fetch(url.toString());
       if (res.ok) {
         const data = await res.json();

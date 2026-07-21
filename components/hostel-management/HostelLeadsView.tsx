@@ -64,9 +64,14 @@ export default function HostelLeadsView({ hostelId, hostelName, baseRoute }: { h
   const [detailLoading, setDetailLoading] = useState(false);
 
   const fetchLeads = useCallback(async () => {
+    if (!hostelId) {
+      setLoading(false);
+      setLeads([]);
+      return;
+    }
     try {
       setLoading(true);
-      const res = await fetch(`/api/warden/leads${hostelId ? `?hostelId=${hostelId}` : ""}`);
+      const res = await fetch(`/api/warden/leads?hostelId=${hostelId}`);
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Failed to fetch leads");
@@ -78,7 +83,7 @@ export default function HostelLeadsView({ hostelId, hostelName, baseRoute }: { h
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [hostelId]);
 
   useEffect(() => {
     fetchLeads();
@@ -253,6 +258,14 @@ export default function HostelLeadsView({ hostelId, hostelName, baseRoute }: { h
       <Plus className="mr-1.5 h-4 w-4" /> Log Enquiry
     </button>
   );
+  if (!hostelId) {
+    return (
+      <div className="space-y-4 p-8">
+        <h1 className="text-3xl font-bold tracking-tight">Hostel Leads</h1>
+        <p className="text-muted-foreground">No hostel selected.</p>
+      </div>
+    );
+  }
 
   return (
     <HostelWorkspaceLayout

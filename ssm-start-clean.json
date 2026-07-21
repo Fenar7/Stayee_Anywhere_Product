@@ -1,0 +1,22 @@
+{
+    "Parameters":  {
+                       "commands":  [
+                                        "#!/bin/bash",
+                                        "set -e",
+                                        "export DATABASE_URL=$(aws ssm get-parameter --name /staye/prod/DATABASE_URL --with-decryption --query Parameter.Value --output text)",
+                                        "export NEXTAUTH_SECRET=$(aws ssm get-parameter --name /staye/prod/NEXTAUTH_SECRET --with-decryption --query Parameter.Value --output text)",
+                                        "export NEXTAUTH_URL=$(aws ssm get-parameter --name /staye/prod/NEXTAUTH_URL --with-decryption --query Parameter.Value --output text)",
+                                        "export COGNITO_CLIENT_ID=$(aws ssm get-parameter --name /staye/prod/COGNITO_CLIENT_ID --with-decryption --query Parameter.Value --output text)",
+                                        "export COGNITO_CLIENT_SECRET=$(aws ssm get-parameter --name /staye/prod/COGNITO_CLIENT_SECRET --with-decryption --query Parameter.Value --output text)",
+                                        "export COGNITO_ISSUER=$(aws ssm get-parameter --name /staye/prod/COGNITO_ISSUER --with-decryption --query Parameter.Value --output text)",
+                                        "export S3_BUCKET_NAME=$(aws ssm get-parameter --name /staye/prod/S3_BUCKET_NAME --with-decryption --query Parameter.Value --output text)",
+                                        "docker stop staye-api || true",
+                                        "docker rm staye-api || true",
+                                        "docker run -d --name staye-api -p 80:3000 --restart unless-stopped --log-driver=awslogs --log-opt awslogs-region=ap-south-1 --log-opt awslogs-group=/hostel/prod/app --log-opt awslogs-create-group=true -e DATABASE_URL=$DATABASE_URL -e NEXTAUTH_SECRET=$NEXTAUTH_SECRET -e NEXTAUTH_URL=$NEXTAUTH_URL -e COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID -e COGNITO_CLIENT_SECRET=$COGNITO_CLIENT_SECRET -e COGNITO_ISSUER=$COGNITO_ISSUER -e AWS_S3_BUCKET_NAME=$S3_BUCKET_NAME 684480407183.dkr.ecr.ap-south-1.amazonaws.com/staye-backend:latest"
+                                    ]
+                   },
+    "DocumentName":  "AWS-RunShellScript",
+    "InstanceIds":  [
+                        "i-066e2193c831d8495"
+                    ]
+}

@@ -89,13 +89,17 @@ export default function HostelOccupancyView({ hostelId, hostelName, baseRoute }:
   const router = useRouter();
 
   function loadData() {
+    if (!hostelId) {
+      setLoading(false);
+      setData(null);
+      return;
+    }
+    
     setLoading(true);
-    fetch(`/api/warden/stays/natural-checkout${hostelId ? `?hostelId=${hostelId}` : ""}`, { method: "POST" })
+    fetch(`/api/warden/stays/natural-checkout?hostelId=${hostelId}`, { method: "POST" })
       .catch(() => {})
       .then(() => {
-        const url = hostelId
-          ? `/api/hostel-structure/mine?hostelId=${hostelId}`
-          : "/api/hostel-structure/mine";
+        const url = `/api/hostel-structure/mine?hostelId=${hostelId}`;
         return fetch(url, { cache: "no-store" });
       })
       .then((res) => {

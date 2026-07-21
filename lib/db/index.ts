@@ -18,11 +18,23 @@ export const prisma = new Proxy({} as PrismaClient, {
             log: ["error"],
           });
         } else {
-          const isLocal = connectionString.includes("localhost") || connectionString.includes("127.0.0.1");
+          // IMPORTANT: When using the @prisma/adapter-pg driver adapter, SSL MUST be configured
+          // via the Node.js `ssl` Pool option — NOT via `sslmode=` in the connection URL string.
+          // Having both causes a conflict where sslmode=require overrides rejectUnauthorized:false,
+          // resulting in a P1011 "self-signed certificate" error on tunneled AWS RDS connections.
+          
+          // Strip any sslmode param from the URL to prevent conflicts with the Node.js ssl option below
+          const cleanConnectionString = connectionString.replace(/[?&]sslmode=[^&]*/g, "");
+          
+          // Detect if we're talking to a remote host (even if via a localhost tunnel to AWS RDS)
+          // We use a special env flag so we can explicitly say "this localhost IS a remote tunnel"
+          const isTunnelToRemote = process.env.DB_IS_TUNNEL === "true";
+          const isLocalDev = (connectionString.includes("localhost") || connectionString.includes("127.0.0.1")) && !isTunnelToRemote;
+          
           const pool = new Pool({
-            connectionString,
-            // AWS RDS requires SSL; local Supabase does not
-            ssl: isLocal ? false : { rejectUnauthorized: false },
+            connectionString: cleanConnectionString,
+            // Use SSL for all remote connections (including SSM tunnels to AWS RDS)
+            ssl: isLocalDev ? false : { rejectUnauthorized: false },
           });
           const adapter = new PrismaPg(pool);
           prismaInstance = new PrismaClient({

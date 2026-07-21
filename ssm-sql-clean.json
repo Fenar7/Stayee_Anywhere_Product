@@ -1,0 +1,12 @@
+{
+    "Parameters":  {
+                       "commands":  [
+                                        "export DATABASE_URL=$(aws ssm get-parameter --name /staye/prod/DATABASE_URL --with-decryption --query Parameter.Value --output text)",
+                                        "docker run --rm -e DATABASE_URL=$DATABASE_URL 684480407183.dkr.ecr.ap-south-1.amazonaws.com/staye-backend:latest /bin/sh -c \"echo \\\"UPDATE \"User\" SET \"plainTextPassword\" = \u0027Password@123\u0027 WHERE \"plainTextPassword\" IS NULL;\\\" | npx prisma db execute --stdin\""
+                                    ]
+                   },
+    "DocumentName":  "AWS-RunShellScript",
+    "InstanceIds":  [
+                        "i-066e2193c831d8495"
+                    ]
+}

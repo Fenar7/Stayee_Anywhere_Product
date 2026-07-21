@@ -4,8 +4,14 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   ChevronLeft, ChevronRight, Download, Bell,
-  Calendar, Search, Plus, Maximize2,
+  Calendar, Search, Plus, Maximize2, ChevronDown,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -105,6 +111,15 @@ export default function HostelFoodView({
   hostelName?: string;
   baseRoute: string;
 }) {
+  type PeriodOption = "Today" | "Specific Date" | "This Week" | "This Month";
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>("Today");
+  const [specificDate, setSpecificDate] = useState<string>(() => {
+    const today = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    return today.toISOString().split("T")[0];
+  });
+  const [periodStats, setPeriodStats] = useState<TodaySummary | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+
   const [weekStart, setWeekStart] = useState<string>(() => getMondayOfWeek(new Date()));
   const [weekData, setWeekData] = useState<WeekData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -113,10 +128,14 @@ export default function HostelFoodView({
 
   // ── Fetch weekly data ──────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
+    if (!hostelId) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const params = new URLSearchParams({ weekStart });
-      if (hostelId) params.append("hostelId", hostelId);
+      params.append("hostelId", hostelId);
       const res = await fetch(`/api/warden/food-week?${params}`, {
         cache: "no-store",
       });
@@ -133,6 +152,49 @@ export default function HostelFoodView({
   }, [weekStart, hostelId]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // ── Fetch period stats ─────────────────────────────────────────────────────────
+  const fetchPeriodStats = useCallback(async () => {
+    if (!hostelId) return;
+    try {
+      setLoadingStats(true);
+      const params = new URLSearchParams({ hostelId });
+      
+      const todayDate = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+      if (selectedPeriod === "Today") {
+        params.append("date", todayDate);
+      } else if (selectedPeriod === "Specific Date") {
+        params.append("date", specificDate);
+      } else if (selectedPeriod === "This Week") {
+        const monday = getMondayOfWeek(new Date());
+        const sunday = shiftWeek(monday, 1);
+        const endOfWeek = new Date(new Date(sunday).getTime() - 24*60*60*1000).toISOString().split("T")[0];
+        params.append("startDate", monday);
+        params.append("endDate", endOfWeek);
+      } else if (selectedPeriod === "This Month") {
+        const d = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+        const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split("T")[0];
+        const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split("T")[0];
+        params.append("startDate", startOfMonth);
+        params.append("endDate", endOfMonth);
+      }
+
+      const res = await fetch(`/api/warden/food-stats?${params}`, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setPeriodStats(data.summary);
+      }
+    } catch (e: unknown) {
+      console.error("Failed to fetch period stats:", e);
+    } finally {
+      setLoadingStats(false);
+    }
+  }, [hostelId, selectedPeriod, specificDate]);
+
+  useEffect(() => {
+    fetchPeriodStats();
+  }, [fetchPeriodStats]);
 
   // ── Toggle a meal (optimistic) ─────────────────────────────────────────────────
   const handleToggle = async (
@@ -205,6 +267,7 @@ export default function HostelFoodView({
       await loadData(); // revert on error
     } finally {
       setToggling(null);
+      fetchPeriodStats(); // keep period stats in sync
     }
   };
 
@@ -220,15 +283,14 @@ export default function HostelFoodView({
   };
 
   // ── Derived state ──────────────────────────────────────────────────────────────
-  const s = weekData?.todaySummary;
   // If mock data is present, mock the eligible count for the cards to look like Figma
   const hasMockData = weekData?.weekDays[0]?.residents[0]?.stayId.startsWith("mock-");
   
-  const eligible = hasMockData ? 100 : Math.max(1, s?.eligibleResidents ?? 1);
-  const mockB = hasMockData ? 23 : (s?.breakfastCount ?? 0);
-  const mockL = hasMockData ? 78 : (s?.lunchCount ?? 0);
-  const mockD = hasMockData ? 6 : (s?.dinnerCount ?? 0);
-  const mockT = hasMockData ? 5 : (s?.teaCount ?? 0);
+  const eligible = hasMockData ? 100 : Math.max(1, periodStats?.totalResidents ?? 1);
+  const mockB = hasMockData ? 23 : (periodStats?.breakfastCount ?? 0);
+  const mockL = hasMockData ? 78 : (periodStats?.lunchCount ?? 0);
+  const mockD = hasMockData ? 6 : (periodStats?.dinnerCount ?? 0);
+  const mockT = hasMockData ? 5 : (periodStats?.teaCount ?? 0);
 
   const STAT_CARDS = [
     { label: "Breakfast", count: mockB, pct: hasMockData ? 23 : Math.round((mockB / eligible) * 100), trend: "up" },
@@ -268,6 +330,14 @@ export default function HostelFoodView({
       </Link>
     </>
   );
+  if (!hostelId) {
+    return (
+      <div className="space-y-4 p-8">
+        <h1 className="text-3xl font-bold tracking-tight">Food Dashboard</h1>
+        <p className="text-muted-foreground">No hostel selected.</p>
+      </div>
+    );
+  }
 
   return (
     <HostelWorkspaceLayout
@@ -280,14 +350,54 @@ export default function HostelFoodView({
     >
       <div className="w-full">
 
-      {/* ── Meal Counts (Today) ─────────────────────────────────────────────────── */}
+      {/* ── Meal Counts ─────────────────────────────────────────────────────────── */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[18px] font-semibold text-[#1a1a1a]">Meal Counts (Today)</h2>
+          <h2 className="text-[18px] font-semibold text-[#1a1a1a]">
+            Meal Counts {selectedPeriod === "Specific Date" ? `(${specificDate})` : `(${selectedPeriod})`}
+          </h2>
           <div className="flex items-center gap-3">
-            <button className="h-[36px] px-3.5 rounded-md border border-[#e5e7eb] bg-white text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2">
-              Today <Calendar className="size-[15px] text-[#4b5563]" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="h-[36px] px-3.5 rounded-md border border-[#e5e7eb] bg-white text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2 outline-none">
+                {selectedPeriod} <ChevronDown className="size-[15px] text-[#4b5563]" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[160px] bg-white border border-[#e5e7eb] shadow-sm rounded-md p-1 z-50">
+                <DropdownMenuItem 
+                  onClick={() => setSelectedPeriod("Today")}
+                  className="px-3 py-1.5 text-[13px] text-[#1a1a1a] cursor-pointer hover:bg-[#f3f4f6] rounded-sm outline-none"
+                >
+                  Today
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setSelectedPeriod("This Week")}
+                  className="px-3 py-1.5 text-[13px] text-[#1a1a1a] cursor-pointer hover:bg-[#f3f4f6] rounded-sm outline-none"
+                >
+                  This Week
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setSelectedPeriod("This Month")}
+                  className="px-3 py-1.5 text-[13px] text-[#1a1a1a] cursor-pointer hover:bg-[#f3f4f6] rounded-sm outline-none"
+                >
+                  This Month
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setSelectedPeriod("Specific Date")}
+                  className="px-3 py-1.5 text-[13px] text-[#1a1a1a] cursor-pointer hover:bg-[#f3f4f6] rounded-sm outline-none"
+                >
+                  Specific Date
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {selectedPeriod === "Specific Date" && (
+              <input 
+                type="date" 
+                value={specificDate}
+                onChange={(e) => setSpecificDate(e.target.value)}
+                className="h-[36px] px-3 rounded-md border border-[#e5e7eb] bg-white text-[13px] text-[#1a1a1a] outline-none focus:border-[#4b5563]"
+              />
+            )}
+            
             <button
               onClick={() => notify.info("Export coming soon!")}
               className="h-[36px] px-3.5 rounded-md border border-[#e5e7eb] bg-white text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2"
@@ -299,7 +409,7 @@ export default function HostelFoodView({
 
         {/* Stat Cards — 4 in a row */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          {loading
+          {loadingStats || loading
             ? Array(4).fill(0).map((_, i) => (
                 <div
                   key={i}

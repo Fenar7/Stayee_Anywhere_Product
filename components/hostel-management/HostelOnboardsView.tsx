@@ -82,8 +82,13 @@ export default function HostelOnboardsView({
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   const fetchOnboards = async () => {
+    if (!hostelId) {
+      setLoading(false);
+      setOnboards([]);
+      return;
+    }
     try {
-      const url = hostelId ? `/api/warden/onboards?hostelId=${hostelId}` : "/api/warden/onboards";
+      const url = `/api/warden/onboards?hostelId=${hostelId}`;
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error("Failed to fetch onboarding list");
@@ -151,6 +156,15 @@ export default function HostelOnboardsView({
           <div className="h-4 w-96 bg-muted rounded animate-pulse" />
         </div>
         <TableSkeleton />
+      </div>
+    );
+  }
+
+  if (!hostelId) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        <h1 className="text-2xl font-bold tracking-tight">Onboarding</h1>
+        <p className="text-muted-foreground">No hostel selected.</p>
       </div>
     );
   }

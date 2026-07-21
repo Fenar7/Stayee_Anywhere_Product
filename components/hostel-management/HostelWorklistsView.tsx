@@ -114,9 +114,17 @@ export default function HostelWorklistsView({
   const [serviceRequestsPending, setServiceRequestsPending] = useState<ServiceRequestPending[]>([]);
 
   const fetchData = useCallback(async () => {
+    if (!hostelId) {
+      setLoading(false);
+      setRentDueStays([]);
+      setPaymentsPending([]);
+      setApplicationsPending([]);
+      setServiceRequestsPending([]);
+      return;
+    }
     try {
       setLoading(true);
-      const query = hostelId ? `?hostelId=${hostelId}` : "";
+      const query = `?hostelId=${hostelId}`;
       const res = await fetch(`/api/warden/worklists${query}`);
       if (!res.ok) {
         const data = await res.json();
@@ -172,6 +180,15 @@ export default function HostelWorklistsView({
 
   if (loading) {
     return <DashboardSkeleton />;
+  }
+
+  if (!hostelId) {
+    return (
+      <div className="space-y-4 p-8">
+        <h1 className="text-3xl font-bold tracking-tight">Worklists</h1>
+        <p className="text-muted-foreground">No hostel selected.</p>
+      </div>
+    );
   }
 
   const Actions = (
