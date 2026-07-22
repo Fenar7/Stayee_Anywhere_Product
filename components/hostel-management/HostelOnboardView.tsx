@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Search, Building2, BedDouble, CheckCircle2, Layers, Phone, CreditCard, Sparkles, ArrowLeft } from "lucide-react";
+import { Search, Building2, BedDouble, CheckCircle2, Layers, Phone, CreditCard, Sparkles, ArrowLeft, MessageSquare, Copy, Check, ExternalLink, Lock, Link2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -1251,67 +1251,118 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
         </div>
       </div>
 
-      {/* ── WHATSAPP AUTO-DISPATCH MODAL ── */}
+      {/* ── HANDCRAFTED APPLE & LINEAR WHATSAPP DISPATCH STUDIO ── */}
       {showWhatsAppModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 space-y-5 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-3.5">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-full bg-[#25D366]/10 flex items-center justify-center text-[#25D366] font-bold text-xs border border-[#25D366]/20">
-                  WA
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-lg rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 space-y-6 animate-in zoom-in-95 duration-150">
+            
+            {/* Header: Precision Surface & Recipient Badge */}
+            <div className="flex items-start justify-between pb-4 border-b border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center">
+                  <MessageSquare className="h-5 w-5" />
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                    Dispatch via WhatsApp
+                <div className="space-y-0.5">
+                  <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                    WhatsApp Onboarding Dispatch
                   </h3>
-                  <p className="text-[11px] text-zinc-500 font-medium">Recipient: {phone}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-zinc-500 font-medium">Recipient:</span>
+                    <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-zinc-800/80">
+                      📱 {phone}
+                    </span>
+                  </div>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowWhatsAppModal(false)}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-xs font-bold px-2 py-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
+                className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
               >
-                ✕
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                Formatted WhatsApp Message
-              </label>
-              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/70 p-3.5 text-xs font-mono text-zinc-800 dark:text-zinc-200 max-h-40 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+            {/* Split Credential Copy Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Registration Link Tile */}
+              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    <Link2 className="h-3.5 w-3.5 text-zinc-500" />
+                    <span>Portal Link</span>
+                  </div>
+                  <button
+                    onClick={handleCopyLink}
+                    className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1 transition-colors"
+                  >
+                    {linkCopied ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
+                        <Check className="h-3 w-3" /> Copied
+                      </span>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3" /> Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="font-mono text-[11px] text-zinc-500 truncate bg-white dark:bg-zinc-950 p-2 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 select-all">
+                  {submittedLink || `http://localhost:3000/onboarding?id=...`}
+                </div>
+              </div>
+
+              {/* Access Password Tile */}
+              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    <Lock className="h-3.5 w-3.5 text-zinc-500" />
+                    <span>Access Key</span>
+                  </div>
+                  {submittedPassword && (
+                    <button
+                      onClick={handleCopyPassword}
+                      className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1 transition-colors"
+                    >
+                      {passwordCopied ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
+                          <Check className="h-3 w-3" /> Copied
+                        </span>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3" /> Copy
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+                <div className="font-mono text-xs font-semibold tracking-wider text-zinc-900 dark:text-zinc-100 bg-white dark:bg-zinc-950 p-2 rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 select-all flex items-center justify-between">
+                  <span>{submittedPassword || "••••••••"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Formatted Message Drawer */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-medium text-zinc-500">Dispatch Message Content</span>
+              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-900 text-zinc-100 p-3.5 text-xs font-mono max-h-32 overflow-y-auto whitespace-pre-wrap leading-relaxed">
                 {onboardingLinkWithPassword(submittedLink, submittedPassword)}
               </div>
             </div>
 
-            <div className="space-y-2.5 pt-1">
+            {/* Action Bar */}
+            <div className="space-y-2 pt-1 border-t border-zinc-200 dark:border-zinc-800">
               <Button
                 onClick={() => {
                   const message = onboardingLinkWithPassword(submittedLink, submittedPassword);
                   window.open(buildWaMeLink(phone, message), "_blank");
                 }}
-                className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white h-11 rounded-xl font-semibold text-sm transition-all border-0 shadow-xs flex items-center justify-center gap-2"
+                className="w-full bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 h-11 rounded-xl font-semibold text-sm transition-all border-0 shadow-xs flex items-center justify-center gap-2"
               >
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span>Send via WhatsApp</span>
+                <ExternalLink className="h-4 w-4 ml-1 opacity-70" />
               </Button>
-
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleCopyLink}
-                  className="flex-1 bg-zinc-100 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 h-10 rounded-xl font-semibold text-xs border-0"
-                >
-                  {linkCopied ? "✓ Link Copied" : "Copy Link"}
-                </Button>
-                {submittedPassword && (
-                  <Button
-                    onClick={handleCopyPassword}
-                    className="flex-1 bg-zinc-100 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 h-10 rounded-xl font-semibold text-xs border-0"
-                  >
-                    {passwordCopied ? "✓ Password Copied" : "Copy Password"}
-                  </Button>
-                )}
-              </div>
 
               <Button
                 onClick={() => {
@@ -1320,9 +1371,10 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                 }}
                 className="w-full bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 h-9 rounded-xl font-medium text-xs border-0 transition-colors"
               >
-                Close & Return to Dashboard
+                Done & Return to Dashboard
               </Button>
             </div>
+
           </div>
         </div>
       )}
