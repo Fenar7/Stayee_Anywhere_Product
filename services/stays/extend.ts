@@ -60,13 +60,18 @@ export async function extendStay(params: ExtendStayParams) {
 
   const totalAdditionalPaise = Math.max(0, additionalRentPaise + additionalFoodChargesPaise - discountAddedPaise);
 
+  const extensionStart = stay.endDate ?? new Date();
+
   const overlappingStay = await prisma.stay.findFirst({
     where: {
       bedId: stay.bedId,
       id: { not: stay.id },
       status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
       joiningDate: { lt: newEndDate },
-      ...(stay.endDate ? { endDate: { gt: stay.endDate } } : {}),
+      OR: [
+        { endDate: null },
+        { endDate: { gt: extensionStart } },
+      ],
     },
   });
 

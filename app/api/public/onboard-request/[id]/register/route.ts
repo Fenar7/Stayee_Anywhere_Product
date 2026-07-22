@@ -287,7 +287,7 @@ export async function POST(
             phone,
             email: data.email?.toLowerCase() || null,
             passwordSetAt: new Date(),
-            plainTextPassword: data.password, // Keep for backward compatibility
+            plainTextPassword: null,
             hashedPassword: hashedPassword,
             role: UserRole.TENANT,
             organizationId: onboardingRequest.hostel.organizationId,

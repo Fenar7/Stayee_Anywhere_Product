@@ -29,15 +29,28 @@ export interface OnboardInitiateInput {
 }
 
 export async function checkPhoneAvailability(phone: string): Promise<'new' | 'pending' | 'existing_tenant'> {
+  let normalizedPhone = phone;
+  try {
+    normalizedPhone = normalizePhoneNumber(phone);
+  } catch {
+    // Keep raw phone if normalization fails
+  }
+
   // 1. phone already linked to a registered user account
-  const existingUser = await prisma.user.findUnique({ where: { phone } });
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      OR: [{ phone }, { phone: normalizedPhone }],
+    },
+  });
   
   // 2. phone already has an active residential stay
   const activeStayForPhone = await prisma.stay.findFirst({
     where: {
       status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
       tenant: {
-        user: { phone },
+        user: {
+          OR: [{ phone }, { phone: normalizedPhone }],
+        },
       },
     },
   });
@@ -48,7 +61,10 @@ export async function checkPhoneAvailability(phone: string): Promise<'new' | 'pe
 
   // 3. a PENDING onboarding request already exists for this phone
   const existingPendingRequest = await prisma.onboardingRequest.findFirst({
-    where: { phone, status: OnboardingRequestStatus.PENDING },
+    where: {
+      status: OnboardingRequestStatus.PENDING,
+      OR: [{ phone }, { phone: normalizedPhone }],
+    },
   });
 
   if (existingPendingRequest) {

@@ -24,26 +24,27 @@ export async function checkBedConflict(
 }
 
 export async function getAvailableBeds(hostelId: string, joiningDate: Date, endDate?: Date | null) {
-  const occupiedStays = await prisma.stay.findMany({
-    where: {
-      hostelId,
-      status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED, StayStatus.ONBOARDING_PENDING] },
-      ...(endDate ? { joiningDate: { lte: endDate } } : {}),
-      OR: [
-        { endDate: null },
-        { endDate: { gte: joiningDate } },
-      ],
-    },
-    select: { bedId: true },
-  });
-
-  const pendingOnboardRequests = await prisma.onboardingRequest.findMany({
-    where: {
-      hostelId,
-      status: "PENDING",
-    },
-    select: { bedId: true },
-  });
+  const [occupiedStays, pendingOnboardRequests] = await Promise.all([
+    prisma.stay.findMany({
+      where: {
+        hostelId,
+        status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED, StayStatus.ONBOARDING_PENDING] },
+        ...(endDate ? { joiningDate: { lte: endDate } } : {}),
+        OR: [
+          { endDate: null },
+          { endDate: { gte: joiningDate } },
+        ],
+      },
+      select: { bedId: true },
+    }),
+    prisma.onboardingRequest.findMany({
+      where: {
+        hostelId,
+        status: "PENDING",
+      },
+      select: { bedId: true },
+    }),
+  ]);
 
   const occupiedBedIdSet = new Set([
     ...occupiedStays.map((s) => s.bedId),
