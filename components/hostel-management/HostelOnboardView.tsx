@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Search, Building2, BedDouble, CheckCircle2, Layers } from "lucide-react";
+import { Search, Building2, BedDouble, CheckCircle2, Layers, Phone, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -294,16 +294,29 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
   const showHostelPicker = isAdmin && !hostelSelected && !hostelsLoading;
   const totalSteps = showHostelPicker ? 5 : 4;
 
-  const stepLabel = (s: number) => {
-    if (showHostelPicker) return s;
-    return s + 1;
-  };
+  const stepLabels = useMemo(() => {
+    if (showHostelPicker) {
+      return [
+        { num: 1, label: "Hostel", icon: Building2 },
+        { num: 2, label: "Prospect Phone", icon: Phone },
+        { num: 3, label: "Dates & Bed", icon: BedDouble },
+        { num: 4, label: "Financials", icon: CreditCard },
+        { num: 5, label: "Complete", icon: CheckCircle2 },
+      ];
+    }
+    return [
+      { num: 1, label: "Prospect Phone", icon: Phone },
+      { num: 2, label: "Dates & Bed", icon: BedDouble },
+      { num: 3, label: "Financials", icon: CreditCard },
+      { num: 4, label: "Complete", icon: CheckCircle2 },
+    ];
+  }, [showHostelPicker]);
 
   const inputClass =
-    "w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+    "w-full rounded-xl border border-input bg-background/80 px-3.5 py-2.5 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all h-11";
 
   const selectClass =
-    "w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+    "w-full rounded-xl border border-input bg-background/80 px-3.5 py-2.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all h-11";
 
   return (
     <HostelWorkspaceLayout
@@ -313,36 +326,52 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
       subtitle="Create a new onboarding request for a prospective tenant"
       hideAdminNav={baseRoute === "/warden"}
     >
-      <div className="max-w-2xl mx-auto space-y-6 p-4">
+      <div className="max-w-3xl mx-auto space-y-6 p-4 sm:p-6">
 
-      {/* Step progress indicator */}
-      <div className="flex items-center gap-2 text-sm">
-        {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
-          <div key={s} className="flex items-center gap-2">
-            <div
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors ${
-                step > s
-                  ? "bg-green-500 text-white"
-                  : step === s
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {step > s ? "✓" : s}
-            </div>
-            {s < totalSteps && (
-              <div
-                className={`h-0.5 w-8 ${
-                  step > s ? "bg-green-500" : "bg-muted"
+        {/* Apple Glassmorphism Segmented Stepper Bar */}
+        <div className="p-1.5 rounded-2xl bg-muted/40 backdrop-blur-md border border-border/50 shadow-2xs flex items-center justify-between gap-1 overflow-x-auto custom-scrollbar">
+          {stepLabels.map((s) => {
+            const IconComponent = s.icon;
+            const isActive = step === s.num;
+            const isCompleted = step > s.num;
+
+            return (
+              <button
+                key={s.num}
+                type="button"
+                onClick={() => {
+                  if (isCompleted) setStep(s.num);
+                }}
+                disabled={!isCompleted && !isActive}
+                className={`flex items-center gap-2 py-2 px-3 sm:px-4 rounded-xl text-xs font-semibold transition-all duration-200 shrink-0 ${
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-[1.02] cursor-default"
+                    : isCompleted
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 cursor-pointer"
+                    : "text-muted-foreground opacity-60 cursor-not-allowed"
                 }`}
-              />
-            )}
-          </div>
-        ))}
-      </div>
+              >
+                <span className={`flex h-5 w-5 items-center justify-center rounded-lg text-[10px] font-bold ${
+                  isActive
+                    ? "bg-white/20 text-white"
+                    : isCompleted
+                    ? "bg-emerald-500 text-white"
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  {isCompleted ? "✓" : s.num}
+                </span>
+                <span className="hidden sm:inline tracking-tight">{s.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-      <div className="rounded-lg border bg-card shadow-sm">
-        <div className="p-6">
+        {/* Apple Glassmorphism Main Container Card */}
+        <div className="relative rounded-2xl border border-border/70 bg-card/90 backdrop-blur-xl shadow-xl shadow-black/5 dark:shadow-black/40 overflow-hidden transition-all duration-300">
+          {/* Top Gradient Accent Bar */}
+          <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500" />
+
+          <div className="p-6 sm:p-8">
           {/* ── Step 1: Hostel Selection (admin only, when no hostel pre-selected) ── */}
           {step === 1 && showHostelPicker && (
             <div className="space-y-4">
