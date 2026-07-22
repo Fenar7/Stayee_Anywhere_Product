@@ -347,10 +347,9 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
               {/* Main Apple Stage Card */}
               <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 sm:p-8 space-y-6">
 
-                {/* Handcrafted Apple Stepper Navigation Bar & Top Back Action */}
-                <div className="space-y-4 pb-6 border-b border-zinc-200 dark:border-zinc-800">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    {/* Top Left Back Navigation Link */}
+                {/* Linear Connected Step Node Track */}
+                <div className="space-y-5 pb-6 border-b border-zinc-200 dark:border-zinc-800">
+                  <div className="flex items-center justify-between">
                     {step > 1 ? (
                       <button
                         type="button"
@@ -358,52 +357,66 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                         className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
                         <ArrowLeft className="h-3.5 w-3.5" />
-                        <span>Back</span>
+                        <span>Back to {stepLabels[step - 2]?.label || "Previous Step"}</span>
                       </button>
                     ) : (
                       <span className="text-xs font-extrabold uppercase tracking-wider text-zinc-400">
-                        Step 1 of {totalStepsCount}
+                        Onboarding Wizard
                       </span>
                     )}
-
-                    {/* Interactive Step Breadcrumb Tabs */}
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      {stepLabels.map((s) => {
-                        const isActive = step === s.num;
-                        const isCompleted = step > s.num;
-
-                        return (
-                          <button
-                            key={s.num}
-                            type="button"
-                            onClick={() => {
-                              if (isCompleted) setStep(s.num);
-                            }}
-                            disabled={!isCompleted && !isActive}
-                            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                              isActive
-                                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-xs cursor-default"
-                                : isCompleted
-                                ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
-                                : "text-zinc-400 opacity-50 cursor-not-allowed"
-                            }`}
-                          >
-                            <span className="text-[10px] font-bold">
-                              {isCompleted ? "✓" : s.num}
-                            </span>
-                            <span className="tracking-tight">{s.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <span className="text-xs font-bold text-zinc-500">
+                      Step {step} of {totalStepsCount}
+                    </span>
                   </div>
 
-                  {/* Subtle 2px Emerald Progress Line */}
-                  <div className="h-1 w-full bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
+                  {/* Connected Track Node Track */}
+                  <div className="relative flex items-center justify-between pt-1 px-2">
+                    {/* Background Connecting Line */}
+                    <div className="absolute left-6 right-6 top-[15px] -translate-y-1/2 h-0.5 bg-zinc-200 dark:bg-zinc-800 z-0" />
                     <div
-                      className="h-full bg-emerald-500 transition-all duration-300 ease-out"
-                      style={{ width: `${currentStepProgress}%` }}
+                      className="absolute left-6 top-[15px] -translate-y-1/2 h-0.5 bg-emerald-500 transition-all duration-300 ease-out z-0"
+                      style={{ width: `${Math.max(0, Math.min(100, ((step - 1) / (totalStepsCount - 1)) * 90))}%` }}
                     />
+
+                    {stepLabels.map((s) => {
+                      const isActive = step === s.num;
+                      const isCompleted = step > s.num;
+
+                      return (
+                        <button
+                          key={s.num}
+                          type="button"
+                          onClick={() => {
+                            if (isCompleted) setStep(s.num);
+                          }}
+                          disabled={!isCompleted && !isActive}
+                          className="relative z-10 flex flex-col items-center gap-1.5 group cursor-pointer disabled:cursor-not-allowed"
+                        >
+                          <div
+                            className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 ${
+                              isActive
+                                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 ring-4 ring-zinc-100 dark:ring-zinc-900 scale-110 shadow-xs"
+                                : isCompleted
+                                ? "bg-emerald-500 text-white shadow-xs group-hover:scale-105"
+                                : "bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500 border border-zinc-200 dark:border-zinc-700"
+                            }`}
+                          >
+                            {isCompleted ? "✓" : s.num}
+                          </div>
+                          <span
+                            className={`text-[11px] font-semibold tracking-tight hidden sm:block ${
+                              isActive
+                                ? "text-zinc-900 dark:text-zinc-100 font-bold"
+                                : isCompleted
+                                ? "text-zinc-700 dark:text-zinc-300"
+                                : "text-zinc-400"
+                            }`}
+                          >
+                            {s.label}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1139,19 +1152,23 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
               </div>
             </div>
 
-            {/* ── RIGHT PANEL: STICKY PROSPECT PASSPORT (Col 9-12: 34% Width) ── */}
+            {/* ── RIGHT PANEL: STICKY STRIPE LIVE RECEIPT PASSPORT (Col 9-12: 34% Width) ── */}
             <div className="lg:col-span-4 sticky top-6">
-              <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 space-y-4">
-                <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
-                    Prospect Passport
-                  </h3>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
+              <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 space-y-5">
+                <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-3.5">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
+                      Onboarding Summary
+                    </h3>
+                    <p className="text-[11px] text-zinc-500 font-medium">Live Passport Record</p>
+                  </div>
+                  <span className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Draft
                   </span>
                 </div>
 
-                <div className="space-y-3 text-xs">
+                <div className="space-y-3.5 text-xs font-medium">
                   <div className="flex items-center justify-between">
                     <span className="text-zinc-500">Prospect Mobile</span>
                     <span className="font-semibold font-mono text-zinc-900 dark:text-zinc-100">
@@ -1175,7 +1192,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-zinc-200 dark:border-zinc-800 pt-3">
+                  <div className="flex items-center justify-between border-t border-dashed border-zinc-200 dark:border-zinc-800 pt-3">
                     <span className="text-zinc-500">Allocated Bed</span>
                     {selectedBedId ? (
                       <span className="font-bold text-emerald-600 dark:text-emerald-400">
@@ -1187,23 +1204,23 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   </div>
 
                   {selectedBedId && (
-                    <div className="space-y-2 border-t border-zinc-200 dark:border-zinc-800 pt-3">
+                    <div className="space-y-2.5 border-t border-dashed border-zinc-200 dark:border-zinc-800 pt-3.5">
                       <div className="flex items-center justify-between text-zinc-500">
                         <span>Admission Fee</span>
-                        <span className="font-medium text-zinc-900 dark:text-zinc-100">₹{admissionFee || "0"}</span>
+                        <span className="font-semibold text-zinc-900 dark:text-zinc-100">₹{admissionFee || "0"}</span>
                       </div>
                       <div className="flex items-center justify-between text-zinc-500">
                         <span>Monthly Rent</span>
-                        <span className="font-medium text-zinc-900 dark:text-zinc-100">₹{monthlyRent || "0"}</span>
+                        <span className="font-semibold text-zinc-900 dark:text-zinc-100">₹{monthlyRent || "0"}</span>
                       </div>
                       <div className="flex items-center justify-between text-zinc-500">
                         <span>Security Deposit</span>
-                        <span className="font-medium text-zinc-900 dark:text-zinc-100">₹{securityDeposit || "0"}</span>
+                        <span className="font-semibold text-zinc-900 dark:text-zinc-100">₹{securityDeposit || "0"}</span>
                       </div>
                       {parseFloat(foodCharges) > 0 && (
                         <div className="flex items-center justify-between text-zinc-500">
                           <span>Food Charges</span>
-                          <span className="font-medium text-zinc-900 dark:text-zinc-100">₹{foodCharges}</span>
+                          <span className="font-semibold text-zinc-900 dark:text-zinc-100">₹{foodCharges}</span>
                         </div>
                       )}
                       {parseFloat(discount) > 0 && (
@@ -1212,9 +1229,11 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                           <span>-₹{discount}</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-between text-sm font-bold text-zinc-900 dark:text-zinc-100 border-t border-zinc-200 dark:border-zinc-800 pt-2.5">
+                      <div className="flex items-center justify-between text-sm font-bold text-zinc-900 dark:text-zinc-100 border-t border-zinc-200 dark:border-zinc-800 pt-3">
                         <span>Initial Total</span>
-                        <span>₹{totalPayable > 0 ? totalPayable.toLocaleString("en-IN") : "0.00"}</span>
+                        <span className="text-base font-extrabold text-zinc-900 dark:text-zinc-100">
+                          ₹{totalPayable > 0 ? totalPayable.toLocaleString("en-IN") : "0.00"}
+                        </span>
                       </div>
                     </div>
                   )}

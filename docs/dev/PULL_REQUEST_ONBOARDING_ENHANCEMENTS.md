@@ -37,13 +37,12 @@ This PR addresses critical operational and security enhancements in the Stayee A
   - Updated date boundary check so early exit calculations for open-ended stays (`stay.endDate: null`) do not fail with upper date bound errors.
 - **Stay Extensions (`services/stays/extend.ts`):**
   - Updated overlapping stay query for open-ended stay extensions to evaluate extension start date (`stay.endDate ?? new Date()`) against active stay bounds, resolving false conflict errors against historical completed stays.
-### D. Handcrafted Apple Human Interface Onboarding Studio (`components/hostel-management/HostelOnboardView.tsx`)
-- **Eradicated "AI Design Tropes":** Completely eliminated drop shadows (`shadow-xl`, `shadow-md`), gimmicky emojis (🔄, ⏱️, ✨, 🛏️, 🏢), and light green callout boxes.
-- **Interactive Top Apple Step Bar:** Rendered interactive step breadcrumb tabs (`1. Phone` • `2. Dates & Bed` • `3. Financials` • `4. Review`) inside the top card header with `✓` completion badges. Clicking any completed step instantly navigates back to inspect/edit data.
-- **Top-Left Navigation (`← Back`):** Added a top-left back action button next to the step header so users can navigate back instantly without scrolling down.
-- **Precision 1px Flat Surfaces:** Re-architected layout using clean 1px border surfaces (`border-zinc-200 dark:border-zinc-800`), flat backgrounds (`bg-white dark:bg-zinc-950`), and inter typography.
-- **Layout Max-Width Boundary (`max-w-7xl mx-auto`):** Constrained layout container grid to prevent right-side Prospect Passport card clipping across high-resolution displays.
-- **Seamless Auto-Bed Search:** Removed redundant full-width grey refresh buttons; bed availability updates automatically when stay parameters change.
+### D. Stripe & Linear Fintech Onboarding Studio Redesign (`components/hostel-management/HostelOnboardView.tsx`)
+- **Linear Connected Step Node Track:** Replaced cluttered step pills with a sleek connected track line featuring circular step nodes `(1)` ➔ `(2)` ➔ `(3)` ➔ `(4)` ➔ `(5)`. Completed steps display glowing emerald `✓` checkmark circles with instant step-jump navigation.
+- **Contextual Top-Left Back Action:** Added a contextual top back button (`← Back to [Previous Step Name]`) enabling effortless reverse navigation without scrolling down.
+- **Stripe Checkout Live Receipt Passport:** Upgraded the right sidebar into a Stripe Checkout live receipt record with itemized fee rows, dashed border separators, live status indicators (`● DRAFT`), and a high-contrast total price callout.
+- **Eradicated "AI Design Tropes":** Completely eliminated drop shadows (`shadow-xl`, `shadow-md`), gimmicky emojis (🔄, ⏱️, ✨, 🛏️, 🏢), and floating callout boxes.
+- **Layout Max-Width Boundary (`max-w-7xl mx-auto`):** Constrained layout container grid to prevent right-side sidebar clipping across high-resolution displays.
 
 ---
 
