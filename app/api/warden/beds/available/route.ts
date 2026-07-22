@@ -14,23 +14,24 @@ export async function GET(request: NextRequest) {
     const joiningDateParam = searchParams.get("joiningDate");
     const endDateParam = searchParams.get("endDate");
 
-    if (!joiningDateParam || !endDateParam) {
-      throw new ValidationError(
-        "joiningDate and endDate query parameters are required"
-      );
+    if (!joiningDateParam) {
+      throw new ValidationError("joiningDate query parameter is required");
     }
 
     const start = new Date(joiningDateParam);
-    const end = new Date(endDateParam);
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      throw new ValidationError(
-        "joiningDate and endDate must be valid ISO date strings"
-      );
+    if (isNaN(start.getTime())) {
+      throw new ValidationError("joiningDate must be a valid ISO date string");
     }
 
-    if (end <= start) {
-      throw new ValidationError("endDate must be after joiningDate");
+    let end: Date | null = null;
+    if (endDateParam) {
+      end = new Date(endDateParam);
+      if (isNaN(end.getTime())) {
+        throw new ValidationError("endDate must be a valid ISO date string");
+      }
+      if (end <= start) {
+        throw new ValidationError("endDate must be after joiningDate");
+      }
     }
 
     const availableBeds = await getAvailableBeds(hostelId, start, end);

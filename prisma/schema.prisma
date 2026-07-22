@@ -305,7 +305,7 @@ model Stay {
   status               StayStatus
   durationType         DurationType
   joiningDate          DateTime
-  endDate              DateTime
+  endDate              DateTime?
   isNewAdmission       Boolean
   admissionFeePaise    Int
   monthlyRentPaise     Int

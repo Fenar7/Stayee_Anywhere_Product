@@ -38,7 +38,7 @@ export async function GET(
     }
 
     const joiningDate = new Date(stay.joiningDate);
-    const endDate = new Date(stay.endDate);
+    const endDate = stay.endDate ? new Date(stay.endDate) : new Date();
     
     if (isBefore(exitDate, joiningDate)) {
       return NextResponse.json({ error: "Exit date cannot be before joining date" }, { status: 400 });

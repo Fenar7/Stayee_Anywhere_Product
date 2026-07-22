@@ -24,7 +24,7 @@ import { CalendarDays, Loader2, CalendarPlus } from "lucide-react";
 
 interface ExtendStaySheetProps {
   stayId: string;
-  currentEndDate: Date;
+  currentEndDate: Date | null;
   balancePaise: number;
 }
 
@@ -41,7 +41,7 @@ export default function ExtendStaySheet({
   const [customDays, setCustomDays] = useState("1");
   const [discountAmount, setDiscountAmount] = useState("0");
 
-  let newEndDate = new Date(currentEndDate);
+  let newEndDate = currentEndDate ? new Date(currentEndDate) : new Date();
   if (durationType === "MONTHLY") {
     newEndDate = addMonths(newEndDate, 1);
   } else if (durationType === "WEEKLY") {
@@ -97,7 +97,7 @@ export default function ExtendStaySheet({
             <div>
               <Label>Current End Date</Label>
               <div className="text-sm font-medium mt-1">
-                {format(new Date(currentEndDate), "PPP")}
+                {currentEndDate ? format(new Date(currentEndDate), "PPP") : "Open-ended stay"}
               </div>
             </div>
 

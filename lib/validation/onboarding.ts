@@ -8,7 +8,7 @@ export const onboardSchema = z.object({
   bedId: z.string().uuid("Invalid bed ID format"),
   hostelId: z.string().uuid("Invalid hostel ID").optional(),
   joiningDate: z.string().transform((val) => new Date(val)),
-  endDate: z.string().transform((val) => new Date(val)),
+  endDate: z.string().optional().nullable().transform((val) => (val ? new Date(val) : null)),
   durationType: z.nativeEnum(DurationType),
   foodPlan: z.nativeEnum(FoodPlan),
   isNewAdmission: z.boolean(),

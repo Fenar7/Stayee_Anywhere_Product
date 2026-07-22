@@ -6,6 +6,7 @@ import {
   ValidationError,
   NotFoundError,
   ConflictError,
+  ForbiddenError,
 } from "@/lib/errors";
 import { createAdminClient } from "@/lib/auth/server";
 import { verifyAndGetFileType, compressImage } from "@/lib/image";
@@ -45,6 +46,10 @@ export async function POST(
 
     if (onboardingRequest.status !== OnboardingRequestStatus.PENDING) {
       throw new ConflictError("This onboarding link is no longer active or already completed");
+    }
+
+    if (onboardingRequest.onboardingCurrentStep < 1) {
+      throw new ForbiddenError("You must verify your access password before submitting registration");
     }
 
     const { phone } = onboardingRequest;

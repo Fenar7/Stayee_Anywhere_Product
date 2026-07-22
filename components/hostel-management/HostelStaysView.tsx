@@ -86,9 +86,9 @@ export default async function HostelStaysView({
               </tr>
             ) : (
               stays.map((stay) => {
-                const daysRemaining = differenceInDays(new Date(stay.endDate), new Date());
-                const isEndingSoon = daysRemaining < 7;
-                const isEndingMedium = daysRemaining >= 7 && daysRemaining < 14;
+                const daysRemaining = stay.endDate ? differenceInDays(new Date(stay.endDate), new Date()) : 999;
+                const isEndingSoon = stay.endDate ? daysRemaining < 7 : false;
+                const isEndingMedium = stay.endDate ? (daysRemaining >= 7 && daysRemaining < 14) : false;
 
                 const daysColor = isEndingSoon
                   ? "text-red-500 font-bold"
@@ -121,11 +121,13 @@ export default async function HostelStaysView({
                     </td>
                     <td>
                       <p className="text-[13px] font-medium text-black dark:text-white">{format(new Date(stay.joiningDate), "PP")}</p>
-                      <p className="text-[11px] text-[#767676] uppercase tracking-wider font-bold mt-0.5">to {format(new Date(stay.endDate), "PP")}</p>
+                      <p className="text-[11px] text-[#767676] uppercase tracking-wider font-bold mt-0.5">
+                        {stay.endDate ? `to ${format(new Date(stay.endDate), "PP")}` : "Open-ended stay"}
+                      </p>
                     </td>
                     <td>
                       <span className={daysColor}>
-                        {daysRemaining < 0 ? `Overdue by ${Math.abs(daysRemaining)} days` : `${daysRemaining} days`}
+                        {stay.endDate ? (daysRemaining < 0 ? `Overdue by ${Math.abs(daysRemaining)} days` : `${daysRemaining} days`) : "Ongoing"}
                       </span>
                     </td>
                     <td>

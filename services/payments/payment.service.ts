@@ -157,8 +157,11 @@ export async function verifyPayment(
         bedId: stay.bedId,
         id: { not: stay.id },
         status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
-        joiningDate: { lte: stay.endDate },
-        endDate: { gte: stay.joiningDate },
+        ...(stay.endDate ? { joiningDate: { lte: stay.endDate } } : {}),
+        OR: [
+          { endDate: null },
+          { endDate: { gte: stay.joiningDate } },
+        ],
       },
     });
 

@@ -39,7 +39,7 @@ export async function extendStay(params: ExtendStayParams) {
     throw new ValidationError("Stay must be ACTIVE or EXTENDED to be extended");
   }
 
-  let newEndDate = new Date(stay.endDate);
+  let newEndDate = stay.endDate ? new Date(stay.endDate) : new Date();
   let additionalRentPaise = 0;
   let additionalFoodChargesPaise = 0;
 
@@ -66,7 +66,7 @@ export async function extendStay(params: ExtendStayParams) {
       id: { not: stay.id },
       status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
       joiningDate: { lt: newEndDate },
-      endDate: { gt: stay.endDate },
+      ...(stay.endDate ? { endDate: { gt: stay.endDate } } : {}),
     },
   });
 

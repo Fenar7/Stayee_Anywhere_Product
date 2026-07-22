@@ -211,7 +211,7 @@ export default function StayDetailsPageView({ stay, baseRoute, backUrl }: { stay
               <SectionHeader title="Stay & Amenities" icon={Building} />
               <div className="p-6 space-y-3">
                 <DataRow label="Start Date" value={format(new Date(stay.joiningDate), "PP")} />
-                <DataRow label="End Date" value={format(new Date(stay.endDate), "PP")} />
+                <DataRow label="End Date" value={stay.endDate ? format(new Date(stay.endDate), "PP") : "Open-ended stay"} />
                 <DataRow icon={Utensils} label="Food Plan" value={stay.foodPlan.replace("_", " ")} />
                 
                 <div className="pt-4 mt-4 border-t border-[#dedede] dark:border-white/10 flex gap-3">

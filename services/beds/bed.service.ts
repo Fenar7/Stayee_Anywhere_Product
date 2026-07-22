@@ -4,34 +4,51 @@ import { StayStatus } from "@prisma/client";
 export async function checkBedConflict(
   bedId: string,
   joiningDate: Date,
-  endDate: Date,
+  endDate?: Date | null,
   excludeStayId?: string
 ): Promise<boolean> {
   const overlappingStay = await prisma.stay.findFirst({
     where: {
       bedId,
       ...(excludeStayId ? { id: { not: excludeStayId } } : {}),
-      status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
-      joiningDate: { lte: endDate },
-      endDate: { gte: joiningDate },
+      status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED, StayStatus.ONBOARDING_PENDING] },
+      ...(endDate ? { joiningDate: { lte: endDate } } : {}),
+      OR: [
+        { endDate: null },
+        { endDate: { gte: joiningDate } },
+      ],
     },
   });
 
   return !!overlappingStay;
 }
 
-export async function getAvailableBeds(hostelId: string, joiningDate: Date, endDate: Date) {
+export async function getAvailableBeds(hostelId: string, joiningDate: Date, endDate?: Date | null) {
   const occupiedStays = await prisma.stay.findMany({
     where: {
       hostelId,
-      status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
-      joiningDate: { lte: endDate },
-      endDate: { gte: joiningDate },
+      status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED, StayStatus.ONBOARDING_PENDING] },
+      ...(endDate ? { joiningDate: { lte: endDate } } : {}),
+      OR: [
+        { endDate: null },
+        { endDate: { gte: joiningDate } },
+      ],
     },
     select: { bedId: true },
   });
 
-  const occupiedBedIdSet = new Set(occupiedStays.map((s) => s.bedId));
+  const pendingOnboardRequests = await prisma.onboardingRequest.findMany({
+    where: {
+      hostelId,
+      status: "PENDING",
+    },
+    select: { bedId: true },
+  });
+
+  const occupiedBedIdSet = new Set([
+    ...occupiedStays.map((s) => s.bedId),
+    ...pendingOnboardRequests.map((r) => r.bedId),
+  ]);
 
   return prisma.bed.findMany({
     where: {

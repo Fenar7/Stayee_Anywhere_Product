@@ -99,11 +99,15 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
   };
 
   const handleSearchBeds = async () => {
-    if (!joiningDate || !endDate) {
-      notify.error("Please select both joining date and end date");
+    if (!joiningDate) {
+      notify.error("Please select a joining date");
       return;
     }
-    if (new Date(endDate) <= new Date(joiningDate)) {
+    if (durationType !== DurationType.MONTHLY && !endDate) {
+      notify.error("Please select an end date");
+      return;
+    }
+    if (endDate && new Date(endDate) <= new Date(joiningDate)) {
       notify.error("End date must be after joining date");
       return;
     }
@@ -113,10 +117,10 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
     setSelectedBedId("");
 
     try {
-      const params = new URLSearchParams({
-        joiningDate,
-        endDate,
-      });
+      const params = new URLSearchParams({ joiningDate });
+      if (endDate) {
+        params.set("endDate", endDate);
+      }
       if (selectedHostelId) {
         params.set("hostelId", selectedHostelId);
       }
@@ -162,7 +166,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
         phone,
         bedId: selectedBedId,
         joiningDate,
-        endDate,
+        endDate: endDate || null,
         durationType,
         foodPlan,
         isNewAdmission,
@@ -236,7 +240,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
 
   const handleWhatsAppShare = () => {
     const message = onboardingLinkWithPassword(submittedLink, submittedPassword);
-    window.open(buildWaMeLink("", message), "_blank");
+    window.open(buildWaMeLink(phone, message), "_blank");
   };
 
   const hostelSelected = !!selectedHostelId;
@@ -453,8 +457,11 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="end-date">
-                    End Date
+                  <label className="text-sm font-medium flex items-center justify-between" htmlFor="end-date">
+                    <span>End Date</span>
+                    {durationType === DurationType.MONTHLY && (
+                      <span className="text-xs text-muted-foreground font-normal">(Optional for open-ended stay)</span>
+                    )}
                   </label>
                   <Input
                     id="end-date"
@@ -473,7 +480,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
 
               <Button
                 onClick={handleSearchBeds}
-                disabled={loading || !joiningDate || !endDate}
+                disabled={loading || !joiningDate || (durationType !== DurationType.MONTHLY && !endDate)}
                 className="w-full"
                 variant="outline"
               >

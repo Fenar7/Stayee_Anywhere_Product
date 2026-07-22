@@ -17,7 +17,7 @@ export interface OnboardInitiateInput {
   bedId: string;
   hostelId: string;
   joiningDate: Date;
-  endDate: Date;
+  endDate?: Date | null;
   durationType: DurationType;
   foodPlan: FoodPlan;
   isNewAdmission: boolean;
@@ -75,7 +75,7 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
     discount,
   } = input;
 
-  if (endDate <= joiningDate) {
+  if (endDate && endDate <= joiningDate) {
     throw new ValidationError("End date must be after joining date");
   }
 
@@ -111,8 +111,11 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
     where: {
       bedId,
       status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED, StayStatus.ONBOARDING_PENDING] },
-      joiningDate: { lte: endDate },
-      endDate: { gte: joiningDate },
+      ...(endDate ? { joiningDate: { lte: endDate } } : {}),
+      OR: [
+        { endDate: null },
+        { endDate: { gte: joiningDate } },
+      ],
     },
   });
 
@@ -165,7 +168,7 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
         status: StayStatus.ONBOARDING_PENDING,
         durationType,
         joiningDate,
-        endDate,
+        endDate: endDate || null,
         isNewAdmission,
         admissionFeePaise,
         monthlyRentPaise,

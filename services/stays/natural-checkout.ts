@@ -55,7 +55,9 @@ export async function processNaturalCheckouts(params?: NaturalCheckoutParams): P
           fromStatus: stay.status,
           toStatus: StayStatus.CHECKED_OUT,
           changedByUserId: "system",
-          note: `Stay naturally expired on ${stay.endDate.toISOString().split("T")[0]}. Bed released.`,
+          note: stay.endDate
+            ? `Stay naturally expired on ${stay.endDate.toISOString().split("T")[0]}. Bed released.`
+            : "Stay completed via natural checkout. Bed released.",
         },
       });
     });
