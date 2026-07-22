@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Search, Building2, BedDouble, CheckCircle2, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -53,6 +54,52 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
   const [discount, setDiscount] = useState("0");
   const [availableBeds, setAvailableBeds] = useState<AvailableBed[]>([]);
   const [selectedBedId, setSelectedBedId] = useState("");
+  const [bedSearchTerm, setBedSearchTerm] = useState("");
+  const [selectedFloorFilter, setSelectedFloorFilter] = useState<string>("ALL");
+
+  const filteredBeds = useMemo(() => {
+    return availableBeds.filter((bed) => {
+      const matchesSearch =
+        !bedSearchTerm.trim() ||
+        bed.label.toLowerCase().includes(bedSearchTerm.toLowerCase()) ||
+        bed.roomNumber.toLowerCase().includes(bedSearchTerm.toLowerCase()) ||
+        (bed.flatName && bed.flatName.toLowerCase().includes(bedSearchTerm.toLowerCase()));
+
+      const matchesFloor =
+        selectedFloorFilter === "ALL" || bed.floorName === selectedFloorFilter;
+
+      return matchesSearch && matchesFloor;
+    });
+  }, [availableBeds, bedSearchTerm, selectedFloorFilter]);
+
+  const availableFloors = useMemo(() => {
+    const set = new Set<string>();
+    availableBeds.forEach((b) => {
+      if (b.floorName) set.add(b.floorName);
+    });
+    return Array.from(set).sort();
+  }, [availableBeds]);
+
+  const bedHierarchy = useMemo(() => {
+    const floorMap = new Map<string, Map<string, AvailableBed[]>>();
+
+    filteredBeds.forEach((bed) => {
+      const floorKey = bed.floorName || "General Floor";
+      const roomKey = bed.roomNumber;
+
+      if (!floorMap.has(floorKey)) {
+        floorMap.set(floorKey, new Map());
+      }
+      const roomMap = floorMap.get(floorKey)!;
+
+      if (!roomMap.has(roomKey)) {
+        roomMap.set(roomKey, []);
+      }
+      roomMap.get(roomKey)!.push(bed);
+    });
+
+    return floorMap;
+  }, [filteredBeds]);
   const [loading, setLoading] = useState(false);
   const [submittedLink, setSubmittedLink] = useState("");
   const [submittedPassword, setSubmittedPassword] = useState("");
@@ -567,29 +614,151 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                 {loading ? "Searching..." : "Find Available Beds"}
               </Button>
 
+              {/* Apple-Grade Visual Spatial Bed Matrix */}
               {availableBeds.length > 0 && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Select a Bed</label>
-                  <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border p-2">
-                    {availableBeds.map((bed) => (
+                <div className="space-y-4 pt-2 border-t border-border/40">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-border/50">
+                    <div>
+                      <h3 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2">
+                        <BedDouble className="h-4 w-4 text-primary" />
+                        Available Beds Spatial Matrix
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {filteredBeds.length} bed{filteredBeds.length === 1 ? "" : "s"} available across {availableFloors.length} floor{availableFloors.length === 1 ? "" : "s"}
+                      </p>
+                    </div>
+
+                    {/* Quick Search */}
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        placeholder="Search room or bed..."
+                        value={bedSearchTerm}
+                        onChange={(e) => setBedSearchTerm(e.target.value)}
+                        className="pl-8 h-8 text-xs bg-muted/30 rounded-lg border-border/60 focus-visible:ring-1"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Floor Filter Pills */}
+                  {availableFloors.length > 1 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pb-1">
+                      <span className="text-xs font-medium text-muted-foreground mr-1 flex items-center gap-1">
+                        <Layers className="h-3 w-3" /> Floor:
+                      </span>
                       <button
-                        key={bed.id}
                         type="button"
-                        onClick={() => setSelectedBedId(bed.id)}
-                        className={`w-full rounded-lg border p-3 text-left transition-colors ${
-                          selectedBedId === bed.id
-                            ? "border-primary bg-primary/10"
-                            : "hover:bg-muted"
+                        onClick={() => setSelectedFloorFilter("ALL")}
+                        className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                          selectedFloorFilter === "ALL"
+                            ? "bg-primary text-primary-foreground shadow-xs"
+                            : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted"
                         }`}
                       >
-                        <p className="font-medium">{bed.label}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Room {bed.roomNumber} •{" "}
-                          {bed.flatName ? `${bed.flatName} • ` : ""}
-                          {bed.floorName} ({bed.sharingType})
-                        </p>
+                        All ({availableBeds.length})
                       </button>
-                    ))}
+                      {availableFloors.map((floor) => {
+                        const count = availableBeds.filter((b) => b.floorName === floor).length;
+                        return (
+                          <button
+                            key={floor}
+                            type="button"
+                            onClick={() => setSelectedFloorFilter(floor)}
+                            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                              selectedFloorFilter === floor
+                                ? "bg-primary text-primary-foreground shadow-xs"
+                                : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted"
+                            }`}
+                          >
+                            {floor} ({count})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Bed Spatial Matrix Container */}
+                  <div className="max-h-[380px] overflow-y-auto space-y-6 pr-1 custom-scrollbar">
+                    {filteredBeds.length === 0 ? (
+                      <div className="p-8 text-center rounded-xl border border-dashed border-border/60 bg-muted/10">
+                        <p className="text-xs text-muted-foreground">No beds match your filter criteria.</p>
+                      </div>
+                    ) : (
+                      Array.from(bedHierarchy.entries()).map(([floorName, roomMap]) => (
+                        <div key={floorName} className="space-y-3">
+                          {/* Floor Header */}
+                          <div className="flex items-center gap-2 px-1">
+                            <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                              {floorName}
+                            </h4>
+                            <div className="h-px flex-1 bg-border/40" />
+                          </div>
+
+                          {/* Room Cards Grid */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {Array.from(roomMap.entries()).map(([roomNumber, beds]) => {
+                              const firstBed = beds[0];
+                              return (
+                                <div
+                                  key={roomNumber}
+                                  className="p-3 rounded-xl border border-border/60 bg-card/60 backdrop-blur-sm shadow-2xs space-y-2.5 hover:border-border transition-all"
+                                >
+                                  {/* Room Card Header */}
+                                  <div className="flex items-center justify-between gap-2 border-b border-border/30 pb-2">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-xs font-semibold text-foreground">
+                                        Room {roomNumber}
+                                      </span>
+                                      {firstBed.flatName && (
+                                        <span className="text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
+                                          {firstBed.flatName}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] font-medium text-primary/80 bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                                      {firstBed.sharingType}
+                                    </span>
+                                  </div>
+
+                                  {/* Bed Chips Grid */}
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {beds.map((bed) => {
+                                      const isSelected = selectedBedId === bed.id;
+                                      return (
+                                        <button
+                                          key={bed.id}
+                                          type="button"
+                                          onClick={() => setSelectedBedId(bed.id)}
+                                          className={`relative p-2.5 rounded-lg border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer ${
+                                            isSelected
+                                              ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/40 shadow-xs scale-[1.02]"
+                                              : "border-border/60 bg-background/80 hover:bg-accent/60 hover:border-primary/40 text-foreground"
+                                          }`}
+                                        >
+                                          <div className="flex items-center justify-between w-full">
+                                            <span className="text-xs font-bold tracking-tight">
+                                              {bed.label}
+                                            </span>
+                                            {isSelected && (
+                                              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                                            )}
+                                          </div>
+                                          <span className="text-[10px] text-muted-foreground mt-1">
+                                            Available
+                                          </span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}

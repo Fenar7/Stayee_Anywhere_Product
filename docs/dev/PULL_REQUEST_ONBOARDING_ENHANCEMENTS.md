@@ -38,11 +38,12 @@ This PR addresses critical operational and security enhancements in the Stayee A
 - **Stay Extensions (`services/stays/extend.ts`):**
   - Updated overlapping stay query for open-ended stay extensions to evaluate extension start date (`stay.endDate ?? new Date()`) against active stay bounds, resolving false conflict errors against historical completed stays.
 - **Hostel Onboarding View (`components/hostel-management/HostelOnboardView.tsx`):**
-  - Added label `"(Optional for open-ended stay)"` when duration is `MONTHLY`.
-  - Enabled bed search and onboarding request submission without requiring an end date.
+  - Redesigned Step 2 Bed Selection into an **Apple-Grade Visual Spatial Bed Matrix**: available beds are grouped by Floor and Room Card, featuring interactive Bed Chips (`🛏️ Bed 201-A`), floor filter pills (`All Floors`, `Floor 1`), room search input, and vibrant blue ring selection glow states.
+  - Added Duration Mode toggle (`Monthly Recurring` vs `Fixed Duration Stay`) with quick duration preset pills (`+1 Month`, `+3 Months`, `+6 Months`, `+1 Year`).
+  - Enabled bed search and onboarding request submission without requiring an end date for monthly stays.
   - Fixed WhatsApp share link generation to properly target the prospect's phone number via `buildWaMeLink(phone, message)`.
-- **Stay Management Views (`HostelStaysView.tsx`, `StayDetailsPageView.tsx`, `ExtendStaySheet.tsx`, `EarlyExitSheet.tsx`):**
-  - Added null guards and fallback rendering (`"Open-ended stay"`, `"Ongoing"`) for stays with `endDate: null`.
+- **In-Memory Stay Overlap Engine (`bed.service.ts`, `onboarding.service.ts`, `payment.service.ts`, `extend.ts`):**
+  - Refactored stay overlap queries across all 4 service modules to perform precise in-memory TypeScript date logic, eliminating Prisma AST query engine `ClientValidationError` exceptions while safely supporting open-ended stays (`endDate: null`).
 
 ---
 
