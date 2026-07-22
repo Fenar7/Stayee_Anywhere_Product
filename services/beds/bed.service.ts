@@ -14,7 +14,7 @@ export async function checkBedConflict(
       status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED, StayStatus.ONBOARDING_PENDING] },
       ...(endDate ? { joiningDate: { lte: endDate } } : {}),
       OR: [
-        { endDate: null },
+        { endDate: { equals: null } },
         { endDate: { gte: joiningDate } },
       ],
     },
@@ -31,7 +31,7 @@ export async function getAvailableBeds(hostelId: string, joiningDate: Date, endD
         status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED, StayStatus.ONBOARDING_PENDING] },
         ...(endDate ? { joiningDate: { lte: endDate } } : {}),
         OR: [
-          { endDate: null },
+          { endDate: { equals: null } },
           { endDate: { gte: joiningDate } },
         ],
       },

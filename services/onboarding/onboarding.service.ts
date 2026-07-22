@@ -130,7 +130,7 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
       status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED, StayStatus.ONBOARDING_PENDING] },
       ...(endDate ? { joiningDate: { lte: endDate } } : {}),
       OR: [
-        { endDate: null },
+        { endDate: { equals: null } },
         { endDate: { gte: joiningDate } },
       ],
     },

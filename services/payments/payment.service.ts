@@ -159,7 +159,7 @@ export async function verifyPayment(
         status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
         ...(stay.endDate ? { joiningDate: { lte: stay.endDate } } : {}),
         OR: [
-          { endDate: null },
+          { endDate: { equals: null } },
           { endDate: { gte: stay.joiningDate } },
         ],
       },

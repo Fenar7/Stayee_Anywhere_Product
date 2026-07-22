@@ -19,7 +19,7 @@ This PR addresses critical operational and security enhancements in the Stayee A
   - Updated overlapping stay query and Prisma transaction write (`tx.stay.create`) to set `endDate: endDate || null`.
   - Normalized phone numbers in `checkPhoneAvailability` to prevent duplicate account creation across phone formatting variations.
 - **Bed Conflict & Availability (`services/beds/bed.service.ts`):**
-  - Updated `checkBedConflict` and `getAvailableBeds` to handle `null` end dates using `OR: [{ endDate: null }, { endDate: { gte: joiningDate } }]`.
+  - Updated `checkBedConflict` and `getAvailableBeds` to handle `null` end dates using explicit Prisma syntax `OR: [{ endDate: { equals: null } }, { endDate: { gte: joiningDate } }]`.
   - Updated `getAvailableBeds` to exclude beds tied to active `PENDING` `OnboardingRequest` records, preventing two wardens from initiating onboarding on the same bed simultaneously.
   - Parallelized `occupiedStays` and `pendingOnboardRequests` DB queries via `Promise.all()`.
 

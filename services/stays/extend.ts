@@ -69,7 +69,7 @@ export async function extendStay(params: ExtendStayParams) {
       status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
       joiningDate: { lt: newEndDate },
       OR: [
-        { endDate: null },
+        { endDate: { equals: null } },
         { endDate: { gt: extensionStart } },
       ],
     },
