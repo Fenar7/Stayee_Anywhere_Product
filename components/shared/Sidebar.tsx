@@ -26,7 +26,8 @@ import {
   HelpCircle,
   Settings,
   ArrowLeft,
-  LayoutGrid
+  LayoutGrid,
+  Ticket
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -62,6 +63,7 @@ const NAV_CONFIG: Record<Role, NavGroup[]> = {
       items: [
         { label: "Onboards", href: "/admin/onboards", icon: FileText },
         { label: "Leads", href: "/admin/leads", icon: UserSquare },
+        { label: "Tickets", href: "/admin/tickets", icon: Ticket },
       ],
     },
     {
@@ -79,6 +81,7 @@ const NAV_CONFIG: Record<Role, NavGroup[]> = {
         { label: "Beds", href: "/warden/occupancy", icon: Bed },
         { label: "Bookings", href: "/warden/onboards", icon: FileText },
         { label: "Tenants", href: "/warden/stays", icon: Users },
+        { label: "Tickets", href: "/warden/tickets", icon: Ticket },
         { label: "Rent", href: "/warden/leads", icon: UserSquare }, // Placeholder
         { label: "Invoices", href: "/warden/onboard", icon: FileText }, // Placeholder
         { label: "Incidents", href: "/warden/worklists", icon: Shield }, // Placeholder
@@ -92,6 +95,7 @@ const NAV_CONFIG: Record<Role, NavGroup[]> = {
       items: [
         { label: "My Stay", href: "/tenant", icon: Home },
         { label: "Food Orders", href: "/tenant/food", icon: Utensils },
+        { label: "Support Tickets", href: "/tenant/tickets", icon: Ticket },
         { label: "Notifications", href: "/tenant/notifications", icon: Bell },
       ],
     },

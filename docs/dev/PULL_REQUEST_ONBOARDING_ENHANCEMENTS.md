@@ -74,6 +74,12 @@ This PR addresses critical operational and security enhancements in the Stayee A
     - Explanation card letting tenant know the reception warden has received the submission.
     - Quick actions: **`↺ Refresh Status`** and **`💬 Contact Reception`**.
   - **Dark/Zinc Fintech Redesign:** Eradicated outdated generic blue buttons (`bg-blue-600`). Redesigned initial payment form to use dark/zinc cards (`bg-zinc-900/90 border border-zinc-800`), high-contrast dark/emerald segmented tabs, and high-impact CTA buttons (`bg-black dark:bg-[#58ff48] text-white dark:text-black font-bold h-14 rounded-full`).
+- **Sidebar Navigation Tickets Integration (`components/shared/Sidebar.tsx`):**
+  - Added missing **Tickets** navigation item to `NAV_CONFIG` across all roles:
+    - Admin Sidebar: `{ label: "Tickets", href: "/admin/tickets", icon: Ticket }`
+    - Warden Sidebar: `{ label: "Tickets", href: "/warden/tickets", icon: Ticket }`
+    - Tenant Sidebar: `{ label: "Support Tickets", href: "/tenant/tickets", icon: Ticket }`
+  - Provides direct 1-click access to the maintenance ticketing board and issue resolution workspace.
 - **Authentic WhatsApp Chat Bubble Preview & Dispatch Studio:** Completely redesigned the auto-dispatch modal to feature an authentic WhatsApp Chat Bubble preview (`bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 rounded-2xl rounded-tl-xs p-4`) showing live template message text, link styling, access key highlights, and timestamp (`Just now · WhatsApp`). Paired with a 3-way quick-copy toolbar (`Copy Message`, `Copy Link`, `Copy Key`) and an emerald brand CTA (`Send via WhatsApp ↗`).
 - **Linear Connected Step Node Track:** Replaced cluttered step pills with a sleek connected track line featuring circular step nodes `(1)` ➔ `(2)` ➔ `(3)` ➔ `(4)` ➔ `(5)`. Completed steps display glowing emerald `✓` checkmark circles with instant step-jump navigation.
 - **Contextual Top-Left Back Action:** Added a contextual top back button (`← Back to [Previous Step Name]`) enabling effortless reverse navigation without scrolling down.
