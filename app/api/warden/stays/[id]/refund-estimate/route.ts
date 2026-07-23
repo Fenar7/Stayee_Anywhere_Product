@@ -38,18 +38,18 @@ export async function GET(
     }
 
     const joiningDate = new Date(stay.joiningDate);
-    const endDate = new Date(stay.endDate);
+    const endDate = stay.endDate ? new Date(stay.endDate) : new Date();
     
     if (isBefore(exitDate, joiningDate)) {
       return NextResponse.json({ error: "Exit date cannot be before joining date" }, { status: 400 });
     }
     
-    if (isAfter(exitDate, endDate)) {
+    if (stay.endDate && isAfter(exitDate, endDate)) {
       return NextResponse.json({ error: "Exit date cannot be after current end date" }, { status: 400 });
     }
 
     const daysUsed = differenceInCalendarDays(exitDate, joiningDate);
-    const daysRemaining = differenceInCalendarDays(endDate, exitDate);
+    const daysRemaining = stay.endDate ? Math.max(0, differenceInCalendarDays(endDate, exitDate)) : 0;
 
     // Prorate monthly rent per day
     const rentPerDay = stay.monthlyRentPaise / 30;

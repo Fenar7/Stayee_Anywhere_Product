@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
 
     // Enrich rent due stays with days remaining and rent amount
     const enrichedRentDue = rentDueStays.map((stay) => {
-      const daysRemaining = diffInDays(todayStart, stay.endDate);
+      const daysRemaining = stay.endDate ? diffInDays(todayStart, stay.endDate) : 999;
       return {
         id: stay.id,
         status: stay.status,

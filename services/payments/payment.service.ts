@@ -152,17 +152,28 @@ export async function verifyPayment(
 
   const result = await prisma.$transaction(async (tx) => {
     // Bed conflict check inside transaction
-    const overlappingStay = await tx.stay.findFirst({
+    const activeStaysOnBed = await tx.stay.findMany({
       where: {
         bedId: stay.bedId,
         id: { not: stay.id },
         status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
-        joiningDate: { lte: stay.endDate },
-        endDate: { gte: stay.joiningDate },
       },
+      select: { joiningDate: true, endDate: true },
     });
 
-    if (overlappingStay) {
+    const targetStart = stay.joiningDate.getTime();
+    const targetEnd = stay.endDate ? stay.endDate.getTime() : null;
+
+    const hasOverlap = activeStaysOnBed.some((other) => {
+      const otherStart = new Date(other.joiningDate).getTime();
+      const otherEnd = other.endDate ? new Date(other.endDate).getTime() : null;
+
+      if (otherEnd !== null && otherEnd < targetStart) return false;
+      if (targetEnd !== null && otherStart > targetEnd) return false;
+      return true;
+    });
+
+    if (hasOverlap) {
       throw new ConflictError(
         "Cannot activate stay. The bed has been booked by another active/extended resident for this date range."
       );

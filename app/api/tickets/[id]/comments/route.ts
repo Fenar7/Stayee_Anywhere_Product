@@ -69,6 +69,45 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
     });
 
+    // Notify Warden & Admins if TENANT posted a reply
+    if (user.role === "TENANT") {
+      try {
+        const warden = await prisma.warden.findFirst({
+          where: { hostelId: ticket.hostelId },
+          select: { userId: true }
+        });
+        const mainAdmins = await prisma.user.findMany({
+          where: { role: "MAIN_ADMIN" },
+          select: { id: true }
+        });
+
+        const recipientUserIds = new Set<string>();
+        if (warden?.userId) recipientUserIds.add(warden.userId);
+        mainAdmins.forEach((admin) => recipientUserIds.add(admin.id));
+
+        const tenantName = user.tenant?.fullName || "Tenant";
+        await prisma.notification.createMany({
+          data: Array.from(recipientUserIds).map((recipientId) => ({
+            userId: recipientId,
+            title: "New Tenant Ticket Reply",
+            message: `${tenantName} replied on ticket: ${ticket.title}`,
+            type: "TICKET",
+            referenceId: ticket.id,
+          })),
+        });
+
+        // Reopen ticket if resolved/closed so warden knows action is needed
+        if (ticket.status === "RESOLVED" || ticket.status === "CLOSED") {
+          await prisma.ticket.update({
+            where: { id: ticket.id },
+            data: { status: "OPEN" }
+          });
+        }
+      } catch (err) {
+        console.error("Failed to dispatch staff notifications:", err);
+      }
+    }
+
     return NextResponse.json(comment);
   } catch (error) {
     console.error("Error creating ticket comment:", error);

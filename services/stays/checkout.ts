@@ -48,7 +48,7 @@ export async function processEarlyCheckout(params: EarlyCheckoutParams): Promise
     throw new ValidationError("Stay must be ACTIVE or EXTENDED to process early checkout");
   }
 
-  if (checkoutDate.getTime() < stay.joiningDate.getTime() || checkoutDate.getTime() >= stay.endDate.getTime()) {
+  if (checkoutDate.getTime() < stay.joiningDate.getTime() || (stay.endDate && checkoutDate.getTime() >= stay.endDate.getTime())) {
     throw new ValidationError("Checkout date must be between joining date and scheduled check-out date");
   }
 
@@ -56,7 +56,8 @@ export async function processEarlyCheckout(params: EarlyCheckoutParams): Promise
     throw new ValidationError("Checkout date cannot be in the future");
   }
 
-  const totalDays = Math.max(1, diffInDays(stay.joiningDate, stay.endDate));
+  const effectiveEndDate = stay.endDate ?? new Date();
+  const totalDays = Math.max(1, diffInDays(stay.joiningDate, effectiveEndDate));
   const daysUsed = Math.max(0, diffInDays(stay.joiningDate, checkoutDate));
   const daysRemaining = Math.max(0, totalDays - daysUsed);
 

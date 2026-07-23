@@ -126,6 +126,18 @@ export async function GET(request: NextRequest) {
       where: { id: stay.hostelId },
     });
 
+    const wardenAssignment = await prisma.warden.findUnique({
+      where: { hostelId: stay.hostelId },
+      include: {
+        user: {
+          select: {
+            phone: true,
+            email: true,
+          },
+        },
+      },
+    });
+
     let roommates: {
       fullName: string;
       photoUrl: string | null;
@@ -227,6 +239,12 @@ export async function GET(request: NextRequest) {
             id: hostel.id,
             name: hostel.name,
             address: hostel.address,
+          }
+        : null,
+      warden: wardenAssignment?.user
+        ? {
+            name: "Hostel Warden",
+            phone: wardenAssignment.user.phone,
           }
         : null,
       bed: {

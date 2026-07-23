@@ -103,6 +103,19 @@ export async function GET(
       })
     );
 
+    // Fetch corresponding onboarding request
+    const matchingReq = await prisma.onboardingRequest.findFirst({
+      where: {
+        hostelId: stay.hostelId,
+        bedId: stay.bedId,
+        status: "PENDING",
+      },
+    });
+
+    const rawPhone = stay.tenant.user?.phone || "";
+    const isUuid = rawPhone.includes("-") || rawPhone.length > 20;
+    const displayPhone = !isUuid && rawPhone ? rawPhone : (stay.tenant.emergencyContactNumber || matchingReq?.phone || "");
+
     return NextResponse.json({
       stay: {
         id: stay.id,
@@ -118,6 +131,14 @@ export async function GET(
         foodPlan: stay.foodPlan,
         totalPayable: stay.totalPayablePaise / 100,
         discount: stay.discountPaise / 100,
+        onboardingRequest: matchingReq
+          ? {
+              id: matchingReq.id,
+              status: matchingReq.status,
+              onboardingCurrentStep: matchingReq.onboardingCurrentStep,
+              createdAt: matchingReq.createdAt,
+            }
+          : null,
       },
       tenant: {
         id: stay.tenant.id,
@@ -137,7 +158,7 @@ export async function GET(
         companyName: stay.tenant.companyName,
         designation: stay.tenant.designation,
         purposeOfStay: stay.tenant.purposeOfStay,
-        phone: stay.tenant.user?.phone || "",
+        phone: displayPhone,
         email: stay.tenant.user?.email || "",
         plainTextPassword: stay.tenant.user?.plainTextPassword || null,
         documents: documentsWithUrls,

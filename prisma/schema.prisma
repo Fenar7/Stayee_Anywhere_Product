@@ -305,7 +305,7 @@ model Stay {
   status               StayStatus
   durationType         DurationType
   joiningDate          DateTime
-  endDate              DateTime
+  endDate              DateTime?
   isNewAdmission       Boolean
   admissionFeePaise    Int
   monthlyRentPaise     Int
@@ -335,10 +335,13 @@ model Stay {
   foodWalletTopUps  FoodWalletTopUp[]
   foodSettlements   FoodSettlementStatement[]
 
+  nextBillingDate      DateTime?
+
   // Indexes
   @@index([bedId, status])
   @@index([hostelId, status])
   @@index([endDate])
+  @@index([nextBillingDate, status])
 }
 
 model StayStatusEvent {
@@ -656,6 +659,11 @@ model TicketComment {
 enum ActivityEventType {
   // Stay Lifecycle
   TENANT_ONBOARDING_STARTED
+  TENANT_ONBOARDING_PROGRESS
+  TENANT_ONBOARDING_SUBMITTED
+  TENANT_ONBOARDING_RESET
+  TENANT_PAYMENT_REQUESTED
+  TENANT_ONBOARDING_CANCELLED
   TENANT_ONBOARDED
   TENANT_PAYMENT_RECEIVED
   TENANT_CHECKED_OUT

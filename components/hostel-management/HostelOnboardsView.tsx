@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, Check, Copy, Eye, Clock, Key } from "lucide-react";
+import { Loader2, ArrowRight, Check, Copy, Eye, Clock, Key, Send } from "lucide-react";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { notify } from "@/lib/toast";
 import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
-import { STAY_STATUS_LABELS, STAY_STATUS_COLORS } from "@/lib/labels";
+import { STAY_STATUS_LABELS, STAY_STATUS_COLORS, getStayStatusDisplay } from "@/lib/labels";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,12 +31,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
+import { WhatsAppDispatchModal } from "./WhatsAppDispatchModal";
 
 interface OnboardItem {
   id: string;
   status: string;
   joiningDate: string;
-  endDate: string;
+  endDate: string | null;
   totalPayable: number;
   hasPendingPayment?: boolean;
   tenant: {
@@ -54,6 +55,7 @@ interface OnboardItem {
   onboardingRequest?: {
     id: string;
     status: string;
+    onboardingCurrentStep?: number;
     createdAt: string;
   } | null;
 }
@@ -71,6 +73,15 @@ export default function HostelOnboardsView({
   
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+
+  // Dispatch modal
+  const [dispatchModal, setDispatchModal] = useState<{
+    onboardingReqId: string;
+    phone: string;
+    link: string;
+    password?: string;
+  } | null>(null);
+  const [dispatchLoadingId, setDispatchLoadingId] = useState<string | null>(null);
 
   // Password modal
   const [passwordModal, setPasswordModal] = useState<{
@@ -99,6 +110,30 @@ export default function HostelOnboardsView({
       notify.error(errorMsg || "An error occurred while loading lists");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendLink = async (onboardingReqId: string, phone: string) => {
+    setDispatchLoadingId(onboardingReqId);
+    try {
+      const res = await fetch(
+        `/api/warden/onboarding-requests/${onboardingReqId}/info`
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to get onboarding link");
+      
+      const fullLink = `${window.location.origin}${data.entryGateLink}`;
+      setDispatchModal({
+        onboardingReqId,
+        phone,
+        link: fullLink,
+        password: data.tempPassword,
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred");
+    } finally {
+      setDispatchLoadingId(null);
     }
   };
 
@@ -169,7 +204,8 @@ export default function HostelOnboardsView({
     );
   }
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return "Ongoing";
     return new Date(dateStr).toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -211,8 +247,11 @@ export default function HostelOnboardsView({
             </TableHeader>
           <TableBody>
             {items.map((item) => {
-              const label = STAY_STATUS_LABELS[item.status] || item.status;
-              const colorClass = STAY_STATUS_COLORS[item.status] || "bg-gray-100 text-gray-800";
+              const { label, colorClass } = getStayStatusDisplay({
+                status: item.status,
+                hasProfile: item.tenant.hasProfile,
+                onboardingCurrentStep: item.onboardingRequest?.onboardingCurrentStep,
+              });
               const needsPaymentVerify = item.status === "APPROVED_AWAITING_PAYMENT" && item.hasPendingPayment;
 
               return (
@@ -251,7 +290,7 @@ export default function HostelOnboardsView({
                   </TableCell>
                   <TableCell>
                     <span className="text-sm">
-                      {formatDate(item.joiningDate)} - {formatDate(item.endDate)}
+                      {formatDate(item.joiningDate)} {item.endDate ? `- ${formatDate(item.endDate)}` : "(Ongoing)"}
                     </span>
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
@@ -260,9 +299,16 @@ export default function HostelOnboardsView({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleViewPassword(item.onboardingRequest!.id, item.tenant.phone)}
+                          disabled={dispatchLoadingId === item.onboardingRequest.id}
+                          className="border-emerald-200 bg-emerald-50/50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                          onClick={() => handleResendLink(item.onboardingRequest!.id, item.tenant.phone)}
                         >
-                          <Key className="h-4 w-4 mr-1" /> Key
+                          {dispatchLoadingId === item.onboardingRequest.id ? (
+                            <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin text-emerald-600" />
+                          ) : (
+                            <Send className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
+                          )}
+                          Resend Link
                         </Button>
                       )}
                       {item.status === "ONBOARDING_PENDING" && (
@@ -303,9 +349,16 @@ export default function HostelOnboardsView({
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleViewPassword(item.onboardingRequest!.id, item.tenant.phone)}
+                            disabled={dispatchLoadingId === item.onboardingRequest.id}
+                            className="border-emerald-200 bg-emerald-50/50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                            onClick={() => handleResendLink(item.onboardingRequest!.id, item.tenant.phone)}
                           >
-                            <Key className="h-4 w-4 mr-1" /> Key
+                            {dispatchLoadingId === item.onboardingRequest.id ? (
+                              <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin text-emerald-600" />
+                            ) : (
+                              <Send className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
+                            )}
+                            Resend Link & Key
                           </Button>
                         )}
                         {item.status === "ONBOARDING_PENDING" && (
@@ -468,6 +521,14 @@ export default function HostelOnboardsView({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <WhatsAppDispatchModal
+        isOpen={!!dispatchModal}
+        onClose={() => setDispatchModal(null)}
+        onboardingReqId={dispatchModal?.onboardingReqId}
+        phone={dispatchModal?.phone || ""}
+        link={dispatchModal?.link || ""}
+        password={dispatchModal?.password}
+      />
     </HostelWorkspaceLayout>
   );
 }

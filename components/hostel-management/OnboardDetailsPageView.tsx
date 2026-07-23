@@ -4,9 +4,10 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { notify } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, Check, X, CreditCard, ShieldCheck, AlertCircle, FileText, ExternalLink, MessageSquare, Clipboard, Upload } from "lucide-react";
+import { Loader2, ArrowLeft, Check, X, CreditCard, ShieldCheck, AlertCircle, FileText, ExternalLink, MessageSquare, Clipboard, Upload, Send, KeyRound } from "lucide-react";
 import { applicationApprovedPaymentRequest } from "@/lib/whatsapp/templates";
 import { normalizePhoneNumber, buildWaMeLink } from "@/lib/whatsapp/utils";
+import { WhatsAppDispatchModal } from "@/components/hostel-management/WhatsAppDispatchModal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,7 +45,7 @@ interface StayDetails {
   status: string;
   durationType: string;
   joiningDate: string;
-  endDate: string;
+  endDate: string | null;
   isNewAdmission: boolean;
   admissionFee: number;
   monthlyRent: number;
@@ -53,6 +54,12 @@ interface StayDetails {
   foodPlan: string;
   totalPayable: number;
   discount: number;
+  onboardingRequest?: {
+    id: string;
+    status: string;
+    tempPassword?: string;
+    onboardingCurrentStep?: number;
+  } | null;
 }
 
 interface TenantDetails {
@@ -87,9 +94,7 @@ interface BedDetails {
 }
 
 export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: string; backUrl: string }) {
-  
   const router = useRouter();
-  
 
   const [loading, setLoading] = useState(true);
   
@@ -99,6 +104,32 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
   const [bed, setBed] = useState<BedDetails | null>(null);
   const [payments, setPayments] = useState<PaymentItem[]>([]);
   const [upiId, setUpiId] = useState<string | null>(null);
+
+  // Dispatch modal
+  const [dispatchModal, setDispatchModal] = useState<{
+    onboardingReqId: string;
+    phone: string;
+    link: string;
+    password?: string;
+  } | null>(null);
+  const [dispatchLoading, setDispatchLoading] = useState(false);
+  const [directLinkCopied, setDirectLinkCopied] = useState(false);
+
+  const handleCopyDirectLink = async () => {
+    if (!stay?.onboardingRequest?.id) {
+      notify.error("No active onboarding request found.");
+      return;
+    }
+    const fullLink = `${window.location.origin}/onboarding?id=${stay.onboardingRequest.id}`;
+    try {
+      await navigator.clipboard.writeText(fullLink);
+      setDirectLinkCopied(true);
+      notify.success("Onboarding link copied to clipboard!");
+      setTimeout(() => setDirectLinkCopied(false), 2500);
+    } catch {
+      notify.error("Failed to copy link");
+    }
+  };
 
   // Action pending states
   const [processingApprove, setProcessingApprove] = useState(false);
@@ -136,6 +167,34 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
       notify.error(errorMsg || "An error occurred while loading details");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendLink = async () => {
+    if (!stay?.onboardingRequest?.id) {
+      notify.error("No active onboarding request found for this stay.");
+      return;
+    }
+    setDispatchLoading(true);
+    try {
+      const res = await fetch(
+        `/api/warden/onboarding-requests/${stay.onboardingRequest.id}/info`
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to get onboarding link");
+      
+      const fullLink = `${window.location.origin}${data.entryGateLink}`;
+      setDispatchModal({
+        onboardingReqId: stay.onboardingRequest.id,
+        phone: tenant?.phone || "",
+        link: fullLink,
+        password: data.tempPassword,
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred");
+    } finally {
+      setDispatchLoading(false);
     }
   };
 
@@ -373,6 +432,43 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
         </div>
       )}
 
+      {/* TENANT PENDING FORM BANNER */}
+      {tenant?.fullName.startsWith("Prospect ") && (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 rounded-xl border border-amber-200/80 bg-amber-50/60 dark:border-amber-900/40 dark:bg-amber-950/30 p-5 max-w-7xl">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <div>
+              <h4 className="font-bold text-amber-900 dark:text-amber-300 text-sm">Tenant Has Not Submitted Registration Form Yet</h4>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 leading-relaxed">
+                The onboarding link was sent to <span className="font-mono font-semibold">{tenant.phone}</span>. Profile information and verification documents will automatically populate here once the tenant completes the registration form.
+              </p>
+            </div>
+          </div>
+          {stay?.onboardingRequest && (
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleCopyDirectLink}
+                className="border-amber-300 bg-amber-100/50 hover:bg-amber-100 text-amber-900 font-semibold text-xs flex items-center gap-1.5"
+              >
+                {directLinkCopied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Clipboard className="h-3.5 w-3.5" />}
+                {directLinkCopied ? "Link Copied!" : "Copy Link"}
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleResendLink}
+                disabled={dispatchLoading}
+                className="border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs"
+              >
+                {dispatchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <KeyRound className="h-3.5 w-3.5" />}
+                🔑 Password Key & WhatsApp
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* PENDING PAYMENT NOTICE BANNER */}
       {payments.some((p) => p.paymentStatus === "PENDING") && (
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 rounded-xl border border-amber-200 bg-amber-500/10 p-5 max-w-7xl dark:border-amber-900/30">
@@ -426,7 +522,14 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
                 </div>
               )}
               <div className="text-center sm:text-left space-y-1">
-                <h2 className="text-2xl font-bold">{tenant?.fullName}</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-2xl font-bold">{tenant?.fullName}</h2>
+                  {tenant?.fullName.startsWith("Prospect ") && (
+                    <span className="text-[11px] font-semibold font-mono bg-amber-100/80 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 px-2 py-0.5 rounded-md border border-amber-300/60">
+                      Draft (Filling Form In Progress)
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground">Phone: {tenant?.phone || stay?.id}</p>
                 {tenant?.email && <p className="text-xs text-muted-foreground">Email: {tenant.email}</p>}
                 {tenant?.plainTextPassword && (
@@ -435,7 +538,7 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
                   </p>
                 )}
                 <p className="text-xs mt-1">
-                  Occupation: <span className="font-semibold">{tenant?.occupationType}</span>
+                  Occupation: <span className="font-semibold">{tenant?.occupationType || "Pending tenant input"}</span>
                 </p>
               </div>
             </div>
@@ -445,36 +548,41 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
               <div>
                 <h3 className="font-bold text-muted-foreground uppercase text-xs tracking-wider mb-2">Personal Information</h3>
                 <div className="space-y-2">
-                  <p><span className="text-muted-foreground">Date of Birth:</span> {tenant ? new Date(tenant.dateOfBirth).toLocaleDateString("en-IN") : ""}</p>
-                  <p><span className="text-muted-foreground">Gender:</span> {tenant?.gender}</p>
-                  <p><span className="text-muted-foreground">Place of Birth:</span> {tenant?.placeOfBirth}</p>
-                  <p><span className="text-muted-foreground">Permanent Address:</span> {tenant?.permanentAddress}</p>
+                  <p>
+                    <span className="text-muted-foreground">Date of Birth:</span>{" "}
+                    {tenant?.dateOfBirth && new Date(tenant.dateOfBirth).getFullYear() > 1970
+                      ? new Date(tenant.dateOfBirth).toLocaleDateString("en-IN")
+                      : "Pending tenant input"}
+                  </p>
+                  <p><span className="text-muted-foreground">Gender:</span> {tenant?.gender || "Pending tenant input"}</p>
+                  <p><span className="text-muted-foreground">Place of Birth:</span> {tenant?.placeOfBirth || "Pending tenant input"}</p>
+                  <p><span className="text-muted-foreground">Permanent Address:</span> {tenant?.permanentAddress || "Pending tenant input"}</p>
                 </div>
               </div>
 
               <div>
                 <h3 className="font-bold text-muted-foreground uppercase text-xs tracking-wider mb-2">Emergency Contacts</h3>
                 <div className="space-y-2">
-                  <p><span className="text-muted-foreground">Emergency Contact:</span> {tenant?.emergencyContactName} ({tenant?.relationship})</p>
-                  <p><span className="text-muted-foreground">Contact No:</span> {tenant?.emergencyContactNumber}</p>
-                  <p><span className="text-muted-foreground">Parent / Guardian:</span> {tenant?.parentGuardianName}</p>
-                  <p><span className="text-muted-foreground">Parent Contact:</span> {tenant?.parentGuardianContact}</p>
+                  <p><span className="text-muted-foreground">Emergency Contact:</span> {tenant?.emergencyContactName ? `${tenant.emergencyContactName} (${tenant.relationship})` : "Pending tenant input"}</p>
+                  <p><span className="text-muted-foreground">Contact No:</span> {tenant?.emergencyContactNumber || "Pending tenant input"}</p>
+                  <p><span className="text-muted-foreground">Parent / Guardian:</span> {tenant?.parentGuardianName || "Pending tenant input"}</p>
+                  <p><span className="text-muted-foreground">Parent Contact:</span> {tenant?.parentGuardianContact || "Pending tenant input"}</p>
                 </div>
               </div>
 
               {tenant?.occupationType === "STUDENT" ? (
                 <div className="sm:col-span-2 border-t pt-4">
                   <h3 className="font-bold text-muted-foreground uppercase text-xs tracking-wider mb-2">Academic Profile</h3>
-                  <p><span className="text-muted-foreground">College:</span> {tenant.collegeName}</p>
-                  <p><span className="text-muted-foreground">Course/Branch:</span> {tenant.courseOrBranch}</p>
-                  <p><span className="text-muted-foreground">Purpose of Stay:</span> {tenant.purposeOfStay}</p>
+                  <p><span className="text-muted-foreground">College:</span> {tenant.collegeName || "Pending tenant input"}</p>
+                  <p><span className="text-muted-foreground">Course/Branch:</span> {tenant.courseOrBranch || "Pending tenant input"}</p>
+                  <p><span className="text-muted-foreground">Purpose of Stay:</span> {tenant.purposeOfStay || "Pending tenant input"}</p>
                 </div>
               ) : (
                 <div className="sm:col-span-2 border-t pt-4">
                   <h3 className="font-bold text-muted-foreground uppercase text-xs tracking-wider mb-2">Professional Profile</h3>
-                  <p><span className="text-muted-foreground">Company:</span> {tenant?.companyName}</p>
-                  <p><span className="text-muted-foreground">Designation:</span> {tenant?.designation}</p>
-                  <p><span className="text-muted-foreground">Purpose of Stay:</span> {tenant?.purposeOfStay}</p>
+                  <p><span className="text-muted-foreground">Company:</span> {tenant?.companyName || "Pending tenant input"}</p>
+                  <p><span className="text-muted-foreground">Designation:</span> {tenant?.designation || "Pending tenant input"}</p>
+                  <p><span className="text-muted-foreground">Purpose of Stay:</span> {tenant?.purposeOfStay || "Pending tenant input"}</p>
                 </div>
               )}
             </div>
@@ -555,7 +663,7 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Stay Dates:</span>
                 <span className="font-semibold">
-                  {stay ? new Date(stay.joiningDate).toLocaleDateString("en-IN") : ""} to {stay ? new Date(stay.endDate).toLocaleDateString("en-IN") : ""}
+                  {stay ? new Date(stay.joiningDate).toLocaleDateString("en-IN") : ""} {stay?.endDate ? `to ${new Date(stay.endDate).toLocaleDateString("en-IN")}` : "(Ongoing)"}
                 </span>
               </div>
             </div>
@@ -590,6 +698,49 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
             </div>
           </div>
 
+          {/* ONBOARDING ACCESS PASSCODE & KEY CONTROLS CARD */}
+          {stay?.status === "ONBOARDING_PENDING" && stay?.onboardingRequest && (
+            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-950/20 p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
+                  <h4 className="font-bold text-sm text-emerald-950 dark:text-emerald-200">
+                    Onboarding Access Password Key
+                  </h4>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 border border-emerald-300/60">
+                  Active Security Key
+                </span>
+              </div>
+              
+              <p className="text-xs text-emerald-800/80 dark:text-emerald-300/80 leading-relaxed">
+                Prospect uses this password key + their phone number (<span className="font-mono font-semibold">{tenant?.phone}</span>) to enter their onboarding gate. You can view, copy, generate a fresh key, or set a custom password.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Button
+                  size="sm"
+                  onClick={handleResendLink}
+                  disabled={dispatchLoading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs"
+                >
+                  {dispatchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <KeyRound className="h-3.5 w-3.5" />}
+                  🔑 View & Manage Key / Resend
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCopyDirectLink}
+                  className="bg-white dark:bg-zinc-900 text-xs font-medium flex items-center gap-1.5"
+                >
+                  {directLinkCopied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Clipboard className="h-3.5 w-3.5 text-zinc-500" />}
+                  {directLinkCopied ? "Link Copied!" : "Copy Link"}
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* ONBOARDING ACTION PANEL */}
           {stay?.status === "ONBOARDING_PENDING" && tenant?.id && (
             <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
@@ -597,11 +748,37 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Review the profile information and ID proof. If everything is valid, click Approve to notify the tenant for deposit payment.
               </p>
-              <div className="flex gap-3">
+              
+              {stay?.onboardingRequest && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Button
+                    onClick={handleCopyDirectLink}
+                    variant="outline"
+                    className="w-full font-semibold flex items-center justify-center gap-1.5 h-10 rounded-lg text-xs"
+                  >
+                    {directLinkCopied ? <Check className="h-4 w-4 text-emerald-600" /> : <Clipboard className="h-4 w-4" />}
+                    {directLinkCopied ? "Link Copied!" : "Copy Link"}
+                  </Button>
+                  <Button
+                    onClick={handleResendLink}
+                    disabled={dispatchLoading}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center gap-1.5 h-10 rounded-lg shadow-xs transition-colors text-xs"
+                  >
+                    {dispatchLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                    Resend via WhatsApp
+                  </Button>
+                </div>
+              )}
+
+              <div className="flex gap-3 border-t pt-3">
                 <Button
                   onClick={handleApprove}
                   disabled={processingApprove || processingReject || !tenant.fullName || tenant.fullName.startsWith("Prospect ")}
-                  className="flex-1 bg-primary hover:bg-primary/95 text-white"
+                  className="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 font-medium disabled:opacity-40 disabled:bg-zinc-200 disabled:text-zinc-500 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500 border-0"
                 >
                   {processingApprove ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                   Approve Profile
@@ -617,8 +794,8 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
                 </Button>
               </div>
               {tenant && tenant.fullName.startsWith("Prospect ") && (
-                <p className="text-[10px] text-yellow-600 font-semibold mt-1">
-                  Tenant has not submitted their registration profile details yet.
+                <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium mt-1">
+                  Tenant has not submitted their registration profile details yet. Use &ldquo;Resend Link via WhatsApp&rdquo; above to dispatch access link again.
                 </p>
               )}
             </div>
@@ -831,6 +1008,15 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <WhatsAppDispatchModal
+        isOpen={!!dispatchModal}
+        onClose={() => setDispatchModal(null)}
+        onboardingReqId={dispatchModal?.onboardingReqId}
+        phone={dispatchModal?.phone || ""}
+        link={dispatchModal?.link || ""}
+        password={dispatchModal?.password}
+      />
       </div>
     </div>
   );

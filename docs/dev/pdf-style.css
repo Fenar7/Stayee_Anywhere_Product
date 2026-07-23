@@ -1,0 +1,365 @@
+/* ============================================================
+   Stayee Anywhere — Local Dev Setup Runbook — PDF Stylesheet
+   Wires into VS Code Markdown PDF extension
+   Usage: Set "markdown-pdf.styles": ["docs/dev/pdf-style.css"]
+          in .vscode/settings.json (workspace-scoped)
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* ── CSS Variables ─────────────────────────────────────────── */
+:root {
+  --accent: #2563EB;
+  --accent-light: #DBEAFE;
+  --accent-dark: #1D4ED8;
+  --success: #16A34A;
+  --warning: #D97706;
+  --danger: #DC2626;
+  --dark-900: #0F172A;
+  --dark-800: #1E293B;
+  --dark-700: #334155;
+  --dark-600: #475569;
+  --gray-400: #94A3B8;
+  --gray-200: #E2E8F0;
+  --gray-100: #F1F5F9;
+  --white: #FFFFFF;
+  --font-body: 'Inter', 'Segoe UI', -apple-system, sans-serif;
+  --font-heading: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  --font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
+}
+
+/* ── Page Setup ─────────────────────────────────────────────── */
+@page {
+  size: A4;
+  margin: 20mm 18mm 24mm 18mm;
+}
+
+@page :first {
+  margin-top: 0;
+}
+
+/* ── Base Reset ─────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 10pt;
+  line-height: 1.7;
+  color: var(--dark-800);
+  background: var(--white);
+}
+
+/* ── Page Break Utility ─────────────────────────────────────── */
+.page-break,
+div[style*="page-break-after"] {
+  page-break-after: always;
+  break-after: page;
+}
+
+/* ── Headings ───────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+  color: var(--dark-900);
+}
+
+h1 {
+  font-size: 22pt;
+  font-weight: 800;
+  color: var(--dark-900);
+  border-bottom: 3px solid var(--accent);
+  padding-bottom: 10px;
+  margin-top: 1.5em;
+  letter-spacing: -0.5px;
+}
+
+h2 {
+  font-size: 15pt;
+  font-weight: 700;
+  color: var(--dark-800);
+  border-left: 4px solid var(--accent);
+  padding-left: 12px;
+  margin-top: 1.8em;
+}
+
+h3 {
+  font-size: 12pt;
+  font-weight: 600;
+  color: var(--dark-700);
+  margin-top: 1.4em;
+}
+
+h4 {
+  font-size: 10.5pt;
+  font-weight: 600;
+  color: var(--accent-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 1.2em;
+}
+
+h5, h6 {
+  font-size: 10pt;
+  font-weight: 600;
+  color: var(--dark-600);
+}
+
+/* ── Paragraphs ─────────────────────────────────────────────── */
+p {
+  margin: 0.5em 0 0.9em;
+  line-height: 1.75;
+  color: var(--dark-800);
+}
+
+/* ── Links ──────────────────────────────────────────────────── */
+a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* ── Strong & Em ─────────────────────────────────────────────── */
+strong {
+  font-weight: 700;
+  color: var(--dark-900);
+}
+
+em {
+  font-style: italic;
+  color: var(--dark-700);
+}
+
+/* ── Horizontal Rules ────────────────────────────────────────── */
+hr {
+  border: none;
+  border-top: 1px solid var(--gray-200);
+  margin: 2em 0;
+}
+
+/* ── Blockquotes ─────────────────────────────────────────────── */
+blockquote {
+  margin: 1.5em 0;
+  padding: 14px 18px 14px 20px;
+  border-left: 4px solid var(--accent);
+  background: linear-gradient(to right, #EFF6FF, #F8FAFF);
+  border-radius: 0 8px 8px 0;
+  color: var(--dark-700);
+  font-size: 9.5pt;
+}
+
+blockquote p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+blockquote p:not(:last-child) {
+  margin-bottom: 0.5em;
+}
+
+/* ── Code ────────────────────────────────────────────────────── */
+code {
+  font-family: var(--font-mono);
+  font-size: 8.5pt;
+  background: var(--gray-100);
+  color: var(--accent-dark);
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--gray-200);
+}
+
+pre {
+  background: var(--dark-900);
+  color: #E2E8F0;
+  padding: 16px 20px;
+  border-radius: 8px;
+  overflow: auto;
+  font-size: 8pt;
+  line-height: 1.6;
+  margin: 1.2em 0;
+  border-left: 3px solid var(--accent);
+  font-family: var(--font-mono);
+}
+
+pre code, pre code span {
+  background: transparent !important;
+  color: #E2E8F0 !important;
+  padding: 0;
+  border: none;
+  font-size: inherit;
+}
+
+/* ── Tables ──────────────────────────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.4em 0;
+  font-size: 9pt;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+thead {
+  background: var(--dark-900);
+  color: var(--white);
+}
+
+thead th {
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 8.5pt;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  border: none;
+}
+
+thead th:first-child { border-radius: 8px 0 0 0; }
+thead th:last-child  { border-radius: 0 8px 0 0; }
+
+tbody tr {
+  border-bottom: 1px solid var(--gray-200);
+}
+
+tbody tr:nth-child(even) {
+  background: #F8FAFC;
+}
+
+tbody tr:last-child { border-bottom: none; }
+tbody tr:last-child td:first-child { border-radius: 0 0 0 8px; }
+tbody tr:last-child td:last-child  { border-radius: 0 0 8px 0; }
+
+tbody td {
+  padding: 9px 14px;
+  border: none;
+  color: var(--dark-700);
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+tbody td:first-child {
+  font-weight: 600;
+  color: var(--dark-900);
+}
+
+/* ── Lists ───────────────────────────────────────────────────── */
+ul, ol {
+  margin: 0.5em 0 1em 0;
+  padding-left: 1.6em;
+}
+
+ul li, ol li {
+  margin-bottom: 0.35em;
+  line-height: 1.65;
+  color: var(--dark-700);
+}
+
+ul li::marker {
+  color: var(--accent);
+  font-size: 1.1em;
+}
+
+ol li::marker {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+li > ul, li > ol {
+  margin-top: 0.3em;
+  margin-bottom: 0.3em;
+}
+
+/* ── Mermaid Diagrams ────────────────────────────────────────── */
+.mermaid {
+  background: #F8FAFF;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 1.2em 0;
+  text-align: center;
+  page-break-inside: avoid;
+}
+
+/* ── Cover / Metadata Table (first table in doc) ─────────────── */
+table:first-of-type {
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+}
+
+table:first-of-type thead {
+  display: none;
+}
+
+table:first-of-type tbody td:first-child {
+  color: var(--gray-400);
+  font-weight: 500;
+  font-size: 8.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: 35%;
+}
+
+table:first-of-type tbody td:last-child {
+  color: var(--dark-900);
+  font-weight: 600;
+}
+
+/* ── TOC Styling ─────────────────────────────────────────────── */
+h1 + ol,
+h1 + ul {
+  background: #F8FAFC;
+  border: 1px solid var(--gray-200);
+  border-left: 4px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  padding: 16px 16px 16px 24px;
+}
+
+h1 + ol li,
+h1 + ul li {
+  font-weight: 500;
+  padding: 2px 0;
+}
+
+h1 + ol li a,
+h1 + ul li a {
+  color: var(--dark-700);
+}
+
+/* ── Print Optimisation ─────────────────────────────────────── */
+@media print {
+  body { font-size: 9.5pt; }
+
+  h1, h2, h3 { page-break-after: avoid; break-after: avoid; }
+  h4, h5, h6 { page-break-after: avoid; }
+
+  table       { page-break-inside: avoid; }
+  pre         { page-break-inside: avoid; }
+  blockquote  { page-break-inside: avoid; }
+  tr          { page-break-inside: avoid; }
+  .mermaid    { page-break-inside: avoid; }
+}
+
+/* ── Page Footer ─────────────────────────────────────────────── */
+@page {
+  @bottom-center {
+    content: "Stayee Anywhere — Local Dev Setup Runbook — Internal Engineering";
+    font-family: 'Inter', sans-serif;
+    font-size: 7.5pt;
+    color: #94A3B8;
+  }
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font-family: 'Inter', sans-serif;
+    font-size: 7.5pt;
+    color: #94A3B8;
+  }
+}

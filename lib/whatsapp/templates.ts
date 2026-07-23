@@ -25,12 +25,20 @@ export function onboardingLinkWithPassword(
   name?: string
 ): string {
   const greeting = name ? `Hello ${name}` : "Hello";
+  if (tempPassword === "Set by Tenant (Encrypted)") {
+    return (
+      `${greeting}, welcome to Anywhere Node! Your onboarding is ready.\n\n` +
+      `🔗 Link: ${registrationUrl}\n` +
+      `🔑 Access Password: [Set by Tenant]\n\n` +
+      `Please log in using the password you created during Step 1. ` +
+      `If you have forgotten your password, ask your hostel warden to reset it.`
+    );
+  }
   return (
     `${greeting}, welcome to Anywhere Node! Your onboarding is ready.\n\n` +
     `🔗 Link: ${registrationUrl}\n` +
     `🔑 Access Password: ${tempPassword}\n\n` +
-    `Please use the link and password above to complete your registration. ` +
-    `This password is valid until you set your own account password.`
+    `Please use the link and password above to complete your registration.`
   );
 }
 

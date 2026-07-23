@@ -26,9 +26,16 @@ export async function GET(
       request_.status !== OnboardingRequestStatus.PENDING ||
       request_.tempPasswordHash === null;
 
+    const formatPlusPhone = (p: string) => {
+      const digits = p.replace(/\D/g, "");
+      if (!digits) return p;
+      if (digits.length === 10) return `+91${digits}`;
+      return `+${digits}`;
+    };
+
     return NextResponse.json({
       id: request_.id,
-      phone: request_.phone,
+      phone: formatPlusPhone(request_.phone),
       hostelName: request_.hostel.name,
       bedLabel: `${request_.bed.room.roomNumber} - ${request_.bed.label}`,
       isBlocked,

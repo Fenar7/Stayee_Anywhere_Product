@@ -6,6 +6,7 @@ import {
   ValidationError,
   NotFoundError,
   ConflictError,
+  ForbiddenError,
 } from "@/lib/errors";
 import { createAdminClient } from "@/lib/auth/server";
 import { verifyAndGetFileType, compressImage } from "@/lib/image";
@@ -17,7 +18,9 @@ import {
   OccupationType,
   DocumentOwnerType,
   DocumentType,
+  ActivityEventType,
 } from "@prisma/client";
+import { logActivity } from "@/services/activity/activity.service";
 import bcrypt from "bcryptjs";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
@@ -47,6 +50,10 @@ export async function POST(
       throw new ConflictError("This onboarding link is no longer active or already completed");
     }
 
+    if (onboardingRequest.onboardingCurrentStep < 1) {
+      throw new ForbiddenError("You must verify your access password before submitting registration");
+    }
+
     const { phone } = onboardingRequest;
 
     // 2. Parse FormData
@@ -63,9 +70,14 @@ export async function POST(
 
     const parsedData = registrationSchema.safeParse(inputFields);
     if (!parsedData.success) {
-      throw new ValidationError(
-        parsedData.error.issues[0]?.message ?? "Invalid form fields"
-      );
+      const issue = parsedData.error.issues[0];
+      const field = issue?.path?.join(".") || "Form Field";
+      const issueMsg = issue?.message;
+      const finalMsg =
+        !issueMsg || issueMsg === "Invalid input" || issueMsg === "Required"
+          ? `Invalid input provided for ${field}`
+          : issueMsg;
+      throw new ValidationError(finalMsg);
     }
     const data = parsedData.data;
 
@@ -282,7 +294,7 @@ export async function POST(
             phone,
             email: data.email?.toLowerCase() || null,
             passwordSetAt: new Date(),
-            plainTextPassword: data.password, // Keep for backward compatibility
+            plainTextPassword: null,
             hashedPassword: hashedPassword,
             role: UserRole.TENANT,
             organizationId: onboardingRequest.hostel.organizationId,
@@ -347,6 +359,17 @@ export async function POST(
             status: OnboardingRequestStatus.COMPLETED,
           },
         });
+      });
+
+      void logActivity({
+        organizationId: onboardingRequest.hostel.organizationId,
+        hostelId: onboardingRequest.hostelId,
+        eventType: ActivityEventType.TENANT_ONBOARDING_SUBMITTED,
+        actorName: phone,
+        subjectName: data.fullName,
+        subjectId: stay.id,
+        subjectType: "Stay",
+        targetUrl: `/warden/onboards/${stay.id}`,
       });
 
       return NextResponse.json({

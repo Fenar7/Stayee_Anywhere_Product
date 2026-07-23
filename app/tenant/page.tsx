@@ -39,9 +39,11 @@ interface ServiceRequestItem {
   id: string; type: string; amount: number; status: string;
   createdAt: string; metadata?: any;
 }
+interface WardenDetails { name: string; phone: string | null; }
 interface ApiResponse {
   tenant: TenantDetails | null; stay: StayDetails | null;
   hostel: HostelDetails | null; bed: BedDetails | null;
+  warden?: WardenDetails | null;
   payments: PaymentItem[]; roommates: RoommateDetails[];
   nextDueDate: string | null; pendingServiceRequests?: ServiceRequestItem[];
 }
@@ -103,6 +105,7 @@ export default function TenantDashboardPage() {
   const [stay, setStay] = useState<StayDetails | null>(null);
   const [hostel, setHostel] = useState<HostelDetails | null>(null);
   const [bed, setBed] = useState<BedDetails | null>(null);
+  const [warden, setWarden] = useState<WardenDetails | null>(null);
   const [payments, setPayments] = useState<PaymentItem[]>([]);
   const [roommates, setRoommates] = useState<RoommateDetails[]>([]);
   const [nextDueDate, setNextDueDate] = useState<string | null>(null);
@@ -115,6 +118,59 @@ export default function TenantDashboardPage() {
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "payments" | "profile">("overview");
 
+  // Support Ticket Modal states at top component level
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [ticketTitle, setTicketTitle] = useState("Payment Verification Assistance");
+  const [ticketCategory, setTicketCategory] = useState("OTHER");
+  const [ticketPriority, setTicketPriority] = useState("HIGH");
+  const [ticketDesc, setTicketDesc] = useState("");
+  const [submittingTicket, setSubmittingTicket] = useState(false);
+
+  // Active tickets and comment thread states
+  const [tenantTickets, setTenantTickets] = useState<any[]>([]);
+  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
+  const [replyMessage, setReplyMessage] = useState("");
+  const [submittingReply, setSubmittingReply] = useState(false);
+
+  const fetchTenantTickets = async () => {
+    try {
+      const res = await fetch("/api/tenant/tickets");
+      if (res.ok) {
+        const data = await res.json();
+        setTenantTickets(Array.isArray(data) ? data : []);
+      }
+    } catch {}
+  };
+
+  const handlePostTicketComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTicket || !replyMessage.trim()) return;
+    setSubmittingReply(true);
+    try {
+      const res = await fetch(`/api/tickets/${selectedTicket.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: replyMessage }),
+      });
+      if (!res.ok) throw new Error("Failed to send reply");
+      notify.success("Reply sent successfully");
+      setReplyMessage("");
+      await fetchTenantTickets();
+      // update selectedTicket local comments
+      const updatedRes = await fetch("/api/tenant/tickets");
+      if (updatedRes.ok) {
+        const ticketsData = await updatedRes.json();
+        setTenantTickets(ticketsData);
+        const match = ticketsData.find((t: any) => t.id === selectedTicket.id);
+        if (match) setSelectedTicket(match);
+      }
+    } catch (err: any) {
+      notify.error(err.message || "Error sending reply");
+    } finally {
+      setSubmittingReply(false);
+    }
+  };
+
   const load = async () => {
     try {
       const res = await fetch("/api/tenant/stay");
@@ -124,10 +180,12 @@ export default function TenantDashboardPage() {
       setStay(data.stay);
       setHostel(data.hostel);
       setBed(data.bed);
+      setWarden(data.warden || null);
       setPayments(data.payments || []);
       setRoommates(data.roommates || []);
       setNextDueDate(data.nextDueDate || null);
       setPendingServiceRequests(data.pendingServiceRequests || []);
+      await fetchTenantTickets();
       if (data.hostel?.id) {
         try {
           const pr = await fetch(`/api/public/hostels/${data.hostel.id}/payment-config`);
@@ -220,23 +278,457 @@ export default function TenantDashboardPage() {
     </div>
   );
 
-  if (stay.status === "APPROVED_AWAITING_PAYMENT") return (
-    <div className="max-w-lg mx-auto p-6 md:p-10 pt-12">
-      <h1 className="text-3xl font-bold mb-8">Welcome! 🎉<br/><span className="text-gray-500 text-xl font-medium">Let's settle your first invoice.</span></h1>
-      <SoftCard className="mb-6 bg-gradient-to-br from-blue-50 to-white dark:from-blue-900/10 dark:to-[#121212] border-blue-100 dark:border-blue-900/30">
-        <div className="flex justify-between items-center mb-6">
-          <span className="text-gray-500 font-medium">Total Due</span>
-          <span className="text-3xl font-bold">{formatCurrency(stay.totalPayable)}</span>
+  const pendingPayment = payments.find(p => p.paymentStatus === "PENDING" || p.paymentStatus === "SUBMITTED");
+
+  const handleCreateTicketFromPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticketTitle.trim() || !ticketDesc.trim()) {
+      notify.error("Please enter a title and description");
+      return;
+    }
+    setSubmittingTicket(true);
+    try {
+      const res = await fetch("/api/tenant/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: ticketTitle,
+          category: ticketCategory,
+          priority: ticketPriority,
+          description: ticketDesc,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to create support ticket");
+      }
+
+      notify.success("Support ticket created! The warden has been notified.");
+      setShowTicketModal(false);
+      setTicketDesc("");
+      load();
+    } catch (err: unknown) {
+      notify.error(err instanceof Error ? err.message : "Error creating ticket");
+    } finally {
+      setSubmittingTicket(false);
+    }
+  };
+
+  if (stay.status === "APPROVED_AWAITING_PAYMENT") {
+    if (pendingPayment) {
+      const waMessage = encodeURIComponent(
+        `Hi ${warden?.name || "Warden"}, I have submitted my ${pendingPayment.paymentMode === "CASH" ? "cash" : "UPI"} payment of ${formatCurrency(pendingPayment.amountPaid)} for ${hostel?.name || "my stay"}. Please verify my payment receipt.`
+      );
+      const waUrl = warden?.phone ? `https://wa.me/${warden.phone.replace(/\D/g, "")}?text=${waMessage}` : null;
+
+      return (
+        <div className="max-w-lg mx-auto p-6 md:p-10 pt-12 min-h-screen relative">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full inline-block mb-2">
+                ● Verification In Progress
+              </span>
+              <h1 className="text-2xl font-bold text-black dark:text-white">Payment Submitted</h1>
+            </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="text-xs font-bold text-gray-500 hover:text-black dark:hover:text-white px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10"
+            >
+              Sign Out
+            </button>
+          </div>
+
+          <SoftCard className="mb-6 border-amber-500/20 bg-gradient-to-b from-amber-500/5 to-transparent relative overflow-hidden">
+            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100 dark:border-white/10">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+                <Clock className="w-7 h-7 text-amber-500 animate-pulse" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-black dark:text-white">Awaiting Warden Verification</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Your {pendingPayment.paymentMode === "CASH" ? "cash payment" : "UPI payment"} has been submitted to reception.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs mb-6 bg-gray-50 dark:bg-white/5 p-4 rounded-2xl border border-gray-200/50 dark:border-white/5">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Amount Submitted</span>
+                <span className="text-base font-bold text-black dark:text-white">{formatCurrency(pendingPayment.amountPaid)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Payment Mode</span>
+                <span className="font-semibold text-black dark:text-white bg-white dark:bg-white/10 px-2.5 py-0.5 rounded-md border border-gray-200 dark:border-white/10">
+                  {pendingPayment.paymentMode}
+                </span>
+              </div>
+              {pendingPayment.transactionRefNo && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">Reference UTR</span>
+                  <span className="font-semibold text-black dark:text-white font-mono">{pendingPayment.transactionRefNo}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Submission Date</span>
+                <span className="font-medium text-gray-600 dark:text-gray-300">{formatDate(pendingPayment.createdAt)}</span>
+              </div>
+              {warden && (
+                <div className="flex justify-between items-center pt-2 border-t border-gray-200/60 dark:border-white/10">
+                  <span className="text-gray-500">Hostel Warden</span>
+                  <span className="font-semibold text-black dark:text-white">
+                    {warden.name} {warden.phone ? `(${warden.phone})` : ""}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
+              The warden will verify your payment receipt shortly. Once verified, your room stay will be activated and you will gain full portal access.
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => load()}
+                  className="h-12 rounded-2xl bg-black dark:bg-[#58ff48] text-white dark:text-black font-bold text-xs flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-md"
+                >
+                  ↺ Refresh Status
+                </button>
+
+                {waUrl ? (
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="h-12 rounded-2xl bg-emerald-600 dark:bg-emerald-500 text-white dark:text-black font-bold text-xs flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-md"
+                  >
+                    💬 Contact Warden (WhatsApp)
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (warden?.phone) {
+                        navigator.clipboard.writeText(warden.phone);
+                        notify.success(`Warden phone copied: ${warden.phone}`);
+                      } else {
+                        notify.info("Please contact the hostel reception counter directly.");
+                      }
+                    }}
+                    className="h-12 rounded-2xl bg-gray-100 dark:bg-white/10 text-black dark:text-white font-bold text-xs flex items-center justify-center gap-2 hover:bg-gray-200 dark:hover:bg-white/20 transition-all"
+                  >
+                    💬 Contact Reception
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTicketTitle(`Payment Verification - ${formatCurrency(pendingPayment.amountPaid)}`);
+                  setTicketDesc(`Hi, I submitted my ${pendingPayment.paymentMode} payment of ${formatCurrency(pendingPayment.amountPaid)} on ${formatDate(pendingPayment.createdAt)}. Please verify my receipt.`);
+                  setShowTicketModal(true);
+                }}
+                className="h-12 rounded-2xl border-2 border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs flex items-center justify-center gap-2 hover:bg-amber-500/20 transition-all"
+              >
+                🎫 Create Support Ticket
+              </button>
+            </div>
+          </SoftCard>
+
+          {/* ── Active Support Tickets List ── */}
+          {tenantTickets.length > 0 && (
+            <div className="mt-6 space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                  🎫 Active Support Tickets ({tenantTickets.length})
+                </h3>
+                <Link
+                  href="/tenant/tickets"
+                  className="text-xs font-semibold text-[#58ff48] hover:underline"
+                >
+                  View All ↗
+                </Link>
+              </div>
+
+              <div className="space-y-2">
+                {tenantTickets.map((t: any) => {
+                  const commentsCount = t.comments?.length || 0;
+                  const wardenComments = t.comments?.filter((c: any) => c.user?.role === "WARDEN" || c.user?.role === "MAIN_ADMIN") || [];
+                  const statusColors: Record<string, string> = {
+                    OPEN: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+                    IN_PROGRESS: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+                    RESOLVED: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+                    CLOSED: "text-gray-500 bg-gray-500/10 border-gray-500/20",
+                  };
+
+                  return (
+                    <div
+                      key={t.id}
+                      onClick={() => setSelectedTicket(t)}
+                      className="p-4 rounded-2xl bg-white dark:bg-[#121212] border border-gray-200/80 dark:border-white/10 hover:border-black dark:hover:border-[#58ff48] transition-all cursor-pointer shadow-sm flex items-start justify-between gap-3"
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${statusColors[t.status] || "text-gray-500"}`}>
+                            ● {t.status}
+                          </span>
+                          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                            {t.category}
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-bold text-black dark:text-white truncate">
+                          {t.title}
+                        </h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
+                          {t.description}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        <span className="text-[10px] font-medium text-gray-400">
+                          {formatDate(t.createdAt)}
+                        </span>
+                        {wardenComments.length > 0 ? (
+                          <span className="text-[11px] font-bold text-emerald-600 dark:text-[#58ff48] bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/40">
+                            💬 {wardenComments.length} Warden Note{wardenComments.length > 1 ? "s" : ""}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-gray-400">
+                            {commentsCount} comments
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Ticket Detail & Reply Thread Modal ── */}
+          {selectedTicket && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/10 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-white/10 flex-shrink-0">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                      ● {selectedTicket.status}
+                    </span>
+                    <h3 className="text-base font-bold text-black dark:text-white mt-1">
+                      {selectedTicket.title}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTicket(null)}
+                    className="text-gray-400 hover:text-black dark:hover:text-white text-lg font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="overflow-y-auto space-y-4 flex-1 pr-1">
+                  {/* Issue Description */}
+                  <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl border border-gray-200/50 dark:border-white/5 text-xs space-y-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                      Original Ticket Request
+                    </span>
+                    <p className="text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">
+                      {selectedTicket.description}
+                    </p>
+                    <span className="text-[10px] text-gray-400 block pt-1">
+                      Submitted on {formatDate(selectedTicket.createdAt)}
+                    </span>
+                  </div>
+
+                  {/* Comments & Replies Thread */}
+                  <div className="space-y-3 pt-2">
+                    <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Conversation Thread ({selectedTicket.comments?.length || 0})
+                    </h4>
+
+                    {(!selectedTicket.comments || selectedTicket.comments.length === 0) ? (
+                      <p className="text-xs text-gray-400 italic py-2">
+                        No replies yet. The warden will respond to your ticket shortly.
+                      </p>
+                    ) : (
+                      selectedTicket.comments.map((c: any) => {
+                        const isWardenOrAdmin = c.user?.role === "WARDEN" || c.user?.role === "MAIN_ADMIN";
+                        return (
+                          <div
+                            key={c.id}
+                            className={`p-3.5 rounded-2xl text-xs space-y-1 border ${
+                              isWardenOrAdmin
+                                ? "bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 ml-4"
+                                : "bg-gray-50 dark:bg-white/5 border-gray-200/50 dark:border-white/5 mr-4"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className={`font-bold text-[11px] ${isWardenOrAdmin ? "text-emerald-700 dark:text-[#58ff48]" : "text-black dark:text-white"}`}>
+                                {isWardenOrAdmin ? "🛡️ Hostel Warden Note" : "👤 You"}
+                              </span>
+                              <span className="text-[10px] text-gray-400">
+                                {formatDate(c.createdAt)}
+                              </span>
+                            </div>
+                            <p className="text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">
+                              {c.message}
+                            </p>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Reply Form */}
+                <form onSubmit={handlePostTicketComment} className="pt-3 border-t border-gray-100 dark:border-white/10 flex-shrink-0 flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={replyMessage}
+                    onChange={(e) => setReplyMessage(e.target.value)}
+                    placeholder="Write a message to warden..."
+                    className="flex-1 h-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 text-xs text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-[#58ff48]"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    disabled={submittingReply}
+                    className="h-11 px-4 rounded-xl bg-black dark:bg-[#58ff48] text-white dark:text-black font-bold text-xs hover:opacity-90 transition-all flex items-center justify-center gap-1 flex-shrink-0"
+                  >
+                    {submittingReply ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send"}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* ── Support Ticket Modal ── */}
+          {showTicketModal && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/10 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-white/10">
+                  <h3 className="text-base font-bold text-black dark:text-white flex items-center gap-2">
+                    🎫 Create Support Ticket
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowTicketModal(false)}
+                    className="text-gray-400 hover:text-black dark:hover:text-white text-lg font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateTicketFromPayment} className="space-y-4 text-xs">
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider block mb-1">
+                      Ticket Title
+                    </label>
+                    <input
+                      type="text"
+                      value={ticketTitle}
+                      onChange={(e) => setTicketTitle(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 font-semibold text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-[#58ff48]"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider block mb-1">
+                        Category
+                      </label>
+                      <select
+                        value={ticketCategory}
+                        onChange={(e) => setTicketCategory(e.target.value)}
+                        className="w-full h-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 font-semibold text-black dark:text-white focus:outline-none"
+                      >
+                        <option value="OTHER">Other / Payment</option>
+                        <option value="MAINTENANCE">Maintenance</option>
+                        <option value="PLUMBING">Plumbing</option>
+                        <option value="WIFI">WiFi & Network</option>
+                        <option value="CLEANING">Housekeeping</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider block mb-1">
+                        Priority
+                      </label>
+                      <select
+                        value={ticketPriority}
+                        onChange={(e) => setTicketPriority(e.target.value)}
+                        className="w-full h-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 font-semibold text-black dark:text-white focus:outline-none"
+                      >
+                        <option value="LOW">Low</option>
+                        <option value="NORMAL">Normal</option>
+                        <option value="HIGH">High Priority</option>
+                        <option value="CRITICAL">Urgent / Critical</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider block mb-1">
+                      Message / Issue Details
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={ticketDesc}
+                      onChange={(e) => setTicketDesc(e.target.value)}
+                      placeholder="Describe your issue or payment details..."
+                      className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3 text-xs text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-[#58ff48]"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowTicketModal(false)}
+                      className="h-11 rounded-xl bg-gray-100 dark:bg-white/10 font-bold text-black dark:text-white hover:bg-gray-200 dark:hover:bg-white/20 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submittingTicket}
+                      className="h-11 rounded-xl bg-black dark:bg-[#58ff48] text-white dark:text-black font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                    >
+                      {submittingTicket ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit Ticket"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="space-y-3 mb-6">
-          <div className="flex justify-between text-sm"><span className="text-gray-500">Rent</span><span className="font-semibold">{formatCurrency(stay.monthlyRent)}</span></div>
-          <div className="flex justify-between text-sm"><span className="text-gray-500">Deposit</span><span className="font-semibold">{formatCurrency(stay.securityDeposit)}</span></div>
-          <div className="flex justify-between text-sm"><span className="text-gray-500">Admission</span><span className="font-semibold">{formatCurrency(stay.admissionFee)}</span></div>
-        </div>
-      </SoftCard>
-      <InitialPaymentForm hostel={hostel} paymentConfig={paymentConfig} remainingBalance={remaining} onSuccess={m => { notify.success(m); load(); }} onError={m => notify.error(m)} />
-    </div>
-  );
+      );
+    }
+
+    return (
+      <div className="max-w-lg mx-auto p-6 md:p-10 pt-12">
+        <h1 className="text-3xl font-bold mb-8 text-black dark:text-white">Welcome! 🎉<br/><span className="text-gray-500 text-xl font-medium">Let's settle your first invoice.</span></h1>
+        <SoftCard className="mb-6 bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/10 shadow-xl">
+          <div className="flex justify-between items-center mb-6">
+            <span className="text-gray-500 font-medium text-sm">Total Due</span>
+            <span className="text-3xl font-bold text-black dark:text-white">{formatCurrency(stay.totalPayable)}</span>
+          </div>
+          <div className="space-y-3 mb-6">
+            <div className="flex justify-between text-sm"><span className="text-gray-500">Rent</span><span className="font-semibold text-black dark:text-white">{formatCurrency(stay.monthlyRent)}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-gray-500">Deposit</span><span className="font-semibold text-black dark:text-white">{formatCurrency(stay.securityDeposit)}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-gray-500">Admission</span><span className="font-semibold text-black dark:text-white">{formatCurrency(stay.admissionFee)}</span></div>
+          </div>
+        </SoftCard>
+        <InitialPaymentForm hostel={hostel} paymentConfig={paymentConfig} remainingBalance={remaining} onSuccess={m => { notify.success(m); load(); }} onError={m => notify.error(m)} />
+      </div>
+    );
+  }
 
   // ─── Main Dashboard (Consumer / Fintech Vibe) ─────────────────────────────
 

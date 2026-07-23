@@ -7,8 +7,16 @@ export const onboardSchema = z.object({
     .regex(/^\+91[0-9]{10}$/, "Phone must be in format +91XXXXXXXXXX"),
   bedId: z.string().uuid("Invalid bed ID format"),
   hostelId: z.string().uuid("Invalid hostel ID").optional(),
-  joiningDate: z.string().transform((val) => new Date(val)),
-  endDate: z.string().transform((val) => new Date(val)),
+  joiningDate: z
+    .string()
+    .transform((val) => new Date(val))
+    .refine((d) => !isNaN(d.getTime()), "Invalid joining date format"),
+  endDate: z
+    .string()
+    .optional()
+    .nullable()
+    .transform((val) => (val ? new Date(val) : null))
+    .refine((d) => d === null || !isNaN(d.getTime()), "Invalid end date format"),
   durationType: z.nativeEnum(DurationType),
   foodPlan: z.nativeEnum(FoodPlan),
   isNewAdmission: z.boolean(),
@@ -17,15 +25,26 @@ export const onboardSchema = z.object({
   securityDeposit: z.number().nonnegative(),
   foodCharges: z.number().nonnegative(),
   discount: z.number().nonnegative(),
-});
+}).refine(
+  (data) => {
+    if (data.durationType !== DurationType.MONTHLY && !data.endDate) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "End date is required for daily, weekly, or custom duration stays",
+    path: ["endDate"],
+  }
+);
 
 export const verifySchema = z.object({
   paymentId: z.string().uuid("Invalid payment ID format"),
 });
 
 export const progressSchema = z.object({
-  step: z.coerce.number().int().min(0).max(4),
-  data: z.record(z.string(), z.unknown()),
+  step: z.coerce.number().int().min(0).max(5),
+  data: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const validateSchema = z.object({

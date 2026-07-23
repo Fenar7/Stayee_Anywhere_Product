@@ -208,7 +208,7 @@ export async function GET(request: NextRequest) {
         id: p.stay.id,
         status: p.stay.status,
         joiningDate: p.stay.joiningDate.toISOString(),
-        endDate: p.stay.endDate.toISOString(),
+        endDate: p.stay.endDate ? p.stay.endDate.toISOString() : null,
         monthlyRentPaise: p.stay.monthlyRentPaise,
         monthlyRent: p.stay.monthlyRentPaise / 100,
       },

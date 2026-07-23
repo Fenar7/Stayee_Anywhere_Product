@@ -1,3 +1,4 @@
+import { addMonths } from "date-fns";
 import { prisma } from "@/lib/db";
 import { createHash, randomBytes } from "crypto";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
@@ -17,7 +18,7 @@ export interface OnboardInitiateInput {
   bedId: string;
   hostelId: string;
   joiningDate: Date;
-  endDate: Date;
+  endDate?: Date | null;
   durationType: DurationType;
   foodPlan: FoodPlan;
   isNewAdmission: boolean;
@@ -29,15 +30,28 @@ export interface OnboardInitiateInput {
 }
 
 export async function checkPhoneAvailability(phone: string): Promise<'new' | 'pending' | 'existing_tenant'> {
+  let normalizedPhone = phone;
+  try {
+    normalizedPhone = normalizePhoneNumber(phone);
+  } catch {
+    // Keep raw phone if normalization fails
+  }
+
   // 1. phone already linked to a registered user account
-  const existingUser = await prisma.user.findUnique({ where: { phone } });
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      OR: [{ phone }, { phone: normalizedPhone }],
+    },
+  });
   
   // 2. phone already has an active residential stay
   const activeStayForPhone = await prisma.stay.findFirst({
     where: {
       status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
       tenant: {
-        user: { phone },
+        user: {
+          OR: [{ phone }, { phone: normalizedPhone }],
+        },
       },
     },
   });
@@ -48,7 +62,10 @@ export async function checkPhoneAvailability(phone: string): Promise<'new' | 'pe
 
   // 3. a PENDING onboarding request already exists for this phone
   const existingPendingRequest = await prisma.onboardingRequest.findFirst({
-    where: { phone, status: OnboardingRequestStatus.PENDING },
+    where: {
+      status: OnboardingRequestStatus.PENDING,
+      OR: [{ phone }, { phone: normalizedPhone }],
+    },
   });
 
   if (existingPendingRequest) {
@@ -75,7 +92,7 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
     discount,
   } = input;
 
-  if (endDate <= joiningDate) {
+  if (endDate && endDate <= joiningDate) {
     throw new ValidationError("End date must be after joining date");
   }
 
@@ -107,16 +124,27 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
     foodChargesPaise -
     discountPaise;
 
-  const overlappingStay = await prisma.stay.findFirst({
+  const activeStaysForBed = await prisma.stay.findMany({
     where: {
       bedId,
       status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED, StayStatus.ONBOARDING_PENDING] },
-      joiningDate: { lte: endDate },
-      endDate: { gte: joiningDate },
     },
+    select: { joiningDate: true, endDate: true },
   });
 
-  if (overlappingStay) {
+  const targetStart = joiningDate.getTime();
+  const targetEnd = endDate ? endDate.getTime() : null;
+
+  const hasOverlap = activeStaysForBed.some((stay) => {
+    const stayStart = new Date(stay.joiningDate).getTime();
+    const stayEnd = stay.endDate ? new Date(stay.endDate).getTime() : null;
+
+    if (stayEnd !== null && stayEnd < targetStart) return false;
+    if (targetEnd !== null && stayStart > targetEnd) return false;
+    return true;
+  });
+
+  if (hasOverlap) {
     throw new ConflictError("The selected bed is occupied or reserved during the specified dates");
   }
 
@@ -159,13 +187,14 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
 
     const stay = await tx.stay.create({
       data: {
-        tenantId: tenant.id,
-        bedId,
-        hostelId,
+        tenant: { connect: { id: tenant.id } },
+        bed: { connect: { id: bedId } },
+        hostel: { connect: { id: hostelId } },
         status: StayStatus.ONBOARDING_PENDING,
         durationType,
         joiningDate,
-        endDate,
+        endDate: endDate || undefined,
+        nextBillingDate: durationType === DurationType.MONTHLY ? addMonths(joiningDate, 1) : null,
         isNewAdmission,
         admissionFeePaise,
         monthlyRentPaise,

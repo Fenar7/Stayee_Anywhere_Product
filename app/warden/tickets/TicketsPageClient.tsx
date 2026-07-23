@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react";
 import { Loader2, Ticket, CheckCircle2, ChevronDown } from "lucide-react";
 import { notify } from "@/lib/toast";
+import { TicketDetailsSheet } from "@/components/tickets/TicketDetailsSheet";
 
 export default function TicketsPageClient() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("ALL");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
     fetchTickets();
@@ -28,7 +31,8 @@ export default function TicketsPageClient() {
     }
   };
 
-  const updateStatus = async (id: string, newStatus: string) => {
+  const updateStatus = async (id: string, newStatus: string, e?: React.ChangeEvent<HTMLSelectElement>) => {
+    if (e) e.stopPropagation();
     setUpdatingId(id);
     try {
       const res = await fetch("/api/warden/tickets", {
@@ -106,7 +110,14 @@ export default function TicketsPageClient() {
                 </tr>
               ) : (
                 tickets.map(ticket => (
-                  <tr key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                  <tr 
+                    key={ticket.id} 
+                    onClick={() => {
+                      setSelectedTicket(ticket);
+                      setSheetOpen(true);
+                    }}
+                    className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group cursor-pointer"
+                  >
                     <td className="px-6 py-4">
                       <div className="font-medium text-[14px] text-gray-900 dark:text-white">{ticket.tenant.fullName}</div>
                       <div className="text-[13px] text-gray-500 mt-0.5">{ticket.tenant.user?.phone}</div>
@@ -125,10 +136,10 @@ export default function TicketsPageClient() {
                       {new Date(ticket.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="relative inline-block">
+                      <div className="relative inline-block" onClick={e => e.stopPropagation()}>
                         <select 
                           value={ticket.status}
-                          onChange={(e) => updateStatus(ticket.id, e.target.value)}
+                          onChange={(e) => updateStatus(ticket.id, e.target.value, e)}
                           disabled={updatingId === ticket.id}
                           className={`appearance-none px-4 py-2 pr-8 rounded-full text-[12px] font-semibold uppercase tracking-wider border outline-none cursor-pointer disabled:opacity-50 transition-colors ${getStatusBadge(ticket.status)}`}
                         >
@@ -150,6 +161,12 @@ export default function TicketsPageClient() {
           </table>
         </div>
       </div>
+
+      <TicketDetailsSheet 
+        ticket={selectedTicket} 
+        open={sheetOpen} 
+        onOpenChange={setSheetOpen} 
+      />
     </div>
   );
 }

@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { logActivity } from "@/services/activity/activity.service";
-import { ActivityEventType } from "@prisma/client";
+import { ActivityEventType, StayStatus } from "@prisma/client";
 import { createClient } from "@/lib/auth/server";
 import { z } from "zod";
 
 const ticketSchema = z.object({
   title: z.string().min(5).max(100),
   description: z.string().min(10).max(1000),
-  priority: z.enum(["LOW", "NORMAL", "HIGH", "CRITICAL"]).default("NORMAL"),
+  priority: z.preprocess(
+    (val) => (val === "URGENT" ? "CRITICAL" : val),
+    z.enum(["LOW", "NORMAL", "HIGH", "CRITICAL"]).default("NORMAL")
+  ),
   category: z.enum(["MAINTENANCE", "CLEANING", "ELECTRICAL", "PLUMBING", "OTHER"]).default("OTHER"),
 });
 
@@ -32,6 +35,19 @@ export async function GET() {
 
     const tickets = await prisma.ticket.findMany({
       where: { tenantId: user.tenant.id },
+      include: {
+        comments: {
+          include: {
+            user: {
+              select: {
+                role: true,
+                phone: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
 
@@ -57,11 +73,21 @@ export async function POST(req: Request) {
         tenant: {
           include: {
             stays: {
-              where: { status: "ACTIVE" }
-            }
-          }
-        }
-      }
+              where: {
+                status: {
+                  in: [
+                    StayStatus.ACTIVE,
+                    StayStatus.EXTENDED,
+                    StayStatus.APPROVED_AWAITING_PAYMENT,
+                    StayStatus.ONBOARDING_PENDING,
+                  ],
+                },
+              },
+              orderBy: { createdAt: "desc" },
+            },
+          },
+        },
+      },
     });
 
     if (!user || user.role !== "TENANT" || !user.tenant) {
@@ -70,7 +96,7 @@ export async function POST(req: Request) {
 
     const activeStay = user.tenant.stays[0];
     if (!activeStay) {
-      return NextResponse.json({ error: "Must have an active stay to create a ticket" }, { status: 400 });
+      return NextResponse.json({ error: "Must have a valid stay record to create a ticket" }, { status: 400 });
     }
 
     const body = await req.json();

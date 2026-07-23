@@ -3,12 +3,12 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, Check, Copy, Key } from "lucide-react";
+import { Loader2, ArrowRight, Check, Copy, Key, Send } from "lucide-react";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { notify } from "@/lib/toast";
 
-import { STAY_STATUS_LABELS, STAY_STATUS_COLORS } from "@/lib/labels";
+import { STAY_STATUS_LABELS, STAY_STATUS_COLORS, getStayStatusDisplay } from "@/lib/labels";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,12 +31,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
+import { WhatsAppDispatchModal } from "@/components/hostel-management/WhatsAppDispatchModal";
 
 interface OnboardItem {
   id: string;
   status: string;
   joiningDate: string;
-  endDate: string;
+  endDate: string | null;
   totalPayable: number;
   hasPendingPayment?: boolean;
   hostel: { id: string; name: string };
@@ -53,7 +54,7 @@ interface OnboardItem {
     roomNumber: string;
     status: string;
   };
-  onboardingRequest: { id: string; status: string; createdAt: string } | null;
+  onboardingRequest: { id: string; status: string; onboardingCurrentStep?: number; createdAt: string } | null;
 }
 
 export default function AdminOnboardsPage() {
@@ -64,6 +65,15 @@ export default function AdminOnboardsPage() {
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<{stayId: string, hostelId: string} | null>(null);
 
+  // Dispatch modal
+  const [dispatchModal, setDispatchModal] = useState<{
+    onboardingReqId: string;
+    phone: string;
+    link: string;
+    password?: string;
+  } | null>(null);
+  const [dispatchLoadingId, setDispatchLoadingId] = useState<string | null>(null);
+
   // Password modal
   const [passwordModal, setPasswordModal] = useState<{
     onboardingReqId: string;
@@ -72,6 +82,30 @@ export default function AdminOnboardsPage() {
   const [revealedPassword, setRevealedPassword] = useState("");
   const [passwordCopied, setPasswordCopied] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const handleResendLink = async (onboardingReqId: string, phone: string) => {
+    setDispatchLoadingId(onboardingReqId);
+    try {
+      const res = await fetch(
+        `/api/warden/onboarding-requests/${onboardingReqId}/info`
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to get onboarding link");
+      
+      const fullLink = `${window.location.origin}${data.entryGateLink}`;
+      setDispatchModal({
+        onboardingReqId,
+        phone,
+        link: fullLink,
+        password: data.tempPassword,
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred");
+    } finally {
+      setDispatchLoadingId(null);
+    }
+  };
 
   const fetchOnboards = useCallback(async () => {
     try {
@@ -150,7 +184,8 @@ export default function AdminOnboardsPage() {
     );
   }
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return "Ongoing";
     return new Date(dateStr).toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -188,8 +223,11 @@ export default function AdminOnboardsPage() {
             </TableHeader>
             <TableBody>
               {items.map((item) => {
-                const label = STAY_STATUS_LABELS[item.status] || item.status;
-                const colorClass = STAY_STATUS_COLORS[item.status] || "bg-gray-100 text-gray-800";
+                const { label, colorClass } = getStayStatusDisplay({
+                  status: item.status,
+                  hasProfile: item.tenant.hasProfile,
+                  onboardingCurrentStep: item.onboardingRequest?.onboardingCurrentStep,
+                });
                 const needsPaymentVerify = item.status === "APPROVED_AWAITING_PAYMENT" && item.hasPendingPayment;
 
                 return (
@@ -229,7 +267,7 @@ export default function AdminOnboardsPage() {
                     </TableCell>
                     <TableCell>
                       <span className="text-sm">
-                        {formatDate(item.joiningDate)} to {formatDate(item.endDate)}
+                        {formatDate(item.joiningDate)} {item.endDate ? `to ${formatDate(item.endDate)}` : "(Ongoing)"}
                       </span>
                     </TableCell>
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
@@ -238,9 +276,16 @@ export default function AdminOnboardsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleViewPassword(item.onboardingRequest!.id, item.tenant.phone)}
+                            disabled={dispatchLoadingId === item.onboardingRequest.id}
+                            className="border-emerald-200 bg-emerald-50/50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                            onClick={() => handleResendLink(item.onboardingRequest!.id, item.tenant.phone)}
                           >
-                            <Key className="h-4 w-4 mr-1" /> Key
+                            {dispatchLoadingId === item.onboardingRequest.id ? (
+                              <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin text-emerald-600" />
+                            ) : (
+                              <Send className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
+                            )}
+                            Resend Link & Key
                           </Button>
                         )}
                         {item.status === "ONBOARDING_PENDING" && (
@@ -401,6 +446,15 @@ export default function AdminOnboardsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <WhatsAppDispatchModal
+        isOpen={!!dispatchModal}
+        onClose={() => setDispatchModal(null)}
+        onboardingReqId={dispatchModal?.onboardingReqId}
+        phone={dispatchModal?.phone || ""}
+        link={dispatchModal?.link || ""}
+        password={dispatchModal?.password}
+      />
     </div>
   </div>
   );

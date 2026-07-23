@@ -44,17 +44,35 @@ export function DashboardHeader() {
               <span className="absolute top-2 right-2 size-2 bg-rose-500 rounded-full" />
             )}
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64 p-2 bg-white rounded-xl shadow-lg border border-gray-100 mt-2">
-            <div className="px-2 pt-1 pb-2 font-semibold text-gray-900 text-sm">Notifications</div>
-            <div className="h-px bg-gray-100 my-1 mx-2" />
-            <div className="py-3 text-sm text-gray-500 text-center flex justify-center hover:bg-transparent cursor-default">
+          <DropdownMenuContent align="end" className="w-72 p-3 bg-white dark:bg-[#121212] rounded-2xl shadow-xl border border-gray-100 dark:border-white/10 mt-2 space-y-2">
+            <div className="flex items-center justify-between px-1">
+              <span className="font-bold text-black dark:text-white text-xs uppercase tracking-wider">
+                Notifications
+              </span>
+              <Link
+                href={`${rolePrefix}/notifications`}
+                className="text-xs font-semibold text-emerald-600 dark:text-[#58ff48] hover:underline flex items-center gap-0.5"
+              >
+                View All ↗
+              </Link>
+            </div>
+            <div className="h-px bg-gray-100 dark:bg-white/10" />
+            <div className="py-2 text-xs text-gray-500 text-center">
               {counts.unreadNotifications > 0 ? (
-                <Link href={`${rolePrefix}/notifications`} className="hover:underline text-primary">
-                  You have {counts.unreadNotifications} unread notification(s). View them in the Notifications panel.
+                <Link href={`${rolePrefix}/notifications`} className="hover:underline text-black dark:text-white font-medium">
+                  You have <span className="font-bold text-rose-500">{counts.unreadNotifications}</span> unread notification(s).
                 </Link>
               ) : (
-                "No new notifications right now."
+                <span className="text-gray-400">No new notifications right now.</span>
               )}
+            </div>
+            <div className="pt-1">
+              <Link
+                href={`${rolePrefix}/notifications`}
+                className="flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-xl bg-gray-100 dark:bg-white/10 text-center text-xs font-bold text-black dark:text-white hover:bg-gray-200 dark:hover:bg-white/20 transition-all"
+              >
+                <span>Open Notifications Center</span> ↗
+              </Link>
             </div>
           </DropdownMenuContent>
         </DropdownMenu>

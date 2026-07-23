@@ -42,9 +42,24 @@ export async function GET() {
     });
 
     const mapped = stays.map((stay) => {
+      const isPhoneMatch = (reqPhone?: string | null, targetPhone?: string | null) => {
+        if (!reqPhone || !targetPhone) return false;
+        const cleanReq = reqPhone.replace(/\D/g, "");
+        const cleanTarget = targetPhone.replace(/\D/g, "");
+        if (!cleanReq || !cleanTarget) return false;
+        return cleanReq.endsWith(cleanTarget) || cleanTarget.endsWith(cleanReq);
+      };
+
       const matchingReq = onboardingRequests.find(
-        (r) => r.phone === stay.tenant.emergencyContactNumber || r.phone === stay.tenant.user?.phone
+        (r) =>
+          r.bedId === stay.bedId ||
+          isPhoneMatch(r.phone, stay.tenant.emergencyContactNumber) ||
+          isPhoneMatch(r.phone, stay.tenant.user?.phone)
       );
+
+      const rawPhone = stay.tenant.user?.phone || "";
+      const isUuid = rawPhone.includes("-") || rawPhone.length > 20;
+      const displayPhone = !isUuid && rawPhone ? rawPhone : (stay.tenant.emergencyContactNumber || matchingReq?.phone || "");
 
       return {
         id: stay.id,
@@ -57,9 +72,9 @@ export async function GET() {
         tenant: {
           id: stay.tenant.id,
           fullName: stay.tenant.fullName,
-          phone: stay.tenant.user?.phone || matchingReq?.phone || "",
+          phone: displayPhone,
           gender: stay.tenant.gender,
-          hasProfile: stay.tenant.userId !== null,
+          hasProfile: stay.tenant.userId !== null && !stay.tenant.fullName.startsWith("Prospect "),
           plainTextPassword: stay.tenant.user?.plainTextPassword || null,
         },
         bed: {
@@ -69,7 +84,7 @@ export async function GET() {
           status: stay.bed.status,
         },
         onboardingRequest: matchingReq
-          ? { id: matchingReq.id, status: matchingReq.status, createdAt: matchingReq.createdAt }
+          ? { id: matchingReq.id, status: matchingReq.status, onboardingCurrentStep: matchingReq.onboardingCurrentStep, createdAt: matchingReq.createdAt }
           : null,
       };
     });

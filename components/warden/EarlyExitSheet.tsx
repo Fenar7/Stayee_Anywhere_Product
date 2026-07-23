@@ -18,7 +18,7 @@ import { AlertCircle, LogOut, Loader2 } from "lucide-react";
 interface EarlyExitSheetProps {
   stayId: string;
   joiningDate: Date;
-  endDate: Date;
+  endDate: Date | null;
 }
 
 export default function EarlyExitSheet({
@@ -107,7 +107,7 @@ export default function EarlyExitSheet({
               </div>
               <div>
                 <span className="text-muted-foreground block">Planned End Date</span>
-                <span className="font-medium">{format(new Date(endDate), "PPP")}</span>
+                <span className="font-medium">{endDate ? format(new Date(endDate), "PPP") : "Open-ended stay"}</span>
               </div>
             </div>
 

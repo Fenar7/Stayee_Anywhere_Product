@@ -3,8 +3,9 @@ import { requireRole } from "@/lib/auth";
 import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ForbiddenError, ValidationError } from "@/lib/errors";
-import { UserRole, StayStatus, BedStatus } from "@prisma/client";
+import { UserRole, StayStatus, BedStatus, ActivityEventType } from "@prisma/client";
 import { createAdminClient } from "@/lib/auth/server";
+import { logActivity } from "@/services/activity/activity.service";
 
 export async function POST(
   request: NextRequest,
@@ -69,6 +70,18 @@ export async function POST(
           note: "Onboarding request cancelled by admin",
         },
       });
+    });
+
+    void logActivity({
+      organizationId: session.user.organizationId!,
+      hostelId: stay.hostelId,
+      eventType: ActivityEventType.TENANT_ONBOARDING_CANCELLED,
+      actorId: session.user.id,
+      actorName: session.user.phone ?? "Warden",
+      subjectName: stay.tenant?.fullName || stay.tenantId,
+      subjectId: id,
+      subjectType: "Stay",
+      targetUrl: `/warden/onboards/${id}`,
     });
 
     return NextResponse.json({

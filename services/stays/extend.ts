@@ -39,7 +39,7 @@ export async function extendStay(params: ExtendStayParams) {
     throw new ValidationError("Stay must be ACTIVE or EXTENDED to be extended");
   }
 
-  let newEndDate = new Date(stay.endDate);
+  let newEndDate = stay.endDate ? new Date(stay.endDate) : new Date();
   let additionalRentPaise = 0;
   let additionalFoodChargesPaise = 0;
 
@@ -60,17 +60,28 @@ export async function extendStay(params: ExtendStayParams) {
 
   const totalAdditionalPaise = Math.max(0, additionalRentPaise + additionalFoodChargesPaise - discountAddedPaise);
 
-  const overlappingStay = await prisma.stay.findFirst({
+  const activeStaysOnBed = await prisma.stay.findMany({
     where: {
       bedId: stay.bedId,
       id: { not: stay.id },
       status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
-      joiningDate: { lt: newEndDate },
-      endDate: { gt: stay.endDate },
     },
+    select: { joiningDate: true, endDate: true },
   });
 
-  if (overlappingStay) {
+  const extensionStart = (stay.endDate ?? new Date()).getTime();
+  const extensionEnd = newEndDate.getTime();
+
+  const hasOverlap = activeStaysOnBed.some((other) => {
+    const otherStart = new Date(other.joiningDate).getTime();
+    const otherEnd = other.endDate ? new Date(other.endDate).getTime() : null;
+
+    if (otherEnd !== null && otherEnd <= extensionStart) return false;
+    if (otherStart >= extensionEnd) return false;
+    return true;
+  });
+
+  if (hasOverlap) {
     throw new ConflictError("The bed is already reserved or occupied by another active stay during the extension period");
   }
 

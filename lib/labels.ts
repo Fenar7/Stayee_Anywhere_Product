@@ -18,6 +18,40 @@ export const STAY_STATUS_COLORS: Record<string, string> = {
   CANCELLED: "bg-red-100 text-red-800",
 };
 
+export interface StayStatusContext {
+  status: string;
+  hasProfile?: boolean;
+  onboardingCurrentStep?: number;
+}
+
+export function getStayStatusDisplay(item: StayStatusContext): { label: string; colorClass: string } {
+  if (item.status === "ONBOARDING_PENDING") {
+    if (item.hasProfile) {
+      return {
+        label: "Pending Review",
+        colorClass: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800",
+      };
+    }
+    const step = item.onboardingCurrentStep ?? 0;
+    if (step >= 1) {
+      const stepText = step > 1 ? `Filling Form (Step ${step}/5)` : "Filling Form";
+      return {
+        label: stepText,
+        colorClass: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800",
+      };
+    }
+    return {
+      label: "Link Sent",
+      colorClass: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700",
+    };
+  }
+
+  return {
+    label: STAY_STATUS_LABELS[item.status] || item.status,
+    colorClass: STAY_STATUS_COLORS[item.status] || "bg-gray-100 text-gray-800",
+  };
+}
+
 export const LEAD_STATUS_LABELS: Record<string, string> = {
   NEW: "New",
   CONTACTED: "Contacted",

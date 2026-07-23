@@ -61,8 +61,15 @@ export async function compressImage(
       })
       .jpeg({ quality: 70, progressive: true });
   } else {
-    // Conservative: no resize, higher quality for readability
-    pipeline = pipeline.jpeg({ quality: 85, progressive: true });
+    // Conservative for ID Documents: 1600px max bounds, 85% quality for high text legibility
+    pipeline = pipeline
+      .resize({
+        width: 1600,
+        height: 1600,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .jpeg({ quality: 85, progressive: true });
   }
 
   const data = await pipeline.toBuffer();

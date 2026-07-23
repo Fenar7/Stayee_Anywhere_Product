@@ -11,7 +11,16 @@ const ROLE_HIERARCHY: Record<string, UserRole> = {
   "/api/tenant": UserRole.TENANT,
 };
 
-const PUBLIC_ROUTES = ["/login", "/admin-login", "/set-password"];
+const PUBLIC_ROUTES = [
+  "/login",
+  "/admin-login",
+  "/set-password",
+  "/onboarding",
+  "/onboard",
+  "/newuser",
+  "/api/public",
+  "/api/auth",
+];
 
 function getRequiredRole(pathname: string): UserRole | null {
   for (const [prefix, role] of Object.entries(ROLE_HIERARCHY)) {

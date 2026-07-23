@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Stay" ALTER COLUMN "endDate" DROP NOT NULL;
