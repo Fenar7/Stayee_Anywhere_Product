@@ -15,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { compressImageInBrowser } from "@/lib/image/client-compress";
 
 interface OnboardingData {
   id: string;
@@ -280,15 +281,16 @@ function OnboardContent() {
     }
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert("File size must be less than 5MB");
+      if (file.size > 10 * 1024 * 1024) {
+        alert("File size must be less than 10MB");
         return;
       }
-      setPhotoFile(file);
-      setPhotoPreview(URL.createObjectURL(file));
+      const compressed = await compressImageInBrowser(file, 1000, 1000, 0.8);
+      setPhotoFile(compressed);
+      setPhotoPreview(URL.createObjectURL(compressed));
       stopCamera();
     }
   };
