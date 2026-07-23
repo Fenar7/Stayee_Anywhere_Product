@@ -231,11 +231,9 @@ export function ActivityFeed({ role, hostelId, organizationId }: ActivityFeedWid
         </h3>
         <div className="flex gap-2">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="border border-[#dedede] text-black dark:text-white rounded-[4px] px-3 py-1.5 text-[13px] font-semibold hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-1.5 outline-none">
-                <Filter className="w-3.5 h-3.5" />
-                Filter
-              </button>
+            <DropdownMenuTrigger className="border border-[#dedede] text-black dark:text-white rounded-[4px] px-3 py-1.5 text-[13px] font-semibold hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-1.5 outline-none">
+              <Filter className="w-3.5 h-3.5" />
+              Filter
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/10 rounded-xl p-1 shadow-lg">
               <DropdownMenuItem

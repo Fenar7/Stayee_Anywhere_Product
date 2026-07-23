@@ -59,8 +59,10 @@ function formatCurrency(n: number) {
 function getInitials(name: string) {
   return name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
 }
-function daysLeft(end: string) {
-  return Math.max(0, Math.ceil((new Date(end).getTime() - Date.now()) / 86400000));
+function daysLeft(end?: string | null, nextDue?: string | null) {
+  const target = end || nextDue;
+  if (!target) return 0;
+  return Math.max(0, Math.ceil((new Date(target).getTime() - Date.now()) / 86400000));
 }
 
 // ─── Micro-Components (Consumer/Fintech Style) ───────────────────────────────
@@ -117,6 +119,23 @@ export default function TenantDashboardPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "payments" | "profile">("overview");
+
+  const getStayProgress = () => {
+    if (!stay) return 0;
+    if (stay.endDate) {
+      const end = daysLeft(stay.endDate);
+      return end > 0 ? Math.round(100 - (end / 365) * 100) : 100;
+    }
+    if (nextDueDate) {
+      const nextDue = new Date(nextDueDate);
+      const prevDue = new Date(nextDue);
+      prevDue.setMonth(prevDue.getMonth() - 1);
+      const total = nextDue.getTime() - prevDue.getTime();
+      const elapsed = Date.now() - prevDue.getTime();
+      return Math.max(0, Math.min(100, Math.round((elapsed / total) * 100)));
+    }
+    return 100;
+  };
 
   // Support Ticket Modal states at top component level
   const [showTicketModal, setShowTicketModal] = useState(false);
@@ -803,8 +822,12 @@ export default function TenantDashboardPage() {
                   <Clock className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase">Days Left</p>
-                  <p className="text-xl font-bold">{daysLeft(stay.endDate)}</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase">
+                    {stay?.endDate ? "Days Left" : "Days until Due"}
+                  </p>
+                  <p className="text-xl font-bold">
+                    {daysLeft(stay?.endDate, nextDueDate)}
+                  </p>
                 </div>
               </SoftCard>
               
@@ -1044,11 +1067,13 @@ export default function TenantDashboardPage() {
                 {/* Identity / Stay Progress (Mimicking Reference 3) */}
                 <div className="px-2 mb-8 text-left">
                   <div className="flex justify-between items-end mb-2">
-                    <span className="text-sm font-bold text-gray-500">Stay Completion</span>
-                    <span className="text-lg font-black">{daysLeft(stay.endDate) > 0 ? Math.round(100 - (daysLeft(stay.endDate) / 365) * 100) : 100}%</span>
+                    <span className="text-sm font-bold text-gray-500">
+                      {stay?.endDate ? "Stay Completion" : "Monthly Cycle Progress"}
+                    </span>
+                    <span className="text-lg font-black">{getStayProgress()}%</span>
                   </div>
                   <div className="h-3 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-black dark:bg-[#58ff48] rounded-full" style={{ width: `${daysLeft(stay.endDate) > 0 ? Math.round(100 - (daysLeft(stay.endDate) / 365) * 100) : 100}%` }}></div>
+                    <div className="h-full bg-black dark:bg-[#58ff48] rounded-full" style={{ width: `${getStayProgress()}%` }}></div>
                   </div>
                 </div>
 
