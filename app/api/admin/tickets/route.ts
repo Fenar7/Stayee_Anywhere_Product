@@ -137,7 +137,11 @@ export async function PATCH(req: Request) {
       subjectName: ticket.title,
       subjectId: ticket.id,
       subjectType: "Ticket",
-      targetUrl: `/admin/complaints?ticketId=${ticket.id}`,
+      metadata: {
+        oldStatus: existingTicket.status,
+        newStatus: ticket.status,
+      },
+      targetUrl: `/admin/tickets`,
     });
 
     return NextResponse.json(ticket);

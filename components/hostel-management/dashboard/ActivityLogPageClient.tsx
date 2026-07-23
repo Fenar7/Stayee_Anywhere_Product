@@ -215,6 +215,92 @@ export function ActivityLogPageClient({ role, organizationId, hostelId: initialH
         </div>
       </div>
 
+function formatActivityHeader(item: ActivityLog): { text: string; color: string; badge?: string; badgeColor?: string } {
+  const meta: any = item.metadata || {};
+  const newStatus = meta.newStatus || meta.status;
+
+  switch (item.eventType) {
+    case "TICKET_STATUS_UPDATED": {
+      if (newStatus === "RESOLVED") {
+        return {
+          text: `${item.actorName} resolved ticket`,
+          color: "#10b981",
+          badge: "RESOLVED",
+          badgeColor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+        };
+      }
+      if (newStatus === "CLOSED") {
+        return {
+          text: `${item.actorName} closed ticket`,
+          color: "#ef4444",
+          badge: "CLOSED",
+          badgeColor: "bg-red-500/10 text-red-600 border-red-500/20"
+        };
+      }
+      if (newStatus === "IN_PROGRESS") {
+        return {
+          text: `${item.actorName} updated ticket to IN PROGRESS`,
+          color: "#f59e0b",
+          badge: "IN_PROGRESS",
+          badgeColor: "bg-amber-500/10 text-amber-600 border-amber-500/20"
+        };
+      }
+      if (newStatus === "OPEN") {
+        return {
+          text: `${item.actorName} reopened ticket`,
+          color: "#3b82f6",
+          badge: "OPEN",
+          badgeColor: "bg-blue-500/10 text-blue-600 border-blue-500/20"
+        };
+      }
+      return {
+        text: `${item.actorName} updated ticket status`,
+        color: "#e1a918",
+        badge: newStatus || "UPDATED",
+        badgeColor: "bg-amber-500/10 text-amber-600 border-amber-500/20"
+      };
+    }
+    case "TICKET_RAISED": {
+      return {
+        text: `${item.actorName} raised ticket`,
+        color: "#ef4444",
+        badge: "RAISED",
+        badgeColor: "bg-red-500/10 text-red-600 border-red-500/20"
+      };
+    }
+    case "TICKET_COMMENT_ADDED": {
+      return {
+        text: `${item.actorName} replied on ticket`,
+        color: "#3b82f6",
+        badge: "REPLY",
+        badgeColor: "bg-blue-500/10 text-blue-600 border-blue-500/20"
+      };
+    }
+    case "TENANT_ONBOARDED": {
+      return {
+        text: `${item.actorName} onboarded tenant`,
+        color: "#285bc7",
+        badge: "ONBOARDED",
+        badgeColor: "bg-blue-500/10 text-blue-600 border-blue-500/20"
+      };
+    }
+    case "TENANT_PAYMENT_RECEIVED": {
+      return {
+        text: `${item.actorName} payment received`,
+        color: "#18b92b",
+        badge: "PAID",
+        badgeColor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+      };
+    }
+    default: {
+      return {
+        text: `${item.actorName} ${item.eventType.replace(/_/g, " ").toLowerCase()}`,
+        color: EVENT_COLORS[item.eventType] || "#767676"
+      };
+    }
+  }
+}
+
       {/* Feed List */}
       <div className="premium-card flex flex-col overflow-hidden min-h-[500px]">
         {loading ? (
@@ -229,40 +315,48 @@ export function ActivityLogPageClient({ role, organizationId, hostelId: initialH
           </div>
         ) : (
           <div className="flex flex-col divide-y divide-[#dedede] dark:divide-white/10">
-            {items.map((item, index) => (
-              <div 
-                key={item.id} 
-                className="p-5 px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors group"
-              >
-                <div className="flex gap-4 items-center w-full sm:w-auto">
-                  <div 
-                    className="size-2 rounded-full shrink-0" 
-                    style={{ backgroundColor: EVENT_COLORS[item.eventType] || "#767676" }}
-                  />
-                  <div className="flex flex-col gap-0.5">
-                    <h4 className="text-[14px] text-black dark:text-white tracking-tight">
-                      <span className="font-bold">{item.actorName}</span>
-                      <span className="text-[#767676] mx-1.5 font-medium">did</span>
-                      <span className="font-semibold text-black/80 dark:text-white/80">{item.eventType.replace(/_/g, " ").toLowerCase()}</span>
-                    </h4>
-                    <p className="text-[#767676] text-[13px] leading-snug font-medium">
-                      {item.subjectName} {item.subjectType ? <span className="opacity-60 ml-1">({item.subjectType})</span> : ""}
+            {items.map((item, index) => {
+              const headerInfo = formatActivityHeader(item);
+              return (
+                <div 
+                  key={item.id} 
+                  className="p-5 px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors group"
+                >
+                  <div className="flex gap-4 items-center w-full sm:w-auto">
+                    <div 
+                      className="size-2.5 rounded-full shrink-0" 
+                      style={{ backgroundColor: headerInfo.color }}
+                    />
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-[14px] font-bold text-black dark:text-white tracking-tight">
+                          {headerInfo.text}
+                        </h4>
+                        {headerInfo.badge && (
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${headerInfo.badgeColor || "text-gray-500"}`}>
+                            {headerInfo.badge}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[#767676] dark:text-gray-300 text-[13px] leading-snug font-medium">
+                        {item.subjectName} {item.subjectType ? <span className="opacity-60 ml-1">({item.subjectType})</span> : ""}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col items-end gap-1 shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
+                    <p className="text-[#a1a1a1] text-[13px] font-semibold tracking-wide">
+                      {format(item.createdAt, "MMM d, yyyy h:mm a")}
                     </p>
+                    {role === "MAIN_ADMIN" && (item as any).hostel?.name && (
+                      <span className="text-[#767676] dark:text-gray-300 text-[10px] font-bold uppercase tracking-wider bg-black/5 dark:bg-white/10 px-2 py-1 rounded-md">
+                        {(item as any).hostel.name}
+                      </span>
+                    )}
                   </div>
                 </div>
-                
-                <div className="flex flex-col items-end gap-1 shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
-                  <p className="text-[#a1a1a1] text-[13px] font-semibold tracking-wide">
-                    {format(item.createdAt, "MMM d, yyyy h:mm a")}
-                  </p>
-                  {role === "MAIN_ADMIN" && (item as any).hostel?.name && (
-                    <span className="text-[#767676] text-[10px] font-bold uppercase tracking-wider bg-black/5 dark:bg-white/10 px-2 py-1 rounded-md">
-                      {(item as any).hostel.name}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
             
             {hasMore && (
               <div className="p-8 flex justify-center">

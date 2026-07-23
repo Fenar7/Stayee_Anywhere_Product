@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createClient } from "@/lib/auth/server";
 import { z } from "zod";
+import { logActivity } from "@/services/activity/activity.service";
+import { ActivityEventType } from "@prisma/client";
 
 const updateTicketSchema = z.object({
   id: z.string(),
@@ -125,6 +127,22 @@ export async function PATCH(req: Request) {
         }
       });
     }
+
+    void logActivity({
+      organizationId: user.organizationId,
+      hostelId: user.warden.hostelId,
+      eventType: ActivityEventType.TICKET_STATUS_UPDATED,
+      actorId: user.id,
+      actorName: "Warden",
+      subjectName: ticket.title,
+      subjectId: ticket.id,
+      subjectType: "Ticket",
+      metadata: {
+        oldStatus: existingTicket.status,
+        newStatus: ticket.status,
+      },
+      targetUrl: `/warden/tickets`,
+    });
 
     return NextResponse.json(ticket);
   } catch (error) {
