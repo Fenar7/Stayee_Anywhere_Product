@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { MessageSquare, X, Copy, Link2, Lock, Check, ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MessageSquare, X, Copy, Link2, Lock, Check, ArrowLeft, RefreshCw, KeyRound, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { onboardingLinkWithPassword } from "@/lib/whatsapp/templates";
 import { buildWaMeLink } from "@/lib/whatsapp/utils";
+import { notify } from "@/lib/toast";
 
 interface WhatsAppDispatchModalProps {
   isOpen: boolean;
@@ -12,7 +13,9 @@ interface WhatsAppDispatchModalProps {
   phone: string;
   link: string;
   password?: string;
+  onboardingReqId?: string;
   onDone?: () => void;
+  onPasswordUpdated?: (newPassword: string) => void;
 }
 
 export function WhatsAppDispatchModal({
@@ -21,11 +24,23 @@ export function WhatsAppDispatchModal({
   phone,
   link,
   password = "",
+  onboardingReqId,
   onDone,
+  onPasswordUpdated,
 }: WhatsAppDispatchModalProps) {
+  const [currentPassword, setCurrentPassword] = useState(password);
   const [linkCopied, setLinkCopied] = useState(false);
   const [passwordCopied, setPasswordCopied] = useState(false);
   const [messageCopied, setMessageCopied] = useState(false);
+
+  // Custom password mode
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customPasswordInput, setCustomPasswordInput] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+
+  useEffect(() => {
+    setCurrentPassword(password);
+  }, [password]);
 
   if (!isOpen) return null;
 
@@ -47,14 +62,14 @@ export function WhatsAppDispatchModal({
   };
 
   const handleCopyPassword = async () => {
-    if (!password) return;
+    if (!currentPassword) return;
     try {
-      await navigator.clipboard.writeText(password);
+      await navigator.clipboard.writeText(currentPassword);
       setPasswordCopied(true);
       setTimeout(() => setPasswordCopied(false), 3000);
     } catch {
       const el = document.createElement("textarea");
-      el.value = password;
+      el.value = currentPassword;
       document.body.appendChild(el);
       el.select();
       document.execCommand("copy");
@@ -65,7 +80,7 @@ export function WhatsAppDispatchModal({
   };
 
   const handleCopyMessage = async () => {
-    const message = onboardingLinkWithPassword(link, password);
+    const message = onboardingLinkWithPassword(link, currentPassword);
     try {
       await navigator.clipboard.writeText(message);
       setMessageCopied(true);
@@ -82,8 +97,40 @@ export function WhatsAppDispatchModal({
     }
   };
 
+  const handleRegeneratePassword = async (customValue?: string) => {
+    if (!onboardingReqId) {
+      notify.error("Request ID not available for password regeneration");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const body = customValue ? JSON.stringify({ customPassword: customValue }) : undefined;
+      const res = await fetch(
+        `/api/warden/onboarding-requests/${onboardingReqId}/regenerate-password`,
+        {
+          method: "POST",
+          headers: body ? { "Content-Type": "application/json" } : undefined,
+          body,
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update password");
+
+      setCurrentPassword(data.tempPassword);
+      if (onPasswordUpdated) onPasswordUpdated(data.tempPassword);
+      setShowCustomInput(false);
+      setCustomPasswordInput("");
+      notify.success(customValue ? "Custom password updated successfully!" : "Fresh password key generated!");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      notify.error(msg || "Failed to update password");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleSendWhatsApp = () => {
-    const message = onboardingLinkWithPassword(link, password);
+    const message = onboardingLinkWithPassword(link, currentPassword);
     window.open(buildWaMeLink(phone, message), "_blank");
   };
 
@@ -135,10 +182,12 @@ export function WhatsAppDispatchModal({
                 <span className="font-semibold text-emerald-700 dark:text-emerald-400">🔗 Link:</span>{" "}
                 <span className="underline decoration-emerald-300 select-all">{link || `http://localhost:3000/onboarding?id=...`}</span>
               </div>
-              {password && (
-                <div className="text-zinc-700 dark:text-zinc-300">
-                  <span className="font-semibold text-emerald-700 dark:text-emerald-400">🔑 Access Password:</span>{" "}
-                  <span className="font-bold tracking-wider select-all">{password}</span>
+              {currentPassword && (
+                <div className="text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
+                  <div>
+                    <span className="font-semibold text-emerald-700 dark:text-emerald-400">🔑 Access Password:</span>{" "}
+                    <span className="font-bold tracking-wider select-all text-sm bg-emerald-100/60 dark:bg-emerald-900/40 px-1.5 py-0.5 rounded border border-emerald-300/50">{currentPassword}</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -190,7 +239,7 @@ export function WhatsAppDispatchModal({
 
           <button
             type="button"
-            disabled={!password}
+            disabled={!currentPassword}
             onClick={handleCopyPassword}
             className="py-2 px-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40"
           >
@@ -206,6 +255,56 @@ export function WhatsAppDispatchModal({
             )}
           </button>
         </div>
+
+        {/* PASSWORD REGENERATION & CUSTOM KEY TOOLBAR */}
+        {onboardingReqId && (
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <KeyRound className="h-3.5 w-3.5 text-zinc-500" />
+                Password Key Controls
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={() => handleRegeneratePassword()}
+                  className="px-2 py-1 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 text-zinc-700 dark:text-zinc-300 text-[11px] font-medium flex items-center gap-1 transition-colors"
+                >
+                  {actionLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3 text-zinc-500" />}
+                  ↻ New Key
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomInput(!showCustomInput)}
+                  className="px-2 py-1 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 text-zinc-700 dark:text-zinc-300 text-[11px] font-medium transition-colors"
+                >
+                  Set Custom Key
+                </button>
+              </div>
+            </div>
+
+            {showCustomInput && (
+              <div className="flex items-center gap-2 pt-1 animate-in fade-in duration-100">
+                <input
+                  type="text"
+                  placeholder="Enter custom password (min 4 chars)"
+                  value={customPasswordInput}
+                  onChange={(e) => setCustomPasswordInput(e.target.value)}
+                  className="flex-1 h-8 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+                <Button
+                  size="sm"
+                  disabled={actionLoading || customPasswordInput.trim().length < 4}
+                  onClick={() => handleRegeneratePassword(customPasswordInput.trim())}
+                  className="h-8 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs px-3 rounded-lg"
+                >
+                  {actionLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Action Bar */}
         <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2">

@@ -7,12 +7,22 @@ import { UserRole, OnboardingRequestStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
     const reqId = (await params).id;
+
+    let customPassword: string | undefined = undefined;
+    try {
+      const body = await request.json();
+      if (body && typeof body.customPassword === "string") {
+        customPassword = body.customPassword.trim();
+      }
+    } catch {
+      // Body may be empty on standard resend link calls
+    }
 
     const onboardingReq = await prisma.onboardingRequest.findUnique({
       where: { id: reqId },
@@ -36,14 +46,16 @@ export async function POST(
       );
     }
 
-    if (onboardingReq.onboardingCurrentStep !== null && onboardingReq.onboardingCurrentStep > 0) {
-      throw new ValidationError(
-        "Prospect has already started onboarding. Temp password is no longer valid."
-      );
+    let tempPassword = "";
+    if (customPassword) {
+      if (customPassword.length < 4) {
+        throw new ValidationError("Custom password must be at least 4 characters");
+      }
+      tempPassword = customPassword;
+    } else {
+      tempPassword = randomBytes(6).toString("base64url").slice(0, 8);
     }
 
-    // Generate new temp password
-    const tempPassword = randomBytes(6).toString("base64url").slice(0, 10);
     const tempPasswordHash = createHash("sha256").update(tempPassword).digest("hex");
 
     await prisma.onboardingRequest.update({

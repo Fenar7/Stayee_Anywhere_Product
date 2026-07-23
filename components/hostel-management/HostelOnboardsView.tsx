@@ -76,6 +76,7 @@ export default function HostelOnboardsView({
 
   // Dispatch modal
   const [dispatchModal, setDispatchModal] = useState<{
+    onboardingReqId: string;
     phone: string;
     link: string;
     password?: string;
@@ -124,6 +125,7 @@ export default function HostelOnboardsView({
       
       const fullLink = `${window.location.origin}${data.entryGateLink}`;
       setDispatchModal({
+        onboardingReqId,
         phone,
         link: fullLink,
         password: data.tempPassword,
@@ -516,6 +518,7 @@ export default function HostelOnboardsView({
       <WhatsAppDispatchModal
         isOpen={!!dispatchModal}
         onClose={() => setDispatchModal(null)}
+        onboardingReqId={dispatchModal?.onboardingReqId}
         phone={dispatchModal?.phone || ""}
         link={dispatchModal?.link || ""}
         password={dispatchModal?.password}

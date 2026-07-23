@@ -49,6 +49,10 @@ This PR addresses critical operational and security enhancements in the Stayee A
 - **Null-Safe Open-Ended Stay Date Formatting:**
   - Updated `formatDate` helper across admin/warden onboarding views to render `23 Jul 2026 (Ongoing)` instead of Unix epoch fallback `01 Jan 1970` when `endDate` is `null`.
 - **Direct Copy Link Action (`OnboardDetailsPageView.tsx`):** Added a dedicated 1-click **`Copy Link`** action button alongside **`Resend Link via WhatsApp`** on the onboarding details page, enabling wardens/admins to instantly copy the direct tenant entry link (`/onboarding?id=[requestId]`).
+- **Password Regeneration & Custom Key Reset During `Filling Form` (`app/api/warden/onboarding-requests/[id]/regenerate-password` & `WhatsAppDispatchModal.tsx`):**
+  - Removed strict step guard (`onboardingCurrentStep > 0`), enabling wardens and admins to re-issue or reset access passwords for tenants at any stage while onboarding is pending (including `Filling Form`).
+  - Added support for custom password overrides (`{ customPassword: "string" }`), allowing wardens to assign memorable passwords for prospects.
+  - Added live **"🔑 Password Key Controls"** toolbar inside `<WhatsAppDispatchModal />` featuring 1-click **"↻ New Key"** generation and an inline **"Set Custom Key"** input with real-time WhatsApp message preview updating.
 - **Tenant Entry Gate Smart Phone Auto-Fill (`app/onboarding/page.tsx`):**
   - When the tenant opens their unique onboarding link (`/onboarding?id=[requestId]`), the page automatically fetches the onboarding request metadata (`GET /api/public/onboarding/[id]`) and **pre-fills their registered phone number** with a green `✓ Auto-filled` badge.
   - The tenant is greeted with a tailored badge showing their assigned hostel and room/bed, requiring them only to enter their Access Password to enter the onboarding gate.

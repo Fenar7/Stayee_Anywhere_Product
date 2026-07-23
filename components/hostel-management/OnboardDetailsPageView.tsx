@@ -107,6 +107,7 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
 
   // Dispatch modal
   const [dispatchModal, setDispatchModal] = useState<{
+    onboardingReqId: string;
     phone: string;
     link: string;
     password?: string;
@@ -185,6 +186,7 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
       
       const fullLink = `${window.location.origin}${data.entryGateLink}`;
       setDispatchModal({
+        onboardingReqId: stay.onboardingRequest.id,
         phone: tenant?.phone || "",
         link: fullLink,
         password: data.tempPassword,
@@ -961,6 +963,7 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
       <WhatsAppDispatchModal
         isOpen={!!dispatchModal}
         onClose={() => setDispatchModal(null)}
+        onboardingReqId={dispatchModal?.onboardingReqId}
         phone={dispatchModal?.phone || ""}
         link={dispatchModal?.link || ""}
         password={dispatchModal?.password}
