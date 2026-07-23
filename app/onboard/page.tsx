@@ -295,18 +295,20 @@ function OnboardContent() {
     }
   };
 
-  const handleIdDocUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleIdDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert("File size must be less than 5MB");
+      if (file.size > 10 * 1024 * 1024) {
+        alert("File size must be less than 10MB");
         return;
       }
-      setIdDocFile(file);
       if (file.type.startsWith("image/")) {
-        setIdDocPreview(URL.createObjectURL(file));
+        const compressed = await compressImageInBrowser(file, 1600, 1600, 0.85);
+        setIdDocFile(compressed);
+        setIdDocPreview(URL.createObjectURL(compressed));
       } else {
-        setIdDocPreview(null); // PDF preview fallback
+        setIdDocFile(file); // PDFs uploaded directly
+        setIdDocPreview(null);
       }
     }
   };
