@@ -103,6 +103,16 @@ export async function POST(
       throw new ConflictError("This onboarding request is no longer active");
     }
 
+    // If tenant updated their password in Step 1, sync password hash immediately
+    if (data?.password && typeof data.password === "string" && data.password.length >= 8) {
+      const { createHash } = await import("crypto");
+      const newHash = createHash("sha256").update(data.password).digest("hex");
+      await prisma.onboardingRequest.update({
+        where: { id },
+        data: { tempPasswordHash: newHash },
+      });
+    }
+
     // Preserve highest step reached
     const nextStep = Math.max(onboardingRequest.onboardingCurrentStep, step);
     await prisma.onboardingRequest.update({

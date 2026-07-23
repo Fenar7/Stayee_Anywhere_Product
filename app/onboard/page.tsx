@@ -4,7 +4,17 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/ui/phone-input";
-import { Loader2, Camera, Upload, AlertCircle, CheckCircle, ArrowLeft, ArrowRight, Shield, User, Briefcase, FileText } from "lucide-react";
+import { Loader2, Camera, Upload, AlertCircle, CheckCircle, ArrowLeft, ArrowRight, Shield, User, Briefcase, FileText, RotateCcw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface OnboardingData {
   id: string;
@@ -25,6 +35,8 @@ function OnboardContent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Metadata from onboarding request
   const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(null);
@@ -200,6 +212,47 @@ function OnboardContent() {
     setIsCameraActive(false);
   };
 
+  const handleResetDraft = async () => {
+    if (!requestId) return;
+    setResetting(true);
+    try {
+      const res = await fetch(`/api/public/onboarding/${requestId}/reset`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        setFullName("");
+        setDateOfBirth("");
+        setGender("MALE");
+        setPlaceOfBirth("");
+        setPermanentAddress("");
+        setEmergencyContactName("");
+        setRelationship("");
+        setEmergencyContactNumber("");
+        setParentGuardianName("");
+        setParentGuardianContact("");
+        setEmail("");
+        setPassword("");
+        setConfirmPassword("");
+        setOccupationType("STUDENT");
+        setCollegeName("");
+        setCourseOrBranch("");
+        setCompanyName("");
+        setDesignation("");
+        setPurposeOfStay("Hostel Accommodation");
+        setPhotoFile(null);
+        setPhotoPreview(null);
+        setIdDocFile(null);
+        setIdDocPreview(null);
+        setStep(1);
+        setShowResetConfirm(false);
+      }
+    } catch (err) {
+      console.error("Draft reset failed:", err);
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
@@ -311,7 +364,9 @@ function OnboardContent() {
         const progressData: Record<string, unknown> = { step: step + 1, data: {} };
         const data = progressData.data as Record<string, unknown>;
 
-        if (step === 2) {
+        if (step === 1) {
+          data.password = password;
+        } else if (step === 2) {
           data.fullName = fullName;
           data.dateOfBirth = dateOfBirth;
           data.gender = gender;
@@ -477,20 +532,32 @@ function OnboardContent() {
               Hostel: <span className="font-semibold text-foreground">{onboardingData?.hostelName}</span> &middot; Bed: <span className="font-semibold text-foreground">{onboardingData?.bedLabel}</span>
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <div
-                key={s}
-                className={`h-2.5 rounded-full transition-all duration-300 ${
-                  s === step
-                    ? "w-8 bg-primary"
-                    : s < step
-                    ? "w-4 bg-primary/60"
-                    : "w-2.5 bg-muted"
-                }`}
-              />
-            ))}
-            <span className="text-xs font-semibold ml-2 text-muted-foreground">Step {step} of 5</span>
+          <div className="flex flex-col items-end gap-1.5">
+            <div className="flex items-center gap-2">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <div
+                  key={s}
+                  className={`h-2.5 rounded-full transition-all duration-300 ${
+                    s === step
+                      ? "w-8 bg-primary"
+                      : s < step
+                      ? "w-4 bg-primary/60"
+                      : "w-2.5 bg-muted"
+                  }`}
+                />
+              ))}
+              <span className="text-xs font-semibold ml-2 text-muted-foreground">Step {step} of 5</span>
+            </div>
+            {step > 1 && (
+              <button
+                type="button"
+                onClick={() => setShowResetConfirm(true)}
+                className="text-[11px] font-medium text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 flex items-center gap-1 hover:underline transition-colors mt-0.5"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Clear Draft & Start Fresh
+              </button>
+            )}
           </div>
         </div>
 
@@ -975,6 +1042,28 @@ function OnboardContent() {
           )}
         </div>
       </div>
+
+      <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear Draft & Restart Onboarding?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will wipe all your saved draft inputs (name, address, emergency contacts) and reset your onboarding progress back to Step 1. Are you sure?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resetting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetDraft}
+              disabled={resetting}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+            >
+              {resetting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+              Yes, Clear & Start Fresh
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
