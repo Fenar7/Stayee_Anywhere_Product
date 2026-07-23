@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, Check, Copy, Eye, Clock, Key } from "lucide-react";
+import { Loader2, ArrowRight, Check, Copy, Eye, Clock, Key, Send } from "lucide-react";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { notify } from "@/lib/toast";
@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
+import { WhatsAppDispatchModal } from "./WhatsAppDispatchModal";
 
 interface OnboardItem {
   id: string;
@@ -73,6 +74,14 @@ export default function HostelOnboardsView({
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
 
+  // Dispatch modal
+  const [dispatchModal, setDispatchModal] = useState<{
+    phone: string;
+    link: string;
+    password?: string;
+  } | null>(null);
+  const [dispatchLoadingId, setDispatchLoadingId] = useState<string | null>(null);
+
   // Password modal
   const [passwordModal, setPasswordModal] = useState<{
     onboardingReqId: string;
@@ -100,6 +109,30 @@ export default function HostelOnboardsView({
       notify.error(errorMsg || "An error occurred while loading lists");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendLink = async (onboardingReqId: string, phone: string) => {
+    setDispatchLoadingId(onboardingReqId);
+    try {
+      const res = await fetch(
+        `/api/warden/onboarding-requests/${onboardingReqId}/regenerate-password`,
+        { method: "POST" }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to get onboarding link");
+      
+      const fullLink = `${window.location.origin}${data.entryGateLink}`;
+      setDispatchModal({
+        phone,
+        link: fullLink,
+        password: data.tempPassword,
+      });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred");
+    } finally {
+      setDispatchLoadingId(null);
     }
   };
 
@@ -265,9 +298,16 @@ export default function HostelOnboardsView({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleViewPassword(item.onboardingRequest!.id, item.tenant.phone)}
+                          disabled={dispatchLoadingId === item.onboardingRequest.id}
+                          className="border-emerald-200 bg-emerald-50/50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                          onClick={() => handleResendLink(item.onboardingRequest!.id, item.tenant.phone)}
                         >
-                          <Key className="h-4 w-4 mr-1" /> Key
+                          {dispatchLoadingId === item.onboardingRequest.id ? (
+                            <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin text-emerald-600" />
+                          ) : (
+                            <Send className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
+                          )}
+                          Resend Link
                         </Button>
                       )}
                       {item.status === "ONBOARDING_PENDING" && (
@@ -473,6 +513,13 @@ export default function HostelOnboardsView({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <WhatsAppDispatchModal
+        isOpen={!!dispatchModal}
+        onClose={() => setDispatchModal(null)}
+        phone={dispatchModal?.phone || ""}
+        link={dispatchModal?.link || ""}
+        password={dispatchModal?.password}
+      />
     </HostelWorkspaceLayout>
   );
 }

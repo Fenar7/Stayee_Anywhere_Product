@@ -48,7 +48,10 @@ This PR addresses critical operational and security enhancements in the Stayee A
   - Distinguishes between 3 live stages: **`Link Sent`** (link generated, tenant has not opened it), **`Filling Form`** (tenant opened link, entered password, actively filling out form), and **`Pending Review`** (tenant completed form, awaiting warden review).
 - **Null-Safe Open-Ended Stay Date Formatting:**
   - Updated `formatDate` helper across admin/warden onboarding views to render `23 Jul 2026 (Ongoing)` instead of Unix epoch fallback `01 Jan 1970` when `endDate` is `null`.
-### D. Stripe & Linear Fintech Onboarding Studio Redesign (`components/hostel-management/HostelOnboardView.tsx`)
+- **Resend Onboarding Link Action & Reusable Dispatch Studio (`WhatsAppDispatchModal.tsx`, `app/admin/onboards/page.tsx`, `HostelOnboardsView.tsx`):**
+  - Extracted the handcrafted WhatsApp Chat Bubble Dispatch Studio into a modular component (`<WhatsAppDispatchModal />`).
+  - Added a primary **`Resend Link`** action button in the Onboarding Portfolio tables for all pending applications (`Link Sent` or `Filling Form`).
+  - 1-Click action fetches active onboarding credentials via `/api/warden/onboarding-requests/[id]/regenerate-password` and launches the WhatsApp Chat Bubble modal for instant WhatsApp dispatch or key copying.
 - **Authentic WhatsApp Chat Bubble Preview & Dispatch Studio:** Completely redesigned the auto-dispatch modal to feature an authentic WhatsApp Chat Bubble preview (`bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 rounded-2xl rounded-tl-xs p-4`) showing live template message text, link styling, access key highlights, and timestamp (`Just now · WhatsApp`). Paired with a 3-way quick-copy toolbar (`Copy Message`, `Copy Link`, `Copy Key`) and an emerald brand CTA (`Send via WhatsApp ↗`).
 - **Linear Connected Step Node Track:** Replaced cluttered step pills with a sleek connected track line featuring circular step nodes `(1)` ➔ `(2)` ➔ `(3)` ➔ `(4)` ➔ `(5)`. Completed steps display glowing emerald `✓` checkmark circles with instant step-jump navigation.
 - **Contextual Top-Left Back Action:** Added a contextual top back button (`← Back to [Previous Step Name]`) enabling effortless reverse navigation without scrolling down.
