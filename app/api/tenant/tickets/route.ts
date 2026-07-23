@@ -8,7 +8,10 @@ import { z } from "zod";
 const ticketSchema = z.object({
   title: z.string().min(5).max(100),
   description: z.string().min(10).max(1000),
-  priority: z.enum(["LOW", "NORMAL", "HIGH", "CRITICAL"]).default("NORMAL"),
+  priority: z.preprocess(
+    (val) => (val === "URGENT" ? "CRITICAL" : val),
+    z.enum(["LOW", "NORMAL", "HIGH", "CRITICAL"]).default("NORMAL")
+  ),
   category: z.enum(["MAINTENANCE", "CLEANING", "ELECTRICAL", "PLUMBING", "OTHER"]).default("OTHER"),
 });
 
