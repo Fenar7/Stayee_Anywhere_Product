@@ -37,6 +37,92 @@ const EVENT_COLORS: Record<ActivityEventType, string> = {
   SERVICE_REQUEST_RESOLVED: "#18b92b",
 };
 
+function formatActivityHeader(item: ActivityLog): { text: string; color: string; badge?: string; badgeColor?: string } {
+  const meta: any = item.metadata || {};
+  const newStatus = meta.newStatus || meta.status;
+
+  switch (item.eventType) {
+    case "TICKET_STATUS_UPDATED": {
+      if (newStatus === "RESOLVED") {
+        return {
+          text: `${item.actorName} resolved ticket`,
+          color: "#10b981",
+          badge: "RESOLVED",
+          badgeColor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+        };
+      }
+      if (newStatus === "CLOSED") {
+        return {
+          text: `${item.actorName} closed ticket`,
+          color: "#ef4444",
+          badge: "CLOSED",
+          badgeColor: "bg-red-500/10 text-red-600 border-red-500/20"
+        };
+      }
+      if (newStatus === "IN_PROGRESS") {
+        return {
+          text: `${item.actorName} updated ticket to IN PROGRESS`,
+          color: "#f59e0b",
+          badge: "IN_PROGRESS",
+          badgeColor: "bg-amber-500/10 text-amber-600 border-amber-500/20"
+        };
+      }
+      if (newStatus === "OPEN") {
+        return {
+          text: `${item.actorName} reopened ticket`,
+          color: "#3b82f6",
+          badge: "OPEN",
+          badgeColor: "bg-blue-500/10 text-blue-600 border-blue-500/20"
+        };
+      }
+      return {
+        text: `${item.actorName} updated ticket status`,
+        color: "#e1a918",
+        badge: newStatus || "UPDATED",
+        badgeColor: "bg-amber-500/10 text-amber-600 border-amber-500/20"
+      };
+    }
+    case "TICKET_RAISED": {
+      return {
+        text: `${item.actorName} raised ticket`,
+        color: "#ef4444",
+        badge: "RAISED",
+        badgeColor: "bg-red-500/10 text-red-600 border-red-500/20"
+      };
+    }
+    case "TICKET_COMMENT_ADDED": {
+      return {
+        text: `${item.actorName} replied on ticket`,
+        color: "#3b82f6",
+        badge: "REPLY",
+        badgeColor: "bg-blue-500/10 text-blue-600 border-blue-500/20"
+      };
+    }
+    case "TENANT_ONBOARDED": {
+      return {
+        text: `${item.actorName} onboarded tenant`,
+        color: "#285bc7",
+        badge: "ONBOARDED",
+        badgeColor: "bg-blue-500/10 text-blue-600 border-blue-500/20"
+      };
+    }
+    case "TENANT_PAYMENT_RECEIVED": {
+      return {
+        text: `${item.actorName} payment received`,
+        color: "#18b92b",
+        badge: "PAID",
+        badgeColor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+      };
+    }
+    default: {
+      return {
+        text: `${item.actorName} ${item.eventType.replace(/_/g, " ").toLowerCase()}`,
+        color: EVENT_COLORS[item.eventType] || "#767676"
+      };
+    }
+  }
+}
+
 export function ActivityLogPageClient({ role, organizationId, hostelId: initialHostelId, showStandaloneHeader = true }: ActivityLogPageClientProps) {
   const [items, setItems] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -214,93 +300,6 @@ export function ActivityLogPageClient({ role, organizationId, hostelId: initialH
           )}
         </div>
       </div>
-
-function formatActivityHeader(item: ActivityLog): { text: string; color: string; badge?: string; badgeColor?: string } {
-  const meta: any = item.metadata || {};
-  const newStatus = meta.newStatus || meta.status;
-
-  switch (item.eventType) {
-    case "TICKET_STATUS_UPDATED": {
-      if (newStatus === "RESOLVED") {
-        return {
-          text: `${item.actorName} resolved ticket`,
-          color: "#10b981",
-          badge: "RESOLVED",
-          badgeColor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-        };
-      }
-      if (newStatus === "CLOSED") {
-        return {
-          text: `${item.actorName} closed ticket`,
-          color: "#ef4444",
-          badge: "CLOSED",
-          badgeColor: "bg-red-500/10 text-red-600 border-red-500/20"
-        };
-      }
-      if (newStatus === "IN_PROGRESS") {
-        return {
-          text: `${item.actorName} updated ticket to IN PROGRESS`,
-          color: "#f59e0b",
-          badge: "IN_PROGRESS",
-          badgeColor: "bg-amber-500/10 text-amber-600 border-amber-500/20"
-        };
-      }
-      if (newStatus === "OPEN") {
-        return {
-          text: `${item.actorName} reopened ticket`,
-          color: "#3b82f6",
-          badge: "OPEN",
-          badgeColor: "bg-blue-500/10 text-blue-600 border-blue-500/20"
-        };
-      }
-      return {
-        text: `${item.actorName} updated ticket status`,
-        color: "#e1a918",
-        badge: newStatus || "UPDATED",
-        badgeColor: "bg-amber-500/10 text-amber-600 border-amber-500/20"
-      };
-    }
-    case "TICKET_RAISED": {
-      return {
-        text: `${item.actorName} raised ticket`,
-        color: "#ef4444",
-        badge: "RAISED",
-        badgeColor: "bg-red-500/10 text-red-600 border-red-500/20"
-      };
-    }
-    case "TICKET_COMMENT_ADDED": {
-      return {
-        text: `${item.actorName} replied on ticket`,
-        color: "#3b82f6",
-        badge: "REPLY",
-        badgeColor: "bg-blue-500/10 text-blue-600 border-blue-500/20"
-      };
-    }
-    case "TENANT_ONBOARDED": {
-      return {
-        text: `${item.actorName} onboarded tenant`,
-        color: "#285bc7",
-        badge: "ONBOARDED",
-        badgeColor: "bg-blue-500/10 text-blue-600 border-blue-500/20"
-      };
-    }
-    case "TENANT_PAYMENT_RECEIVED": {
-      return {
-        text: `${item.actorName} payment received`,
-        color: "#18b92b",
-        badge: "PAID",
-        badgeColor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-      };
-    }
-    default: {
-      return {
-        text: `${item.actorName} ${item.eventType.replace(/_/g, " ").toLowerCase()}`,
-        color: EVENT_COLORS[item.eventType] || "#767676"
-      };
-    }
-  }
-}
-
       {/* Feed List */}
       <div className="premium-card flex flex-col overflow-hidden min-h-[500px]">
         {loading ? (
