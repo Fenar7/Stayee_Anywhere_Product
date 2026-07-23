@@ -53,7 +53,8 @@ This PR addresses critical operational and security enhancements in the Stayee A
   - When Wardens click "Resend Link", the system retrieves current link metadata without destructively overwriting the tenant's password hash in the database.
 - **Tenant Password Security Badge & Explicit Warden Reset (`WhatsAppDispatchModal.tsx` & `templates.ts`):**
   - In accordance with 1-way password hashing security standards, once a tenant sets their custom password in Step 1 (`onboardingCurrentStep >= 1`), the Admin Panel & WhatsApp Dispatch Modal display: **`Access Password: Set by Tenant (Encrypted)`**.
-  - Provides a direct **`🔑 Reset Tenant Password`** action button in the modal toolbar allowing Wardens to re-assign a new passcode or custom key (`POST .../regenerate-password`) whenever requested by the tenant.
+  - The `Copy Key` toolbar button dynamically changes to **`Key Encrypted`** and is disabled with a helpful tooltip (*"Tenant set their own password during onboarding (Encrypted). Use 'Set Custom Key' below to reset if needed."*).
+  - Provides direct **`↻ New Key`** and **`Set Custom Key`** action buttons in the modal toolbar allowing Wardens to re-assign a new passcode or custom key (`POST .../regenerate-password`) whenever requested by the tenant, immediately enabling `Copy Key` for the new passcode.
 - **"Clear Draft & Start Fresh" Reset Feature (`app/api/public/onboarding/[id]/reset/route.ts` & `app/onboard/page.tsx`):**
   - Added a dedicated **"Clear Draft & Start Fresh"** button in the onboarding wizard header for returning tenants on steps > 1.
   - Paired with an `AlertDialog` confirmation modal and a new backend endpoint (`POST /api/public/onboarding/[id]/reset`), enabling returning prospects to wipe draft inputs and restart clean from Step 1 whenever desired.

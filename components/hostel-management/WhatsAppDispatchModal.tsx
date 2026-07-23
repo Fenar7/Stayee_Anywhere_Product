@@ -247,14 +247,20 @@ export function WhatsAppDispatchModal({
 
           <button
             type="button"
-            disabled={!currentPassword}
+            disabled={!currentPassword || currentPassword === "Set by Tenant (Encrypted)"}
             onClick={handleCopyPassword}
-            className="py-2 px-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40"
+            className="py-2 px-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title={currentPassword === "Set by Tenant (Encrypted)" ? "Tenant set their own password during onboarding (Encrypted). Use 'Set Custom Key' below to reset if needed." : "Copy Access Password Key"}
           >
             {passwordCopied ? (
               <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
                 <Check className="h-3 w-3" /> Key Copied
               </span>
+            ) : currentPassword === "Set by Tenant (Encrypted)" ? (
+              <>
+                <Lock className="h-3 w-3 text-zinc-400" />
+                <span className="text-zinc-500">Key Encrypted</span>
+              </>
             ) : (
               <>
                 <Lock className="h-3 w-3 text-zinc-400" />
